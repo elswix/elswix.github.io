@@ -1,0 +1,19 @@
+h3 {
+    color: #e99420;
+}
+
+
+code {
+    color: #f3cbcb;
+}
+
+img {
+    max-width: 100%; /* Establece un ancho máximo para las imágenes */
+    height: auto; /* Mantiene la relación de aspecto de las imágenes */
+}
+
+nav ul {
+    list-style: none;
+    text-align: center;
+    margin-left: 310px;
+}

