@@ -8,12 +8,46 @@ code {
 }
 
 img {
-    max-width: 100%; /* Establece un ancho máximo para las imágenes */
-    height: auto; /* Mantiene la relación de aspecto de las imágenes */
+    max-width: 100%; 
+    height: auto; 
 }
 
 nav ul {
     list-style: none;
     text-align: center;
     margin-left: 310px;
+}
+
+
+@media (max-width: 768px) {
+
+    body {
+        font-size: 16px;
+    }
+
+
+    .writeup-content-main {
+        margin-left: 0%; 
+        padding: 5px;
+    }
+
+    img {
+        max-width: 100%;
+        height: auto;
+    }
+
+
+    h3 {
+        font-size: 24px;
+    }
+
+    code {
+        font-size: 14px;
+    }
+
+    nav ul {
+        margin-left: 0; 
+    }
+
+
 }

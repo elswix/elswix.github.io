@@ -204,6 +204,37 @@ pre code {
     color: #f3c07e;
 }
 
+@media (max-width: 768px) {
+    .about-content {
+        padding: 10px; /* Reduce el padding para dispositivos móviles */
+    }
+
+    .profile-image-circle {
+        width: 150px; 
+        height: 150px;
+        margin-right: 10px; 
+        float: none; 
+        display: block; 
+        margin: 0 auto; 
+    }
+
+    .social-image-circle {
+        width: 20px; 
+        height: 20px;
+        margin-right: 5px;
+    }
+
+    .profile p {
+        margin-top: 15px;
+        font-size: 16px; 
+        line-height: 1.6;
+        margin-bottom: 10px; 
+    }
+
+    .social-links {
+        gap: 15px; 
+    }
+}
 
 .writeup-panel {
     background-color: #222;
@@ -255,6 +286,14 @@ pre code {
 }
 
 
+@media (max-width: 768px) {
+    .writeup-panel {
+        display: none;
+    }
+    body {
+        font-size: 16px; 
+    }
+}
 
 footer {
     background-color: #9a0303; 
