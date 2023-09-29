@@ -16,6 +16,13 @@ nav ul {
     list-style: none;
     text-align: center;
     margin-left: 310px;
+    opacity: 0.2;
+}
+
+nav ul:hover {
+    color: #f7a2a2;
+    opacity: 1.0;
+    text-decoration: none;
 }
 
 
@@ -36,6 +43,10 @@ nav ul {
         height: auto;
     }
 
+    a:hover {
+        color: #f3c07e;
+        text-decoration: underline;
+    }
 
     h3 {
         font-size: 24px;
@@ -46,8 +57,11 @@ nav ul {
     }
 
     nav ul {
-        margin-left: 0; 
+       list-style: none;
+       text-align: center;
+       margin-left: 25px;
+       font-size: 14px;
+       opacity: 0.5;
     }
-
 
 }

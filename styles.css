@@ -7,7 +7,7 @@
 
 body {
     font-family: Arial, sans-serif;
-    background-color: #323232;
+    background-color: #222;
     color: #fff;
 }
 
@@ -23,29 +23,41 @@ a {
 }
 
 a:hover {
-    color: #f3c07e;
-    text-decoration: underline;
+    color: #f7a2a2;
+    opacity: 1.0;
+    text-decoration: none;
 }
+
 
 h3 {
     color: #fff;
 }
 
 header {
-    background-color: #9a0303; 
-    padding: 10px 0;
+    padding: 10px;
+    align-items: center; 
+    position: fixed;
+    width: 100%;
+
 }
 
 .active {
     text-decoration: none; 
     font-weight: bold; 
-    color: #fa9e5a;
+    overflow-x: auto;
+    color: #ee4444;
 }
 
 
 nav ul {
     list-style: none;
+    font-size: 16px;
     text-align: center;
+    opacity: 1.0;
+}
+
+.inactive {
+    opacity: 0.5;
 }
 
 nav ul li {
@@ -103,7 +115,7 @@ nav ul li a {
 }
 
 .writeup {
-    background-color: #464646; 
+    background-color: #323232;
     padding: 20px;
     margin-bottom: 30px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -157,7 +169,7 @@ pre code {
 
 
 .about-content {
-    padding: 20px;
+    padding: 50px;
     background-color: #2a2a2a;
     color: #fff;
 }
@@ -206,7 +218,13 @@ pre code {
 
 @media (max-width: 768px) {
     .about-content {
-        padding: 10px; /* Reduce el padding para dispositivos móviles */
+        padding: 10px; 
+    }
+
+    nav ul {
+        list-style: none;
+        font-size: 14px;
+        text-align: center;
     }
 
     .profile-image-circle {
@@ -234,10 +252,16 @@ pre code {
     .social-links {
         gap: 15px; 
     }
+
+    nav ul {
+     list-style: none;
+     text-align: center;
+     margin-left: 25px;
+    }
 }
 
 .writeup-panel {
-    background-color: #222;
+    background-color: #323232;
     padding: 20px;
     width: 25%; 
     position: fixed;
@@ -299,4 +323,5 @@ footer {
     background-color: #9a0303; 
     text-align: center;
     padding: 10px 0;
+
 }
