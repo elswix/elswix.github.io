@@ -26,6 +26,14 @@ nav ul:hover {
 }
 
 
+footer {
+    background-color: #9a0303; 
+    text-align: center;
+    margin-left: 310px;
+    padding: 10px 0;
+
+}
+
 @media (max-width: 768px) {
 
     body {
