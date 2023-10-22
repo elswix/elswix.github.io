@@ -145,6 +145,7 @@ nav ul li a {
 
 
 pre {
+    border-radius: 10px;
     background-color: #252525;
     border: 1px solid #252525;
     border-left: 3px solid #d32f2f;
