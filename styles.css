@@ -172,7 +172,7 @@ pre code {
 
 .about-content {
     padding: 50px;
-    background-color: #2a2a2a;
+    background-color: #222;
     color: #fff;
 }
 
@@ -328,4 +328,14 @@ footer {
     text-align: center;
     padding: 10px 0;
 
+}
+
+.about-footer {
+    background-color: #9a0303; 
+    text-align: center;
+    padding: 10px 0;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    position: fixed;
 }
