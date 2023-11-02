@@ -32,10 +32,17 @@ footer {
     text-align: center;
     margin-left: 310px;
     padding: 10px 0;
-
 }
 
 @media (max-width: 768px) {
+
+    footer {
+      background-color: #9a0303; 
+      text-align: center;
+      padding: 10px 0;
+      margin-left: 0px;
+
+    }
 
     body {
         font-size: 16px;
@@ -44,6 +51,7 @@ footer {
 
     .writeup-content-main {
         margin-left: 0%; 
+        margin-top: 15px;
         padding: 5px;
     }
 
@@ -72,5 +80,6 @@ footer {
        font-size: 14px;
        opacity: 0.5;
     }
+
 
 }
