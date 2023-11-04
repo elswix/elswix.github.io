@@ -122,14 +122,24 @@ nav ul li a {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
+.writeup img {
+    width: 105px;
+    height: 105px;
+    margin-right: 20px;
+    margin-bottom: 10px;
+    float: left;
+}
+
 .writeup h3 {
     font-size: 24px;
+    margin-left: 125px;
     margin-bottom: 10px;
 }
 
 .writeup p {
     font-size: 16px;
     line-height: 1.5;
+    margin-left: 125px;
     margin-bottom: 20px;
 }
 
