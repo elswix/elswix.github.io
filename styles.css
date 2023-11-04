@@ -233,6 +233,26 @@ pre code {
         padding: 10px; 
     }
 
+    .writeup h3 {
+        margin-top: 10px;
+        margin-left: 0px;
+        text-align: center;
+    }
+
+    .writeup p {
+        margin-left: 0px;
+    }
+
+    .writeup img {
+        width: 105px;
+        height: 105px;
+        margin-right: 20px;
+        float: none; 
+        display: block; 
+        margin: 0 auto; 
+        
+    }
+
     nav ul {
         list-style: none;
         font-size: 14px;
