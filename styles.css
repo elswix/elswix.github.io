@@ -290,6 +290,10 @@ pre code {
      text-align: center;
      margin-left: 25px;
     }
+
+    .about-footer {
+       display: none;
+    }
 }
 
 .writeup-panel {
