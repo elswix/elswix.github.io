@@ -31,10 +31,10 @@
                 </ul>
             </div>
             <div class="writeup-content-main">
-                <div class="highlight"><pre><span></span><span class="n">Machine</span><span class="p">:</span> <span class="n">Busqueda</span>
-<span class="n">Difficult</span><span class="p">:</span> <span class="n">Easy</span>
-<span class="n">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
-<span class="n">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">04</span><span class="o">/</span><span class="mi">08</span><span class="o">/</span><span class="mi">2023</span>
+                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Busqueda</span>
+<span class="k">Difficulty</span><span class="p">:</span> <span class="n">Easy</span>
+<span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
+<span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">04</span><span class="o">/</span><span class="mi">08</span><span class="o">/</span><span class="mi">2023</span>
 </pre></div>
 
 Busqueda is a platform that provides a website offering links to various web pages based on user input. Behind the scenes, it utilizes the Python Searchor command line tool. In this scenario, I identify an unsafe eval vulnerability and exploit it to gain code execution privileges. On the host system, users have the option to execute a Python script using sudo, but the script's content remains hidden. My approach involves discovering a virtual host associated with Gitea and leveraging this discovery, in conjunction with different login credentials, to eventually locate the source code of the script. This enables me to determine how to execute it in a way that grants arbitrary root-level access.<br/><br/>
