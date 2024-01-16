@@ -1,6 +1,19 @@
 h3 {
-    color: #e99420;
+    color: #3dbae9;
 }
+
+
+a {
+    color: #66d9ef;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #b6e1f1;
+    opacity: 1.0;
+    text-decoration: none;
+}
+
 
 
 code {

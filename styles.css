@@ -18,7 +18,7 @@ body {
 }
 
 a {
-    color: #ff8f00;
+    color: #d5d5d5;
     text-decoration: none;
 }
 
@@ -83,7 +83,7 @@ nav ul li a {
 .hero {
     background-size: cover;
     background-position: center;
-    color: #e99420;
+    color: #d32f2f;
     text-align: center;
     padding: 100px 0;
 }
@@ -102,8 +102,7 @@ nav ul li a {
 .btn {
     display: inline-block;
     padding: 10px 20px;
-    background-color: #d32f2f; 
-    color: #fff;
+    background-color: #323232; 
     text-decoration: none;
     border-radius: 5px;
     font-weight: bold;
@@ -156,9 +155,8 @@ nav ul li a {
 
 pre {
     border-radius: 10px;
-    background-color: #252525;
+    background-color: #292928;
     border: 1px solid #252525;
-    border-left: 3px solid #d32f2f;
     color: #c9c9c9;
     page-break-inside: avoid;
     font-family: Consolas, Monaco, "Courier New", monospace;

