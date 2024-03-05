@@ -193,6 +193,13 @@ pre code {
     float: left;
 }
 
+.index-logo {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    
+}
+
 .social-image-circle {
     width: 25px;
     height: 25px;
