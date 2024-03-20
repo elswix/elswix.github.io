@@ -113,6 +113,10 @@ nav ul li a {
     padding: 50px 0;
 }
 
+.latest-writeups {
+    padding: 5px 0;
+}
+
 .writeup {
     background-color: #323232;
     border-radius: 10px;
@@ -149,6 +153,43 @@ nav ul li a {
 }
 
 .writeup a:hover{
+    color: #f06d6d;
+}
+
+
+.articles {
+    background-color: #323232;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.articles img {
+    width: 105px;
+    height: 105px;
+    margin-bottom: 10px;
+    float: left;
+}
+
+.articles h3 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+.articles p {
+    font-size: 16px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.articles a {
+    color: #e94545;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.articles a:hover{
     color: #f06d6d;
 }
 
@@ -347,6 +388,12 @@ pre code {
 
 .writeup-content-main {
     margin-left: 25%; 
+    padding: 20px;
+    line-height: 1.5;
+    color: #fff;
+}
+
+.article-content-main { 
     padding: 20px;
     line-height: 1.5;
     color: #fff;
