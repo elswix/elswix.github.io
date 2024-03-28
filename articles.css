@@ -32,13 +32,20 @@ a:hover {
 }
 
 
-strong {
-    color: #AAEA66;
+code {
+  color: rgba(14, 210, 247, 0.9) !important;
 }
 
-code {
-    color: #f3cbcb;
+
+strong {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  padding: 0;
+  color: #7aa2f7;
+  background-color: #7aa2f7;
+  background-image: linear-gradient(62deg, #87c2fd 0%, #dcb9fc 100%) !important;
 }
+
 
 img {
     max-width: 75%; 
