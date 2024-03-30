@@ -57,6 +57,17 @@ footer {
     padding: 10px 0;
 }
 
+
+hr {
+  border: none; 
+  height: 1px; 
+  background-color: #ccc; 
+  margin: 20px 0; 
+  position: relative;
+}
+
+
+
 @media (max-width: 768px) {
 
     footer {
