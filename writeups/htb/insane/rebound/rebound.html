@@ -494,12 +494,12 @@
 <span class="nd">elswix@ubuntu$</span>
 </pre></div>
 <p>After importing the ZIP file into BloodHound and searching for the shortest path to high-value targets, the result is messy.</p><br/>
-<p><img alt="" src="http://localhost:8000/writeups/htb/insane/rebound/img/1.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/insane/rebound/img/1.png"/></p><br/>
 <p>Looking at the Kerberoastable accounts, we can see <code>ldap_monitor</code> and the <code>gmsa.rebound.htb</code> accounts:</p><br/>
-<p><img alt="" src="http://localhost:8000/writeups/htb/insane/rebound/img/2.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/insane/rebound/img/2.png"/></p><br/>
 <p>The account <code>gmsa.rebound.htb</code> has the sAMAccountName <code>delegator$</code>. Its name is a hint for later.</p><br/>
 <p>The <code>ServiceMgmt</code> group caught my attention, and while searching for potential privilege escalation vectors, I came across the following:</p><br/>
-<p><img alt="" src="http://localhost:8000/writeups/htb/insane/rebound/img/3.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/insane/rebound/img/3.png"/></p><br/>
 <p>The <code>ServiceMgmt</code> group has the GenericAll privilege over the <code>SERVICE USERS</code> OU, which contains the <code>WINRM_SVC</code> user, who can enter an interactive session with the target computer. Let's explain this concepts:</p><br/>
 <p><strong>GenericAll:</strong> It is an access control permission in Windows systems that grants a user the right to perform any permitted operation on an object, such as viewing, modifying, or deleting the object, regardless of any other specific permissions the user may have.</p><br/>
 <p>As per the <a href="https://bloodhound.readthedocs.io/en/latest/data-analysis/edges.html">bloodhound</a> documentation:</p><br/>
@@ -646,10 +646,10 @@
 <p>The <code>msDS-AllowedToDelegateTo</code> specifies which services a particular service can delegate to. This attribute is set on the user or computer object that represents the service requesting delegation.</p><br/>
 <p>This implies that leveraging <code>delegator$</code>, we could potentially exploit constrained delegation over the <code>http/dc01.rebound.htb</code> service, which could serve as a privilege escalation vector. However, since we lack valid credentials for <code>delegator$</code>, we need to find a method to gain access as that user.</p><br/>
 <p>After searching for paths to get to the <code>delegator$</code> user, I found this:</p><br/>
-<p><img alt="" src="http://localhost:8000/writeups/htb/insane/rebound/img/4.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/insane/rebound/img/4.png"/></p><br/>
 <p>This is pretty interesting. TBrady can read the GMSA Password of <code>gmsa.rebound.htb</code> (<code>delegator$</code>). This means that, as TBrady, we can obtain valid credentials for <code>delegator$</code>. However, firstly, we need to find a way to gain access or obtain valid credentials for <code>tbrady</code>.</p><br/>
 <p>Bloodhound didn't report any potential vectors to achieve access as TBrady, aside from administrative privileges.</p><br/>
-<p><img alt="" src="http://localhost:8000/writeups/htb/insane/rebound/img/5.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/writeups/htb/insane/rebound/img/5.png"/></p><br/>
 <p>Upon enumerating the running processes on the victim machine, something caught my attention:</p><br/>
 <div class="highlight"><pre><span></span><span class="evrm">*Evil-WinRM* PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">temp</span><span class="o">&gt;</span> <span class="n">get</span><span class="o">-</span><span class="n">process</span>
 
