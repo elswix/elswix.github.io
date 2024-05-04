@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assembly Instructions</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/monokai.css">
+    <link rel="stylesheet" href="/articles.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/articles.html">Articles</a></li>
+                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="hero">
+        <div class="hero-content">
+            <img src="/img/articles/logo2.png" alt="index-logo" class="index-logo">
+            <h1>Assembly Instructions</h1>
+            <p>Assembly Instructions - Intel x86</p>
+            <a href="/articles.html" class="mainbtn" class="mainbtn">More articles</a>
+        </div>
+    </section>
+    <section class="article-content">
+        <div class="container">
+            <div class="article-content-main">
+                <h3>Introduction</h3><br/>
+<p>For those who are not familiar with Assembly, I've written an additional article where I explain Assembly Instructions in Intel x86 syntax. After reading this article, you can continue with the <a href="http://elswix.github.io/articles/3/cpu-and-assembly-binexp-basics.html">Binary Exploitation basics</a>.</p><br/>
+<h3>Data Movement Instructions</h3><br/>
+<h3><strong>mov</strong></h3><br/>
+<p>The mov instruction facilitates the <strong>transfer of data</strong>. It <strong>copies</strong> the data item referenced by its <strong>second operand</strong> (such as register contents, memory contents, or a constant value) <strong>into</strong> the location specified by its <strong>first operand</strong> (a register or memory). While register-to-register moves are feasible, direct memory-to-memory moves are not supported. When <strong>memory transfers</strong> are necessary, the source memory contents must initially be <strong>loaded into a register</strong>, which can then be stored at the destination memory address.</p><br/>
+<p><strong>Syntax</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">mov</span><span class="w"> </span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">mov</span><span class="w"> </span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">mem</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">mov</span><span class="w"> </span><span class="err">&lt;</span><span class="no">mem</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">mov</span><span class="w"> </span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">const</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">mov</span><span class="w"> </span><span class="err">&lt;</span><span class="no">mem</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">const</span><span class="err">&gt;</span><span class="w"></span>
+</pre></div>
+<p><strong>Examples</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">mov</span><span class="w"> </span><span class="no">eax</span><span class="p">,</span><span class="w"> </span><span class="no">ebx</span><span class="w">           </span><span class="c1">; Copy the value in ebx into eax.</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">byte</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">var</span><span class="p">],</span><span class="w"> </span><span class="mi">5</span><span class="w">  </span><span class="c1">; Store the value 5 into the byte at location var.</span>
+</pre></div>
+<h3><strong>push</strong></h3><br/>
+<p>The push instruction serves to push its operand onto the top of the hardware-supported stack in memory. It begins by decrementing ESP by 4 and then places its operand into the contents of the 32-bit location at address ESP. ESP (the stack pointer) is decremented by push since the x86 stack grows downward, meaning the stack expands from higher addresses to lower addresses.</p><br/>
+<p><strong>Syntax</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">push</span><span class="w"> </span><span class="err">&lt;</span><span class="no">reg32</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">push</span><span class="w"> </span><span class="err">&lt;</span><span class="no">mem</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">push</span><span class="w"> </span><span class="err">&lt;</span><span class="no">con32</span><span class="err">&gt;</span><span class="w"></span>
+</pre></div>
+<p><strong>Examples</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">push</span><span class="w"> </span><span class="no">eax</span><span class="w">       </span><span class="c1">; Push eax onto the stack.</span>
+<span class="nf">push</span><span class="w"> </span><span class="p">[</span><span class="no">var</span><span class="p">]</span><span class="w">     </span><span class="c1">; Push the 4 bytes at address var onto the stack.</span>
+</pre></div>
+<h3><strong>pop</strong></h3><br/>
+<p>The pop instruction <strong>extracts</strong> the <strong>4-byte data</strong> element from the top of the hardware-supported stack into the specified operand (either a register or a memory location). It begins by transferring the 4 bytes located at memory location <strong>ESP</strong> into the specified register or memory location, followed by an increment of <strong>ESP</strong> by 4.</p><br/>
+<p><strong>Syntax</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">pop</span><span class="w"> </span><span class="err">&lt;</span><span class="no">reg32</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">pop</span><span class="w"> </span><span class="err">&lt;</span><span class="no">mem</span><span class="err">&gt;</span><span class="w"></span>
+</pre></div>
+<p><strong>Examples</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">pop</span><span class="w"> </span><span class="no">edi</span><span class="w">     </span><span class="c1">; Pop the top element of the stack into EDI.</span>
+<span class="nf">pop</span><span class="w"> </span><span class="p">[</span><span class="no">ebx</span><span class="p">]</span><span class="w">   </span><span class="c1">; Pop the top element of the stack into memory at the four bytes starting at location EBX.</span>
+</pre></div>
+<h3><strong>lea</strong></h3><br/>
+<p>The lea (Load Effective Address) instruction assigns the address specified by its second operand to the register specified by its first operand. Note that it merely computes and assigns the effective address, without loading the contents of the memory location. This functionality is particularly useful for obtaining a pointer into a memory region.</p><br/>
+<p><strong>Syntax</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">lea</span><span class="w"> </span><span class="err">&lt;</span><span class="no">reg32</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">mem</span><span class="err">&gt;</span><span class="w"></span>
+</pre></div>
+<p><strong>Examples</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">lea</span><span class="w"> </span><span class="no">edi</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="no">ebx</span><span class="err">+</span><span class="mi">4</span><span class="no">_esi</span><span class="p">]</span><span class="w">   </span><span class="c1">; Place the quantity EBX+4_ESI into EDI.</span>
+<span class="nf">lea</span><span class="w"> </span><span class="no">eax</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="no">var</span><span class="p">]</span><span class="w">         </span><span class="c1">; Place the value in var into EAX.</span>
+<span class="nf">lea</span><span class="w"> </span><span class="no">eax</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="no">val</span><span class="p">]</span><span class="w">         </span><span class="c1">; Place the value val into EAX.</span>
+</pre></div>
+<h3>Arithmetic and Logic Instructions</h3><br/>
+<h3><strong>add</strong></h3><br/>
+<p>Integer Addition The add instruction combines its two operands, storing the result in the first operand. It's noteworthy that both operands may be registers, but only one operand can be a memory location. </p><br/>
+<p><strong>Syntax</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">add</span><span class="w"> </span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">add</span><span class="w"> </span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">mem</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">add</span><span class="w"> </span><span class="err">&lt;</span><span class="no">mem</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">add</span><span class="w"> </span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">con</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">add</span><span class="w"> </span><span class="err">&lt;</span><span class="no">mem</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">con</span><span class="err">&gt;</span><span class="w"></span>
+</pre></div>
+<p><strong>Examples</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">add</span><span class="w"> </span><span class="no">eax</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="w">             </span><span class="c1">; EAX ← EAX + 10</span>
+<span class="nf">add</span><span class="w"> </span><span class="no">BYTE</span><span class="w"> </span><span class="no">PTR</span><span class="w"> </span><span class="p">[</span><span class="no">var</span><span class="p">],</span><span class="w"> </span><span class="mi">10</span><span class="w">  </span><span class="c1">; Add 10 to the single byte stored at memory address var.</span>
+</pre></div>
+<h3><strong>sub</strong></h3><br/>
+<p>Integer Subtraction The sub instruction subtracts the value of its second operand from the value of its first operand and stores the result in the first operand. </p><br/>
+<p><strong>Syntax</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">sub</span><span class="w"> </span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">sub</span><span class="w"> </span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">mem</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">sub</span><span class="w"> </span><span class="err">&lt;</span><span class="no">mem</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">sub</span><span class="w"> </span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">con</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">sub</span><span class="w"> </span><span class="err">&lt;</span><span class="no">mem</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">con</span><span class="err">&gt;</span><span class="w"></span>
+</pre></div>
+<p><strong>Examples</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">sub</span><span class="w"> </span><span class="no">eax</span><span class="p">,</span><span class="w"> </span><span class="mi">216</span><span class="w">   </span><span class="c1">; Subtract 216 from the value stored in EAX.</span>
+</pre></div>
+<h3><strong>and, or, xor</strong></h3><br/>
+<p>Bitwise Logical Operations:  These instructions perform bitwise logical operations on their operands, placing the result in the first operand location. </p><br/>
+<p><strong>Syntax</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">and</span><span class="p">,</span><span class="w"> </span><span class="no">or</span><span class="p">,</span><span class="w"> </span><span class="mh">xor</span> <span class="p">&lt;</span><span class="no">reg</span><span class="p">&gt;,</span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">and</span><span class="p">,</span><span class="w"> </span><span class="no">or</span><span class="p">,</span><span class="w"> </span><span class="mh">xor</span> <span class="p">&lt;</span><span class="no">reg</span><span class="p">&gt;,</span><span class="err">&lt;</span><span class="no">mem</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">and</span><span class="p">,</span><span class="w"> </span><span class="no">or</span><span class="p">,</span><span class="w"> </span><span class="mh">xor</span> <span class="p">&lt;</span><span class="no">mem</span><span class="p">&gt;,</span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">and</span><span class="p">,</span><span class="w"> </span><span class="no">or</span><span class="p">,</span><span class="w"> </span><span class="mh">xor</span> <span class="p">&lt;</span><span class="no">reg</span><span class="p">&gt;,</span><span class="err">&lt;</span><span class="no">con</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">and</span><span class="p">,</span><span class="w"> </span><span class="no">or</span><span class="p">,</span><span class="w"> </span><span class="mh">xor</span> <span class="p">&lt;</span><span class="no">mem</span><span class="p">&gt;,</span><span class="err">&lt;</span><span class="no">con</span><span class="err">&gt;</span><span class="w"></span>
+</pre></div>
+<p><strong>Examples</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">and</span><span class="w"> </span><span class="no">eax</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">fH</span><span class="w">   </span><span class="c1">; Clear all but the last 4 bits of EAX.</span>
+<span class="nf">xor</span><span class="w"> </span><span class="no">edx</span><span class="p">,</span><span class="w"> </span><span class="no">edx</span><span class="w">   </span><span class="c1">; Set the contents of EDX to zero.</span>
+</pre></div>
+<h3>Flow Control Instructions</h3><br/>
+<p>In x86 architecture, the Instruction Pointer (IP) register is pivotal, indicating the memory location where the current instruction starts. Typically, it advances to the subsequent instruction in memory post-execution. Direct manipulation of the IP register is prohibited; instead, it's implicitly updated by dedicated control flow instructions.</p><br/>
+<p>For convenient referencing within the program text, we utilize labels denoted by <code>&lt;label&gt;</code>. These labels, marked by a colon after a name, can be inserted anywhere in the x86 assembly code. For instance,</p><br/>
+<div class="highlight"><pre><span></span><span class="nf">mov</span><span class="w"> </span><span class="no">esi</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="no">ebp</span><span class="err">+</span><span class="mi">8</span><span class="p">]</span><span class="w"></span>
+<span class="nl">begin:</span><span class="w"> </span><span class="nf">xor</span><span class="w"> </span><span class="no">ecx</span><span class="p">,</span><span class="w"> </span><span class="no">ecx</span><span class="w"></span>
+<span class="w">       </span><span class="nf">mov</span><span class="w"> </span><span class="no">eax</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="no">esi</span><span class="p">]</span><span class="w"></span>
+</pre></div>
+<p>In this snippet, the second instruction is labeled "begin." Throughout the code, we can refer to the memory location of this instruction using the symbolic name "begin," providing a more manageable representation than its 32-bit value.</p><br/>
+<h3><strong>jmp — Jump</strong></h3><br/>
+<p>This instruction redirects program flow to the memory location specified by the operand.</p><br/>
+<p><strong>Syntax</strong> </p><br/>
+<div class="highlight"><pre><span></span><span class="nf">jmp</span><span class="w"> </span><span class="err">&lt;</span><span class="no">label</span><span class="err">&gt;</span><span class="w"></span>
+</pre></div>
+<p><strong>Example</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">jmp</span><span class="w"> </span><span class="no">begin</span><span class="w">  </span><span class="c1">; Jumps to the instruction labeled "begin."</span>
+</pre></div>
+<p><strong>Conditional Jumps</strong></p><br/>
+<p>These instructions enable conditional jumps based on the state of condition codes stored in the Machine Status Word, a special register retaining information about the last arithmetic operation. For instance, one bit signifies whether the last result was zero, while another indicates negativity. Various conditional jumps can be executed based on these condition codes. For example, the "jz" instruction jumps to the specified label if the last arithmetic operation yielded zero; otherwise, control proceeds sequentially.</p><br/>
+<p><strong>Syntax</strong> </p><br/>
+<div class="highlight"><pre><span></span><span class="nf">je</span><span class="w"> </span><span class="err">&lt;</span><span class="no">label</span><span class="err">&gt;</span><span class="w">    </span><span class="c1">; (jump if equal) </span>
+<span class="nf">jne</span><span class="w"> </span><span class="err">&lt;</span><span class="no">label</span><span class="err">&gt;</span><span class="w">   </span><span class="c1">; (jump if not equal)</span>
+<span class="nf">jz</span><span class="w"> </span><span class="err">&lt;</span><span class="no">label</span><span class="err">&gt;</span><span class="w">    </span><span class="c1">; (jump if last result was zero)</span>
+<span class="nf">jg</span><span class="w"> </span><span class="err">&lt;</span><span class="no">label</span><span class="err">&gt;</span><span class="w">    </span><span class="c1">; (jump if greater than) </span>
+<span class="nf">jge</span><span class="w"> </span><span class="err">&lt;</span><span class="no">label</span><span class="err">&gt;</span><span class="w">   </span><span class="c1">; (jump if greater than or equal to) </span>
+<span class="nf">jl</span><span class="w"> </span><span class="err">&lt;</span><span class="no">label</span><span class="err">&gt;</span><span class="w">    </span><span class="c1">; (jump if less than)</span>
+<span class="nf">jle</span><span class="w"> </span><span class="err">&lt;</span><span class="no">label</span><span class="err">&gt;</span><span class="w">   </span><span class="c1">; (jump if less than or equal to)</span>
+</pre></div>
+<p><strong>Example</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">cmp</span><span class="w"> </span><span class="no">eax</span><span class="p">,</span><span class="w"> </span><span class="no">ebx</span><span class="w"> </span>
+<span class="no">jle</span><span class="w"> </span><span class="no">done</span><span class="w"></span>
+</pre></div>
+<p>If the contents of EAX are less than or equal to the contents of EBX, the program jumps to the label "done"; otherwise, it continues to the next instruction.</p><br/>
+<h3><strong>cmp — Compare</strong></h3><br/>
+<p>This instruction compares the values of two specified operands, adjusting the condition codes in the Machine Status Word accordingly. Functionally akin to the "sub" instruction, it discards the subtraction result instead of replacing the first operand.</p><br/>
+<p><strong>Syntax</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">cmp</span><span class="w"> </span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="w"> </span><span class="c1">;</span>
+<span class="nf">cmp</span><span class="w"> </span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">mem</span><span class="err">&gt;</span><span class="w"> </span><span class="c1">;</span>
+<span class="nf">cmp</span><span class="w"> </span><span class="err">&lt;</span><span class="no">mem</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="w"> </span><span class="c1">;</span>
+<span class="nf">cmp</span><span class="w"> </span><span class="err">&lt;</span><span class="no">reg</span><span class="err">&gt;</span><span class="p">,</span><span class="err">&lt;</span><span class="no">con</span><span class="err">&gt;</span><span class="w"> </span><span class="c1">;</span>
+</pre></div>
+<p><strong>Example</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">cmp</span><span class="w"> </span><span class="no">DWORD</span><span class="w"> </span><span class="no">PTR</span><span class="w"> </span><span class="p">[</span><span class="no">var</span><span class="p">],</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span>
+<span class="no">jeq</span><span class="w"> </span><span class="no">loop</span><span class="w"></span>
+</pre></div>
+<p>If the 4-byte value stored at memory location "var" equals the integer constant 10, the program jumps to the label "loop."</p><br/>
+<h3><strong>call, ret — Subroutine Call and Return</strong></h3><br/>
+<p>These instructions facilitate subroutine invocation and return. The "call" instruction first pushes the current code location onto the stack in memory, then unconditionally jumps to the specified code location. Unlike simple jump instructions, "call" saves the return location for subroutine completion.</p><br/>
+<p>The "ret" instruction implements the subroutine return mechanism. It first pops a code location off the stack, then unconditionally jumps to the retrieved location.</p><br/>
+<p>In simpler terms, the <code>call</code> instruction saves the current location by pushing the value of the <strong>instruction pointer</strong> onto the stack and then redirects the program execution to the specified subroutine. On the other hand, the <code>ret</code> instruction retrieves the address previously saved by <code>call</code> from the stack to the instruction pointer, effectively returning control to the main program from the completed subroutine.</p><br/>
+<p><strong>Syntax</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="nf">call</span><span class="w"> </span><span class="err">&lt;</span><span class="no">label</span><span class="err">&gt;</span><span class="w"></span>
+<span class="nf">ret</span><span class="w"></span>
+</pre></div>
+<h3><strong>leave</strong></h3><br/>
+<p>The <code>LEAVE</code> instruction copies the frame pointer (in the <code>EBP</code> register) into the stack pointer register (<code>ESP</code>), which releases the stack space allocated to the stack frame. The old frame pointer (the frame pointer for the calling procedure that was saved by the <code>ENTER</code> instruction) is then popped from the stack into the <code>EBP</code> register, restoring the calling procedure’s stack frame.</p><br/>
+<p>A <code>RET</code> instruction is commonly executed following a LEAVE instruction to return program control to the calling procedure.</p><br/>
+<h3><strong>enter</strong></h3><br/>
+<p>The <code>enter</code> instruction is used to set up a stack frame for a procedure. It allocates space on the stack for local variables and dynamically allocated storage and establishes a new base pointer (EBP) for accessing these variables within the procedure. Additionally, it provides support for nested procedures by adjusting the stack frame according to the lexical nesting level.</p><br/>
+<p>You'll notice that this instruction is not called in the programs we'll analyse, however, it's commonly replaced with three instructions:</p><br/>
+<div class="highlight"><pre><span></span><span class="nf">push</span><span class="w"> </span><span class="no">ebp</span><span class="w">          </span><span class="c1">; Save the current base pointer </span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">ebp</span><span class="p">,</span><span class="w"> </span><span class="no">esp</span><span class="w">      </span><span class="c1">; Set the base pointer to the current stack pointer </span>
+<span class="nf">sub</span><span class="w"> </span><span class="no">esp</span><span class="p">,</span><span class="w"> </span><span class="no">imm32</span><span class="w">    </span><span class="c1">; Allocate space for local variables and dynamic storage</span>
+</pre></div>
+<h3><strong>nop</strong></h3><br/>
+<p>This instruction performs no operation. It is a one-byte or multi-byte NOP that takes up space in the instruction stream but does not impact machine context, except for the EIP register.</p><br/>
+<h3>Continuing with Binary Exploitation basics</h3><br/>
+<p>Once you've read this article, you can continue reading the <a href="">Binary Exploitation basics</a>.</p><br/>
+<h3>References</h3><br/>
+<p><a href="https://www.cs.virginia.edu/~evans/cs216/guides/x86.html">https://www.cs.virginia.edu/~evans/cs216/guides/x86.html</a>
+<br/>
+<a href="https://www.felixcloutier.com/x86/leave">https://www.felixcloutier.com/x86/leave</a>
+<br/>
+<a href="https://www.felixcloutier.com/x86/enter">https://www.felixcloutier.com/x86/enter</a>
+<br/>
+<a href="https://www.felixcloutier.com/x86/nop">https://www.felixcloutier.com/x86/nop</a></p><br/>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 elswix.github.io</p>
+    </footer>
+</body>
+</html>
