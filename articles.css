@@ -2,16 +2,27 @@ h3 {
     color: #3dbae9;
 }
 
+h2 {
+    color: #d32f2f;
+}
 
 a {
     color: #66d9ef;
-    font-weight: bold;
+    font-weight: normal;
     text-decoration: underline;
 }
 
 a:hover {
     color: #b6e1f1;
     opacity: 1.0;
+}
+
+
+img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
 }
 
 .mainbtn {
