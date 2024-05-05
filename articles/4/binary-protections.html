@@ -1,0 +1,89 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Protections</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/monokai.css">
+    <link rel="stylesheet" href="/articles.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/articles.html">Articles</a></li>
+                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="hero">
+        <div class="hero-content">
+            <img src="/img/articles/logo4.png" alt="index-logo" class="index-logo">
+            <h1>Binary Protections</h1>
+            <p>Preventing binary exploitation</p>
+            <a href="/articles.html" class="mainbtn" class="mainbtn">More articles</a>
+        </div>
+    </section>
+    <section class="article-content">
+        <div class="container">
+            <div class="article-content-main">
+                <h3>Introduction</h3><br/>
+                <p>What are binary protections? How do they prevent us from exploiting binaries? Today, we'll delve into these binary protections, exploring their purpose and how they function.</p><br/>
+<h3>What are binary protections?</h3><br/>
+<p>Of course, let's start from the beginning. Binary protections, also known as security mechanisms or hardening techniques, are essential components embedded by the compiler into binary executables to mitigate various types of security vulnerabilities and exploitation techniques. These protections serve as safeguards against common attack vectors such as buffer overflows, format string vulnerabilities, and arbitrary code execution. Today, we'll discuss some of them and explain why they're important.</p><br/>
+<h3>No eXecute (NX) / Data Execution Prevention (DEP)</h3><br/>
+<p>The <strong>NX</strong> (No eXecute) protection, also known as <strong>DEP</strong> (Data Execution Prevention) protection, prevents certain memory regions from being executed as instructions. For example, in the context of a <strong>Stack-Based Buffer Overflow</strong> exploit, attackers typically insert shellcode onto the stack. By manipulating the return pointer, they aim to redirect the program's flow to the shellcode on the stack, executing it as malicious instructions. However, the <strong>NX</strong> protection prevents the stack from being executable, effectively thwarting attempts to run such malicious instructions. Even if an attacker successfully controls the return pointer, they would be unable to execute the injected shellcode due to this protection.</p><br/>
+<p>This protection is <strong>enabled by default</strong> by the compiler, unless you explicitly specify to make the stack executable. It's <strong>unlikely</strong> to encounter binaries without this protection in the wild.</p><br/>
+<h3>Relocation Read-Only (RELRO)</h3><br/>
+<p>This protection involves granting Read Only Permission to certain sections of memory. There are two ways to apply this protection: one is <strong>Partial RELRO</strong>, and the other is <strong>Full RELRO</strong>.</p><br/>
+<p><strong>Partial RELRO:</strong> Partial RELRO, the default setting in GCC, provides a foundational level of protection against certain types of attacks targeting the Global Offset Table (GOT). In binaries configured with Partial RELRO, only certain portions of the GOT are made read-only, while the remaining parts retain their original permissions.</p><br/>
+<p>This setting ensures that critical entries in the GOT, such as those corresponding to essential system functions, are protected from tampering. By forcing the GOT to precede the Block Started by Symbol (BSS) in memory layout, Partial RELRO mitigates the risk of buffer overflows on global variables overwriting critical GOT entries. This adjustment ensures that even if an attacker manages to exploit a buffer overflow vulnerability, they cannot manipulate the GOT entries to redirect program execution flow to malicious functions.</p><br/>
+<p><strong>Full RELRO:</strong> Full RELRO goes beyond Partial RELRO by rendering the entire Global Offset Table (GOT) section read-only. In doing so, it effectively prevents any modification to GOT entries at runtime. This comprehensive protection strategy ensures the mitigation of a potential GOT overwrite attack, wherein an attacker attempts to manipulate GOT addresses to redirect program execution flow to malicious functions instead of the intended ones.</p><br/>
+<p>Full RELRO isn't enabled by default in compilers because it can significantly prolong program startup times. This delay stems from the necessity to <strong>resolve all symbols</strong> before the program commences. In large programs with numerous symbols requiring linkage, this delay could result in a noticeable slowdown during startup.</p><br/>
+<h3>ASLR (Address Space Layout Randomization)</h3><br/>
+<p><strong>Address Space Layout Randomization (ASLR)</strong> is a security measure that randomizes the memory locations where programs, shared libraries, the stack, and the heap are stored. By doing so, it becomes more challenging for attackers to exploit vulnerabilities in a service. Since the exact locations of critical memory regions such as the stack, heap, or libc are unpredictable and vary between program launches, attackers can't rely on consistent memory layouts to execute their attacks. ASLR serves as a partially effective defense mechanism, making it harder for attackers to jump to sensitive areas like libc without first obtaining a memory leak.</p><br/>
+<p>While <strong>ASLR</strong> is indeed a valuable defense against memory corruption vulnerabilities, its effectiveness can indeed vary depending on the system and binary architecture. For example, on <strong>32-bit systems</strong>, memory addresses are limited in size. This limitation can lead to <strong>collisions and repetitions</strong>, which might enable an attacker to perform a <strong>brute force</strong> attack, given a <strong>base libc address</strong>. Consequently, this reduces the randomness of memory layout randomization, potentially making it easier for attackers to predict and exploit vulnerabilities despite the presence of ASLR. Therefore, while ASLR does provide significant protection, its effectiveness may indeed be constrained in certain architectural contexts.</p><br/>
+<h3>Position Independent Executable (PIE)</h3><br/>
+<p><strong>PIE</strong>, which stands for <strong>"Position Independent Executable"</strong>, is a protection technique used in modern operating systems to <strong>enhance the security</strong> of executable binaries. When a binary is marked as PIE, its <strong>code</strong>, <strong>data</strong>, and <strong>shared libraries</strong> are loaded into <strong>random memory addresses</strong> each time the program is executed. This makes it difficult for attackers to predict memory addresses since they cannot rely on predefined static addresses.</p><br/>
+<p><strong>PIE</strong> protection is particularly effective against <strong>buffer overflow</strong> attacks and <strong>code injection</strong> attacks, as it <strong>makes it harder</strong> for attackers to <strong>calculate or guess</strong> specific memory addresses to target their attacks.</p><br/>
+<p>Modern operating systems such as Linux, macOS, and Windows support the execution of binaries with PIE protection. When compiling a program with PIE enabled, the <strong>linker</strong> and <strong>dynamic loader</strong> ensure that the program is loaded into a <strong>random memory location</strong> each time it is run.</p><br/>
+<h3>Control Flow Integrity (CFI)</h3><br/>
+<p><strong>Control Flow Integrity (CFI)</strong> is a security mechanism designed to prevent attackers from hijacking a program's control flow and executing malicious code. It works by verifying that the program's control flow follows a valid path, as defined during compilation or runtime. This prevents attackers from diverting the program's execution to unauthorized code locations or injecting malicious instructions into the control flow. CFI helps to mitigate a wide range of code-reuse attacks, including return-oriented programming (ROP) and jump-oriented programming (JOP), by enforcing strict constraints on the program's control flow transitions.</p><br/>
+<h3>Stack Smashing Protection -&gt; Stack Canaries</h3><br/>
+<p>Stack canaries are a <strong>straightforward</strong> protection mechanism. Initially, they insert a <strong>random value</strong> onto the <strong>stack</strong>. Before the <code>ret</code> instruction, the program <strong>verifies</strong> if the <strong>initial</strong> and <strong>final</strong> values <strong>match</strong>. If they differ, program execution halts. This safeguard was developed to thwart <strong>buffer overflow</strong> exploits. When attempting to overwrite the stack, altering this value triggers the protection mechanism. Despite its effectiveness in preventing buffer overflow vulnerabilities, it can be circumvented through a <strong>Format String Vulnerability</strong>. This vulnerability allows an attacker to extract the value during runtime and position it correctly when manipulating the stack, preserving the original value and bypassing the protection.</p><br/>
+<h3>Conclusion</h3><br/>
+<p>In summary, binary protections are important security tools built into software to prevent different kinds of attacks. These protections, like ASLR, NX, PIE, RELRO, and stack canaries work together to make software safer by stopping unauthorized access, code running, and memory tampering. While no one protection is perfect, using a mix of them makes it much harder for attackers to break into software and helps keep it secure. In coming articles, we'll demostrate how to bypass some of these protections to carry out buffer overflows attacks.</p><br/>
+<h3>References</h3><br/>
+<p><a href="https://ctf101.org/binary-exploitation/relocation-read-only/">https://ctf101.org/binary-exploitation/relocation-read-only/</a>
+<br/>
+<a href="https://ctf101.org/binary-exploitation/no-execute/">https://ctf101.org/binary-exploitation/no-execute/</a>
+<br/>
+<a href="https://ir0nstone.gitbook.io/notes/types/stack/pie">https://ir0nstone.gitbook.io/notes/types/stack/pie</a>
+<br/>
+<a href="https://en.wikipedia.org/wiki/Control-flow_integrity">https://en.wikipedia.org/wiki/Control-flow_integrity</a>
+<br/>
+<a href="https://www.redhat.com/en/blog/position-independent-executables-pie">https://www.redhat.com/en/blog/position-independent-executables-pie</a>
+<br/>
+<a href="https://ir0nstone.gitbook.io/notes/types/stack/relro">https://ir0nstone.gitbook.io/notes/types/stack/relro</a>
+<br/>
+<a href="https://en.wikipedia.org/wiki/Buffer_overflow_protection">https://en.wikipedia.org/wiki/Buffer_overflow_protection</a>
+<br/>
+<a href="https://ir0nstone.gitbook.io/notes/types/stack/aslr">https://ir0nstone.gitbook.io/notes/types/stack/aslr</a>
+<br/>
+<a href="https://ir0nstone.gitbook.io/notes/types/stack/no-execute">https://ir0nstone.gitbook.io/notes/types/stack/no-execute</a>
+<br/>
+<a href="https://ctf101.org/binary-exploitation/stack-canaries/">https://ctf101.org/binary-exploitation/stack-canaries/</a></p><br/>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 elswix.github.io</p>
+    </footer>
+</body>
+</html>
