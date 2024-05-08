@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLT & GOT</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/monokai.css">
+    <link rel="stylesheet" href="/articles.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/articles.html">Articles</a></li>
+                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="hero">
+        <div class="hero-content">
+            <img src="/img/articles/logo6.png" alt="index-logo" class="index-logo">
+            <h1>PLT & GOT</h1>
+            <p>Key Players in Dynamic Linking</p>
+            <a href="/articles.html" class="mainbtn" class="mainbtn">More articles</a>
+        </div>
+    </section>
+    <section class="article-content">
+        <div class="container">
+            <div class="article-content-main">
+                <h2>Introduction</h2><br/>
+<p>As a developer, you may have encountered these concepts and experienced how they interact with your programs. In this article, we'll delve into the Procedure Linkage Table (PLT) and the Global Offset Table (GOT).</p><br/>
+<p>How can you utilize libc functions without explicitly including them in your code? What does "dynamically linked" signify? Today, we'll address these questions and more.</p><br/>
+<h2>Example program</h2><br/>
+<p>Let's create an example program without including any libraries, but still calling functions like <code>printf</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(){</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Hello world!"</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+<p>Let's compile it:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">gcc</span> <span class="n">program</span><span class="o">.</span><span class="n">c</span> <span class="o">-</span><span class="n">o</span> <span class="n">program</span> <span class="o">-</span><span class="n">no</span><span class="o">-</span><span class="n">pie</span> <span class="o">-</span><span class="n">m32</span>
+</pre></div>
+<p>You may encounter warnings, but don't worry about them.</p><br/>
+<p>Once the program is compiled, let's proceed to execute it:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="o">./</span><span class="n">program</span>
+<span class="n">Hello</span> <span class="n">world</span><span class="n">!</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>It worked! The function <code>printf</code> displayed our string successfully, but how? I didn't include any library, nor did I create a function called <code>printf</code>. This is where dynamically linked libraries come into play.</p><br/>
+<p>A dynamically linked library refers to a collection of code and data that can be shared and reused by multiple programs simultaneously. When a program is executed, it dynamically links to the library at runtime, allowing it to access the library's functions and resources without embedding them directly into the program's executable file. This approach promotes code reuse, reduces executable size, and simplifies software maintenance.</p><br/>
+<p>Examining the dynamically linked libraries of this program reveals that <code>libc</code> is dynamically linked:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">ldd</span> <span class="n">program</span>
+    <span class="n">linux</span><span class="o">-</span><span class="n">vdso</span><span class="o">.</span><span class="n">so</span><span class="mf">.1</span> <span class="p">(</span><span class="mh">0x00007fff5403a000</span><span class="p">)</span>
+    <span class="n">libc</span><span class="o">.</span><span class="n">so</span><span class="mf">.6</span> <span class="o">=&gt;</span> <span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">x86_64</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">gnu</span><span class="o">/</span><span class="n">libc</span><span class="o">.</span><span class="n">so</span><span class="mf">.6</span> <span class="p">(</span><span class="mh">0x0000781ba3a00000</span><span class="p">)</span>
+    <span class="o">/</span><span class="n">lib64</span><span class="o">/</span><span class="n">ld</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">x86</span><span class="o">-</span><span class="mf">64.</span><span class="n">so</span><span class="mf">.2</span> <span class="p">(</span><span class="mh">0x0000781ba3e26000</span><span class="p">)</span>
+</pre></div>
+<p>This means that you can use <code>libc functions</code> without embedding them directly into the binary.</p><br/>
+<p>That's great, but how does the binary know where to call? And what happens if ASLR protection is enabled? This is where PLT and GOT come into play.</p><br/>
+<h2>Procedure Linkage Table (PLT)</h2><br/>
+<p>The Procedure Linkage Table (PLT) is a mechanism used in dynamically linked programs to facilitate function calls to external libraries, such as libc. When a program makes a function call to a dynamically linked function (e.g., <code>printf</code>), the code in the PLT is responsible for resolving the address of the function and transferring control to it. The PLT is part of the dynamic linking process, allowing programs to call functions from shared libraries without knowing their addresses at compile time.</p><br/>
+<h2>Global Offset Table (GOT)</h2><br/>
+<p>The Global Offset Table (GOT) is a table of pointers, typically within the executable or shared library, that holds the addresses of global variables or functions. When a program is executed, the linker resolves these addresses dynamically, allowing functions and variables to be accessed across different parts of the program or even across different modules.</p><br/>
+<p>Think of the GOT as a table similar to the following:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/6/img/1.png"/></p><br/>
+<h2>GOT vs GOT.PLT</h2><br/>
+<p>When looking at binary sections with tools like objdump, you may noticed that there are 2 sections which contains the word got, the <code>.got</code> section and the <code>.got.plt</code> section. Both belong to the Global Offset Table. However, there are differences between them, so let's delve into it. </p><br/>
+<p>Firstly, the <code>.got</code> section contains addresses of global variables and external function calls that need to be resolved at runtime by the dynamic linker. When the program starts, the addresses in the GOT are typically populated with addresses of functions and variables by the dynamic linker/loader. This allows the program to access global variables and call functions from shared libraries without knowing their addresses at compile time.</p><br/>
+<p>On the other hand, the <code>.got.plt</code> section is specifically designed for programs that utilize lazy binding strategies for dynamic symbol resolution (we'll discuss lazy binding later). It serves as the Global Offset Table (GOT) for the Procedure Linkage Table (PLT). Unlike the <code>.got</code> section, which is populated by the dynamic linker at execution time, the <code>.got.plt</code> section is updated by the lazy binding mechanism. This means that the <code>.got.plt</code> is populated when an external function is called for the first time.</p><br/>
+<p>In this article, when I mention the <code>GOT</code> section, I'm actually referring to the <code>GOT.PLT</code> section of the Global Offset Table. It's important to keep this in mind to avoid confusion.</p><br/>
+<h2>GOT &amp; PLT</h2><br/>
+<p>The Global Offset Table (GOT) and Procedure Linkage Table (PLT) are both essential components in the process of dynamic linking in executable programs.</p><br/>
+<p>The GOT holds addresses of global variables and functions that are referenced within the program. When the program is loaded into memory, the addresses in the GOT are initially set to point to placeholder code called stubs within the PLT.</p><br/>
+<p>The PLT, on the other hand, contains the actual code necessary for dynamic linking. When a function referenced in the program is called for the first time, the PLT stub is executed. This stub is responsible for dynamically resolving the address of the function and updating the corresponding entry in the GOT with the actual address. This process is known as <strong>Lazy Binding</strong>. Subsequent calls to the same function bypass the PLT and directly use the address stored in the GOT.</p><br/>
+<h2>Practice</h2><br/>
+<p>Let's put this into practice:</p><br/>
+<div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(){</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">puts</span><span class="p">(</span><span class="s">"Hello for the first time!"</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">puts</span><span class="p">(</span><span class="s">"Hello for the second time!"</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">puts</span><span class="p">(</span><span class="s">"Hello for the third time!"</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+<p>Compile it with <code>gcc</code> and include the <code>-no-pie</code> and <code>-m32</code> parameters.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">gcc</span> <span class="n">program</span><span class="o">.</span><span class="n">c</span> <span class="o">-</span><span class="n">o</span> <span class="n">program</span> <span class="o">-</span><span class="n">no</span><span class="o">-</span><span class="n">pie</span> <span class="o">-</span><span class="n">m32</span>
+</pre></div>
+<p>Let's analyze this binary in GDB to conduct a comprehensive examination of the low-level instructions it executes.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">gdb</span> <span class="o">-</span><span class="n">q</span> <span class="o">./</span><span class="n">program</span>
+<span class="n">GEF</span> <span class="k">for</span> <span class="n">linux</span> <span class="n">ready</span><span class="p">,</span> <span class="nb">type</span> <span class="n">`</span><span class="n">gef</span><span class="s1">' to start, `gef config'</span> <span class="n">to</span> <span class="n">configure</span>
+<span class="mi">88</span> <span class="n">commands</span> <span class="n">loaded</span> <span class="ow">and</span> <span class="mi">5</span> <span class="n">functions</span> <span class="n">added</span> <span class="k">for</span> <span class="n">GDB</span> <span class="mf">12.1</span> <span class="ow">in</span> <span class="mf">0.00</span><span class="n">ms</span> <span class="n">using</span> <span class="n">Python</span> <span class="n">engine</span> <span class="mf">3.10</span>
+<span class="n">Reading</span> <span class="n">symbols</span> <span class="kn">from</span> <span class="nn">program...</span>
+<span class="p">(</span><span class="n">No</span> <span class="n">debugging</span> <span class="n">symbols</span> <span class="n">found</span> <span class="ow">in</span> <span class="n">program</span><span class="p">)</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>To begin, let's disassemble the main function:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">disass</span> <span class="n">main</span>
+<span class="n">Dump</span> <span class="n">of</span> <span class="n">assembler</span> <span class="n">code</span> <span class="k">for</span> <span class="n">function</span> <span class="n">main</span><span class="p">:</span>
+   <span class="mh">0x08049176</span> <span class="o">&lt;+</span><span class="mi">0</span><span class="o">&gt;</span><span class="p">:</span>  <span class="n">lea</span>    <span class="n">ecx</span><span class="p">,[</span><span class="n">esp</span><span class="o">+</span><span class="mh">0x4</span><span class="p">]</span>
+   <span class="mh">0x0804917a</span> <span class="o">&lt;+</span><span class="mi">4</span><span class="o">&gt;</span><span class="p">:</span>  <span class="n">and</span>    <span class="n">esp</span><span class="p">,</span><span class="mh">0xfffffff0</span>
+   <span class="mh">0x0804917d</span> <span class="o">&lt;+</span><span class="mi">7</span><span class="o">&gt;</span><span class="p">:</span>  <span class="n">push</span>   <span class="n">DWORD</span> <span class="n">PTR</span> <span class="p">[</span><span class="n">ecx</span><span class="o">-</span><span class="mh">0x4</span><span class="p">]</span>
+   <span class="mh">0x08049180</span> <span class="o">&lt;+</span><span class="mi">10</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">push</span>   <span class="n">ebp</span>
+   <span class="mh">0x08049181</span> <span class="o">&lt;+</span><span class="mi">11</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">mov</span>    <span class="n">ebp</span><span class="p">,</span><span class="n">esp</span>
+   <span class="mh">0x08049183</span> <span class="o">&lt;+</span><span class="mi">13</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">push</span>   <span class="n">ebx</span>
+   <span class="mh">0x08049184</span> <span class="o">&lt;+</span><span class="mi">14</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">push</span>   <span class="n">ecx</span>
+   <span class="mh">0x08049185</span> <span class="o">&lt;+</span><span class="mi">15</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">call</span>   <span class="mh">0x80490b0</span> <span class="o">&lt;</span><span class="n">__x86</span><span class="o">.</span><span class="n">get_pc_thunk</span><span class="o">.</span><span class="n">bx</span><span class="o">&gt;</span>
+   <span class="mh">0x0804918a</span> <span class="o">&lt;+</span><span class="mi">20</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">add</span>    <span class="n">ebx</span><span class="p">,</span><span class="mh">0x2e76</span>
+   <span class="mh">0x08049190</span> <span class="o">&lt;+</span><span class="mi">26</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">sub</span>    <span class="n">esp</span><span class="p">,</span><span class="mh">0xc</span>
+   <span class="mh">0x08049193</span> <span class="o">&lt;+</span><span class="mi">29</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">lea</span>    <span class="n">eax</span><span class="p">,[</span><span class="n">ebx</span><span class="o">-</span><span class="mh">0x1ff8</span><span class="p">]</span>
+   <span class="mh">0x08049199</span> <span class="o">&lt;+</span><span class="mi">35</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">push</span>   <span class="n">eax</span>
+   <span class="mh">0x0804919a</span> <span class="o">&lt;+</span><span class="mi">36</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">call</span>   <span class="mh">0x8049050</span> <span class="o">&lt;</span><span class="n">puts</span><span class="n">@plt</span><span class="o">&gt;</span>
+   <span class="mh">0x0804919f</span> <span class="o">&lt;+</span><span class="mi">41</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">add</span>    <span class="n">esp</span><span class="p">,</span><span class="mh">0x10</span>
+   <span class="mh">0x080491a2</span> <span class="o">&lt;+</span><span class="mi">44</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">sub</span>    <span class="n">esp</span><span class="p">,</span><span class="mh">0xc</span>
+   <span class="mh">0x080491a5</span> <span class="o">&lt;+</span><span class="mi">47</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">lea</span>    <span class="n">eax</span><span class="p">,[</span><span class="n">ebx</span><span class="o">-</span><span class="mh">0x1fde</span><span class="p">]</span>
+   <span class="mh">0x080491ab</span> <span class="o">&lt;+</span><span class="mi">53</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">push</span>   <span class="n">eax</span>
+   <span class="mh">0x080491ac</span> <span class="o">&lt;+</span><span class="mi">54</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">call</span>   <span class="mh">0x8049050</span> <span class="o">&lt;</span><span class="n">puts</span><span class="n">@plt</span><span class="o">&gt;</span>
+   <span class="mh">0x080491b1</span> <span class="o">&lt;+</span><span class="mi">59</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">add</span>    <span class="n">esp</span><span class="p">,</span><span class="mh">0x10</span>
+   <span class="mh">0x080491b4</span> <span class="o">&lt;+</span><span class="mi">62</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">sub</span>    <span class="n">esp</span><span class="p">,</span><span class="mh">0xc</span>
+   <span class="mh">0x080491b7</span> <span class="o">&lt;+</span><span class="mi">65</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">lea</span>    <span class="n">eax</span><span class="p">,[</span><span class="n">ebx</span><span class="o">-</span><span class="mh">0x1fc3</span><span class="p">]</span>
+   <span class="mh">0x080491bd</span> <span class="o">&lt;+</span><span class="mi">71</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">push</span>   <span class="n">eax</span>
+   <span class="mh">0x080491be</span> <span class="o">&lt;+</span><span class="mi">72</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">call</span>   <span class="mh">0x8049050</span> <span class="o">&lt;</span><span class="n">puts</span><span class="n">@plt</span><span class="o">&gt;</span>
+   <span class="mh">0x080491c3</span> <span class="o">&lt;+</span><span class="mi">77</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">add</span>    <span class="n">esp</span><span class="p">,</span><span class="mh">0x10</span>
+   <span class="mh">0x080491c6</span> <span class="o">&lt;+</span><span class="mi">80</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">mov</span>    <span class="n">eax</span><span class="p">,</span><span class="mh">0x0</span>
+   <span class="mh">0x080491cb</span> <span class="o">&lt;+</span><span class="mi">85</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">lea</span>    <span class="n">esp</span><span class="p">,[</span><span class="n">ebp</span><span class="o">-</span><span class="mh">0x8</span><span class="p">]</span>
+   <span class="mh">0x080491ce</span> <span class="o">&lt;+</span><span class="mi">88</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">pop</span>    <span class="n">ecx</span>
+   <span class="mh">0x080491cf</span> <span class="o">&lt;+</span><span class="mi">89</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">pop</span>    <span class="n">ebx</span>
+   <span class="mh">0x080491d0</span> <span class="o">&lt;+</span><span class="mi">90</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">pop</span>    <span class="n">ebp</span>
+   <span class="mh">0x080491d1</span> <span class="o">&lt;+</span><span class="mi">91</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">lea</span>    <span class="n">esp</span><span class="p">,[</span><span class="n">ecx</span><span class="o">-</span><span class="mh">0x4</span><span class="p">]</span>
+   <span class="mh">0x080491d4</span> <span class="o">&lt;+</span><span class="mi">94</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">ret</span>    
+<span class="n">End</span> <span class="n">of</span> <span class="n">assembler</span> <span class="n">dump</span><span class="o">.</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>As observed, there are three calls to <code>puts</code>. However, it's important to note that these are not direct calls to the <code>puts</code> function itself, rather, they are calls to the <code>puts@plt</code> entry. Upon disassembling the PLT entry, the following is observed:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">disass</span> <span class="mh">0x8049050</span>
+<span class="n">Dump</span> <span class="n">of</span> <span class="n">assembler</span> <span class="n">code</span> <span class="k">for</span> <span class="n">function</span> <span class="n">puts</span><span class="n">@plt</span><span class="p">:</span>
+   <span class="mh">0x08049050</span> <span class="o">&lt;+</span><span class="mi">0</span><span class="o">&gt;</span><span class="p">:</span>  <span class="n">jmp</span>    <span class="n">DWORD</span> <span class="n">PTR</span> <span class="n">ds</span><span class="p">:</span><span class="mh">0x804c010</span>
+   <span class="mh">0x08049056</span> <span class="o">&lt;+</span><span class="mi">6</span><span class="o">&gt;</span><span class="p">:</span>  <span class="n">push</span>   <span class="mh">0x8</span>
+   <span class="mh">0x0804905b</span> <span class="o">&lt;+</span><span class="mi">11</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">jmp</span>    <span class="mh">0x8049030</span>
+<span class="n">End</span> <span class="n">of</span> <span class="n">assembler</span> <span class="n">dump</span><span class="o">.</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>It has three instructions. Interestingly, the first instruction is a jump to an address stored in <code>0x804c010</code>. The <code>jmp DWORD PTR ds:0x804c010</code> instruction tells the processor to jump to the address stored in memory location <code>0x804c010</code>.</p><br/>
+<p>Let's examine this address:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">x</span> <span class="mh">0x804c010</span>
+<span class="mh">0x804c010</span> <span class="o">&lt;</span><span class="n">puts</span><span class="n">@got</span><span class="o">.</span><span class="n">plt</span><span class="o">&gt;</span><span class="p">:</span>   <span class="mh">0x08049056</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>As you can see, this address corresponds to the <code>puts</code> Global Offset Table (GOT) entry, which in turn references another address. So when executing the jump instruction, we're actually jumping to the address <code>0x08049056</code>.</p><br/>
+<p>The GOT looks like this:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/6/img/2.png"/></p><br/>
+<p><strong>Note:</strong></p><br/>
+<p>Actually, in the "Function" column, the address of the GOT entry is listed instead of the function name. Therefore, instead of <code>puts()</code> it should be <code>0x804c010</code>. However, I believe this approach makes the concept clearer.</p><br/>
+<br/>
+<p>The address <code>0x08049056</code> (the destination of the jmp instruction) is indeed the next instruction following the jmp instruction itself:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">disass</span> <span class="mh">0x8049050</span>
+<span class="n">Dump</span> <span class="n">of</span> <span class="n">assembler</span> <span class="n">code</span> <span class="k">for</span> <span class="n">function</span> <span class="n">puts</span><span class="n">@plt</span><span class="p">:</span>
+   <span class="mh">0x08049050</span> <span class="o">&lt;+</span><span class="mi">0</span><span class="o">&gt;</span><span class="p">:</span>  <span class="n">jmp</span>    <span class="n">DWORD</span> <span class="n">PTR</span> <span class="n">ds</span><span class="p">:</span><span class="mh">0x804c010</span>
+   <span class="mh">0x08049056</span> <span class="o">&lt;+</span><span class="mi">6</span><span class="o">&gt;</span><span class="p">:</span>  <span class="n">push</span>   <span class="mh">0x8</span>
+   <span class="mh">0x0804905b</span> <span class="o">&lt;+</span><span class="mi">11</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">jmp</span>    <span class="mh">0x8049030</span>
+<span class="n">End</span> <span class="n">of</span> <span class="n">assembler</span> <span class="n">dump</span><span class="o">.</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>As observed, the address <code>0x08049056</code> corresponds to the next instruction following the jump. At first glance, one might question the purpose of this jump.</p><br/>
+<p>The reason for jumping to the next instruction is that the GOT entry is initially empty. Since it's the first time the function is being called, the GOT entry for <code>puts()</code> has not been resolved yet. Consequently, the jump occurs to the subsequent instruction to initiate the dynamic linking process. This involves the resolution of the address for <code>puts()</code> by the dynamic linker, after which subsequent calls to <code>puts()</code> will directly use the resolved address stored in the GOT.</p><br/>
+<p>Let's see how this works in runtime. Firstly, let's define a breakpoint at the call of the <code>puts@plt</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">disass</span> <span class="n">main</span>
+<span class="n">Dump</span> <span class="n">of</span> <span class="n">assembler</span> <span class="n">code</span> <span class="k">for</span> <span class="n">function</span> <span class="n">main</span><span class="p">:</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+   <span class="mh">0x08049193</span> <span class="o">&lt;+</span><span class="mi">29</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">lea</span>    <span class="n">eax</span><span class="p">,[</span><span class="n">ebx</span><span class="o">-</span><span class="mh">0x1ff8</span><span class="p">]</span>
+   <span class="mh">0x08049199</span> <span class="o">&lt;+</span><span class="mi">35</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">push</span>   <span class="n">eax</span>
+   <span class="mh">0x0804919a</span> <span class="o">&lt;+</span><span class="mi">36</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">call</span>   <span class="mh">0x8049050</span> <span class="o">&lt;</span><span class="n">puts</span><span class="n">@plt</span><span class="o">&gt;</span>
+   <span class="mh">0x0804919f</span> <span class="o">&lt;+</span><span class="mi">41</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">add</span>    <span class="n">esp</span><span class="p">,</span><span class="mh">0x10</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>   
+<span class="n">End</span> <span class="n">of</span> <span class="n">assembler</span> <span class="n">dump</span><span class="o">.</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>The call instruction is at <code>0x0804919a</code>, let's create a breakpoint:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">b</span> <span class="o">*</span><span class="mh">0x0804919a</span>
+<span class="n">Breakpoint</span> <span class="mi">1</span> <span class="n">at</span> <span class="mh">0x804919a</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>Now let's execute the program:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">r</span>
+<span class="n">Starting</span> <span class="n">program</span><span class="p">:</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Desktop</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Local</span><span class="o">/</span><span class="n">PLT_and_GOT_article</span><span class="o">/</span><span class="n">program</span> 
+<span class="p">[</span><span class="n">Thread</span> <span class="n">debugging</span> <span class="n">using</span> <span class="n">libthread_db</span> <span class="n">enabled</span><span class="p">]</span>
+<span class="n">Using</span> <span class="n">host</span> <span class="n">libthread_db</span> <span class="n">library</span> <span class="s2">"/lib/x86_64-linux-gnu/libthread_db.so.1"</span><span class="o">.</span>
+
+<span class="n">Breakpoint</span> <span class="mi">1</span><span class="p">,</span> <span class="mh">0x0804919a</span> <span class="ow">in</span> <span class="n">main</span> <span class="p">()</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>We reached the breakpoint, the program stopped at the <code>call</code> instruction:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">x</span><span class="o">/</span><span class="n">i</span> <span class="n">$</span><span class="n">eip</span>
+<span class="o">=&gt;</span> <span class="mh">0x804919a</span> <span class="o">&lt;</span><span class="n">main</span><span class="o">+</span><span class="mi">36</span><span class="o">&gt;</span><span class="p">:</span>  <span class="n">call</span>   <span class="mh">0x8049050</span> <span class="o">&lt;</span><span class="n">puts</span><span class="n">@plt</span><span class="o">&gt;</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>Let's continue to the next instruction with the <code>si</code> command:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">si</span>
+<span class="mh">0x08049050</span> <span class="ow">in</span> <span class="n">puts</span><span class="n">@plt</span> <span class="p">()</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="nd">gef$</span> <span class="n">x</span><span class="o">/</span><span class="mi">3</span><span class="n">i</span> <span class="n">$</span><span class="n">eip</span>
+<span class="o">=&gt;</span> <span class="mh">0x8049050</span> <span class="o">&lt;</span><span class="n">puts</span><span class="n">@plt</span><span class="o">&gt;</span><span class="p">:</span>    <span class="n">jmp</span>    <span class="n">DWORD</span> <span class="n">PTR</span> <span class="n">ds</span><span class="p">:</span><span class="mh">0x804c010</span>
+   <span class="mh">0x8049056</span> <span class="o">&lt;</span><span class="n">puts</span><span class="n">@plt</span><span class="o">+</span><span class="mi">6</span><span class="o">&gt;</span><span class="p">:</span>  <span class="n">push</span>   <span class="mh">0x8</span>
+   <span class="mh">0x804905b</span> <span class="o">&lt;</span><span class="n">puts</span><span class="n">@plt</span><span class="o">+</span><span class="mi">11</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">jmp</span>    <span class="mh">0x8049030</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>As you can see, we are in the <code>puts@plt</code> section. The next instruction is the jump to the GOT entry. The GOT entry is at <code>0x804c010</code>, it should hold the memory address of the <code>puts</code> function in libc, however, this is the first time the function gets called, so the GOT entry is empty:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">x</span> <span class="mh">0x804c010</span>
+<span class="mh">0x804c010</span> <span class="o">&lt;</span><span class="n">puts</span><span class="n">@got</span><span class="o">.</span><span class="n">plt</span><span class="o">&gt;</span><span class="p">:</span>   <span class="mh">0x08049056</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>As evident, the address stored at the GOT entry corresponds to the address of the next instruction after the jump. Therefore, upon continuation, the execution proceeds to the subsequent instruction:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">si</span>
+<span class="mh">0x08049056</span> <span class="ow">in</span> <span class="n">puts</span><span class="n">@plt</span> <span class="p">()</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="nd">gef$</span> <span class="n">x</span><span class="o">/</span><span class="mi">3</span><span class="n">i</span> <span class="n">$</span><span class="n">eip</span>
+<span class="o">=&gt;</span> <span class="mh">0x8049056</span> <span class="o">&lt;</span><span class="n">puts</span><span class="n">@plt</span><span class="o">+</span><span class="mi">6</span><span class="o">&gt;</span><span class="p">:</span>    <span class="n">push</span>   <span class="mh">0x8</span>
+   <span class="mh">0x804905b</span> <span class="o">&lt;</span><span class="n">puts</span><span class="n">@plt</span><span class="o">+</span><span class="mi">11</span><span class="o">&gt;</span><span class="p">:</span>   <span class="n">jmp</span>    <span class="mh">0x8049030</span>
+   <span class="mh">0x8049060</span> <span class="o">&lt;</span><span class="n">_start</span><span class="o">&gt;</span><span class="p">:</span>        <span class="n">endbr32</span>
+</pre></div>
+<p>The subsequent instruction involves pushing a value onto the stack, representing the index of the target symbol. Following this, a jump occurs to the beginning of the PLT section. You can verify the starting address of the PLT section using <code>objdump</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">objdump</span> <span class="o">-</span><span class="n">h</span> <span class="n">program</span> <span class="o">|</span> <span class="n">grep</span> <span class="s2">"\ .plt"</span>
+ <span class="mi">11</span> <span class="o">.</span><span class="n">plt</span>          <span class="mi">00000050</span>  <span class="mi">08049030</span>  <span class="mi">08049030</span>  <span class="mi">00001030</span>  <span class="mi">2</span><span class="o">**</span><span class="mi">4</span>
+</pre></div>
+<p>After the jump instruction is executed, the execution flow reaches the beginning of the PLT:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">x</span><span class="o">/</span><span class="mi">5</span><span class="n">i</span> <span class="n">$</span><span class="n">eip</span>
+<span class="o">=&gt;</span> <span class="mh">0x8049030</span><span class="p">:</span>    <span class="n">push</span>   <span class="n">DWORD</span> <span class="n">PTR</span> <span class="n">ds</span><span class="p">:</span><span class="mh">0x804c004</span>
+   <span class="mh">0x8049036</span><span class="p">:</span>    <span class="n">jmp</span>    <span class="n">DWORD</span> <span class="n">PTR</span> <span class="n">ds</span><span class="p">:</span><span class="mh">0x804c008</span>
+   <span class="mh">0x804903c</span><span class="p">:</span>    <span class="n">add</span>    <span class="n">BYTE</span> <span class="n">PTR</span> <span class="p">[</span><span class="n">eax</span><span class="p">],</span><span class="n">al</span>
+   <span class="mh">0x804903e</span><span class="p">:</span>    <span class="n">add</span>    <span class="n">BYTE</span> <span class="n">PTR</span> <span class="p">[</span><span class="n">eax</span><span class="p">],</span><span class="n">al</span>
+   <span class="mh">0x8049040</span> <span class="o">&lt;</span><span class="n">__libc_start_main</span><span class="n">@plt</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">jmp</span>    <span class="n">DWORD</span> <span class="n">PTR</span> <span class="n">ds</span><span class="p">:</span><span class="mh">0x804c00c</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>The first instruction entails pushing a value stored at <code>0x804c004</code>, the second entry in the <code>.got.plt</code> section (you can verify this using <code>objdump</code>). Remember, <code>DWORD PTR ds:0x804c004</code> signifies that the processor will dereference the address <code>0x804c004</code> and push the resulting value onto the stack.</p><br/>
+<p>Subsequently, there's a jump instruction, which again dereferences a pointer (memory address), located 4 bytes after the previous push (<code>0x804c008</code>). Thus, it points to the third entry in the <code>.got.plt</code> section. Let's delve into what these addresses reference.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span>  <span class="n">x</span><span class="o">/</span><span class="mi">2</span><span class="n">wx</span> <span class="mh">0x804c004</span>
+<span class="mh">0x804c004</span><span class="p">:</span>   <span class="mh">0xf7ffda40</span>  <span class="mh">0xf7fd8f80</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>They indeed reference other memory addresses. Upon examining the shared libraries linked dynamically to this binary, it becomes apparent that the addresses being referenced fall within the range of addresses allocated to the <code>ld.so</code> library.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span>  <span class="n">info</span> <span class="n">dll</span>
+<span class="n">From</span>        <span class="n">To</span>          <span class="n">Syms</span> <span class="n">Read</span>   <span class="n">Shared</span> <span class="n">Object</span> <span class="n">Library</span>
+<span class="mh">0xf7fc7090</span>  <span class="mh">0xf7feb2a5</span>  <span class="n">Yes</span> <span class="p">(</span><span class="o">*</span><span class="p">)</span>     <span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">ld</span><span class="o">-</span><span class="n">linux</span><span class="o">.</span><span class="n">so</span><span class="mf">.2</span>
+<span class="mh">0xf7c20290</span>  <span class="mh">0xf7d9cb59</span>  <span class="n">Yes</span> <span class="p">(</span><span class="o">*</span><span class="p">)</span>     <span class="o">/</span><span class="n">lib32</span><span class="o">/</span><span class="n">libc</span><span class="o">.</span><span class="n">so</span><span class="mf">.6</span>
+<span class="p">(</span><span class="o">*</span><span class="p">):</span> <span class="n">Shared</span> <span class="n">library</span> <span class="ow">is</span> <span class="n">missing</span> <span class="n">debugging</span> <span class="n">information</span><span class="o">.</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>The range of addresses allocated to the <code>ld.so</code> library spans from <code>0xf7fc7090</code> to <code>0xf7feb2a5</code>. Therefore, the addresses <code>0xf7ffda40</code> and <code>0xf7fd8f80</code> indeed belong to the <code>ld.so</code> library.</p><br/>
+<p>As it says in the manual page:</p><br/>
+<div class="highlight"><pre><span></span>The programs ld.so and ld-linux.so* find and load the shared objects (shared libraries) needed by a program, prepare the program 
+to run, and then run it.
+</pre></div>
+<p>The dynamic linker/loader, is a system library responsible for dynamically linking shared libraries during program execution. When a program starts, <code>ld.so</code> is invoked by the system to resolve and load the necessary shared libraries required by the program into memory. It searches for the libraries specified in the program's dependencies, resolves symbols, and maps them to their corresponding addresses in memory.</p><br/>
+<p>In simple terms, the process involves locating the memory address of the desired function and then updating the corresponding entry in the Global Offset Table (GOT) with this memory address. Consequently, the next time the program requires this function and calls the Procedure Linkage Table (PLT), the initial jump at the beginning will directly redirect to the desired function, bypassing the need for further resolution.</p><br/>
+<p>Continuing with GDB, after all those instructions of the <code>ld.so</code> library, we see the output of the call to <code>puts</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">ni</span>
+<span class="n">Hello</span> <span class="k">for</span> <span class="n">the</span> <span class="n">first</span> <span class="n">time</span><span class="n">!</span>
+<span class="mh">0x0804919f</span> <span class="ow">in</span> <span class="n">main</span> <span class="p">()</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>Then, looking at the GOT entry of puts, I noticed that it was overwritten with a new address:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">disass</span> <span class="mh">0x8049050</span>
+<span class="n">Dump</span> <span class="n">of</span> <span class="n">assembler</span> <span class="n">code</span> <span class="k">for</span> <span class="n">function</span> <span class="n">puts</span><span class="n">@plt</span><span class="p">:</span>
+   <span class="mh">0x08049050</span> <span class="o">&lt;+</span><span class="mi">0</span><span class="o">&gt;</span><span class="p">:</span>  <span class="n">jmp</span>    <span class="n">DWORD</span> <span class="n">PTR</span> <span class="n">ds</span><span class="p">:</span><span class="mh">0x804c010</span>
+   <span class="mh">0x08049056</span> <span class="o">&lt;+</span><span class="mi">6</span><span class="o">&gt;</span><span class="p">:</span>  <span class="n">push</span>   <span class="mh">0x8</span>
+   <span class="mh">0x0804905b</span> <span class="o">&lt;+</span><span class="mi">11</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">jmp</span>    <span class="mh">0x8049030</span>
+<span class="n">End</span> <span class="n">of</span> <span class="n">assembler</span> <span class="n">dump</span><span class="o">.</span>
+<span class="nd">gef$</span> <span class="n">x</span> <span class="mh">0x804c010</span>
+<span class="mh">0x804c010</span> <span class="o">&lt;</span><span class="n">puts</span><span class="n">@got</span><span class="o">.</span><span class="n">plt</span><span class="o">&gt;</span><span class="p">:</span>   <span class="mh">0xf7c72880</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>As you can see, now the <code>puts</code> GOT Entry stores the address <code>0xf7c72880</code>. Upon examining it, we observe that it belongs to the actual <code>puts</code> function:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">x</span> <span class="mh">0xf7c72880</span>
+<span class="mh">0xf7c72880</span> <span class="o">&lt;</span><span class="n">puts</span><span class="o">&gt;</span><span class="p">:</span>    <span class="mh">0xfb1e0ff3</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>The <code>ld.so</code> library made its work. It found the actual <code>puts</code> function address and then overwrote the <code>puts</code> GOT entry. Let's see what happens when calling puts again:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">disass</span> <span class="mh">0x8049050</span>
+<span class="n">Dump</span> <span class="n">of</span> <span class="n">assembler</span> <span class="n">code</span> <span class="k">for</span> <span class="n">function</span> <span class="n">puts</span><span class="n">@plt</span><span class="p">:</span>
+<span class="o">=&gt;</span> <span class="mh">0x08049050</span> <span class="o">&lt;+</span><span class="mi">0</span><span class="o">&gt;</span><span class="p">:</span>  <span class="n">jmp</span>    <span class="n">DWORD</span> <span class="n">PTR</span> <span class="n">ds</span><span class="p">:</span><span class="mh">0x804c010</span>
+   <span class="mh">0x08049056</span> <span class="o">&lt;+</span><span class="mi">6</span><span class="o">&gt;</span><span class="p">:</span>  <span class="n">push</span>   <span class="mh">0x8</span>
+   <span class="mh">0x0804905b</span> <span class="o">&lt;+</span><span class="mi">11</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">jmp</span>    <span class="mh">0x8049030</span>
+<span class="n">End</span> <span class="n">of</span> <span class="n">assembler</span> <span class="n">dump</span><span class="o">.</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>As observed, we've reached the <code>puts@plt</code> entry. The subsequent instruction is the jump we encountered at the beginning, but this time, instead of jumping to the next instruction, it should redirect to the actual <code>puts</code> function in the libc library:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span>  <span class="n">ni</span>
+<span class="mh">0xf7c72880</span> <span class="ow">in</span> <span class="n">puts</span> <span class="p">()</span> <span class="kn">from</span> <span class="o">/</span><span class="n">lib32</span><span class="o">/</span><span class="n">libc</span><span class="o">.</span><span class="n">so</span><span class="mf">.6</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>Great! We've successfully reached the <code>puts</code> function in the libc library without requiring the dynamic linker to search for it.</p><br/>
+<h2>Lazy Binding - Summary</h2><br/>
+<p>When a program is executed, it lacks the addresses of external functions such as <code>printf()</code>. It relies on the dynamic linker to locate these addresses. Initially, instead of directly invoking the <code>printf</code> function, the program calls the Procedure Linkage Table (PLT) entry corresponding to <code>printf</code>, which consists of three instructions. The first instruction is a jump to an address referenced by an entry in the Global Offset Table (GOT). Initially, during the first call, this entry points to the next instruction after the jump, rather than the actual <code>printf</code> address. Upon execution, the program pushes a value onto the stack and jumps to the beginning of the PLT section, where code prepares the dynamic linker. Subsequently, the dynamic linker is invoked to locate the address of the <code>printf</code> function. Once found, it updates the GOT entry for <code>printf</code> with this address.</p><br/>
+<p>During subsequent calls to <code>printf</code>, the first instruction of the PLT jumps directly to the updated GOT entry, now holding the address of the actual <code>printf</code> function. Thus, the resolving process is bypassed, optimizing performance.</p><br/>
+<h2>Conclusion</h2><br/>
+<p>The Procedure Linkage Table (PLT) and the Global Offset Table (GOT) play crucial roles in dynamically linked programs. Through our exploration, we've uncovered their significance in enabling the dynamic linking process, allowing programs to efficiently utilize external functions without the need for their direct inclusion, thus significantly reducing programs size and complexity. </p><br/>
+<p>The PLT serves as an intermediary between the program and external functions, providing a mechanism for lazy binding and resolving function addresses only when they are first called. Meanwhile, the GOT acts as a table of pointers, serving as a repository for global data and function addresses. It facilitates efficient access to these resources across different modules, essentially acting as a map that directs the program to the right place. This dynamic linking approach not only conserves memory but also promotes code reusability and modularity.</p><br/>
+<h2>References</h2><br/>
+<p><a href="https://ir0nstone.gitbook.io/notes/types/stack/aslr/plt_and_got">https://ir0nstone.gitbook.io/notes/types/stack/aslr/plt_and_got</a></p>
+<p><a href="https://ctf101.org/binary-exploitation/what-is-the-got/">https://ctf101.org/binary-exploitation/what-is-the-got/</a></p>
+<p><a href="https://systemoverlord.com/2017/03/19/got-and-plt-for-pwning.html">https://systemoverlord.com/2017/03/19/got-and-plt-for-pwning.html</a></p>
+<p><a href="https://www.youtube.com/watch?v=kUk5pw4w0h4">https://www.youtube.com/watch?v=kUk5pw4w0h4</a></p>
+<p><a href="https://www.youtube.com/watch?v=kUk5pw4w0h4">https://www.youtube.com/watch?v=kUk5pw4w0h4</a></p>
+<p><a href="https://www.youtube.com/watch?v=B4-wVdQo040">https://www.youtube.com/watch?v=B4-wVdQo040</a></p><br/>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 elswix.github.io</p>
+    </footer>
+</body>
+</html>
