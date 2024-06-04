@@ -17,6 +17,10 @@ a:hover {
     opacity: 1.0;
 }
 
+.note {
+    color: #DDBC2A;
+}
+
 
 img {
   display: block;
