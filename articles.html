@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>elswix - Articles</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="search.css">
 </head>
 <body>
     <header>
@@ -18,12 +19,15 @@
             </ul>
         </nav>
     </header>
-
+    <br/>
     <section class="writeup-content">
         <div class="container">
             <br/>
             <h2>Articles</h2>
             <br/>
+            <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Type keywords...">
+            </div>
             <div class="writeup">
                 <img src="/img/articles/logo8.png" class="profile-image-circle">
                 <h3>Buffer Overflow - Ret2libc (Part 1)</h3>
@@ -74,9 +78,9 @@
             </div> 
         </div>
     </section>
-
     <footer>
         <p>&copy; 2024 elswix.github.io</p>
     </footer>
+    <script src="/js/search.js"></script>
 </body>
 </html>
