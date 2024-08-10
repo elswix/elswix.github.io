@@ -1,0 +1,191 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>64-bit vs 32-bit</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/monokai.css">
+    <link rel="stylesheet" href="/articles.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/articles.html">Articles</a></li>
+                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="hero">
+        <div class="hero-content">
+            <img src="/img/articles/logo10.png" alt="index-logo" class="index-logo">
+            <h1>64-bit vs 32-bit</h1>
+            <p>Key Differences and Exploitation Techniques</p>
+            <a href="/articles.html" class="mainbtn" class="mainbtn">More articles</a>
+        </div>
+    </section>
+    <section class="article-content">
+        <div class="container">
+            <div class="article-content-main">
+                <h2>Introduction</h2><br/>
+<p>Up to this point, we have covered exploiting binary vulnerabilities in 32-bit programs. However, with the prevalence of 64-bit computing systems today, this article will introduce x64 binary exploitation.</p><br/>
+<h2>Concepts</h2><br/>
+<p>Firstly, we'll talk about 64-Bit architecture main concepts, and differences between it and 32-bit.</p><br/>
+<h2>64-bit vs 32-bit</h2><br/>
+<h3>What is 64-Bit Architecture?</h3><br/>
+<p>In computer systems, "64-bit" refers to the width of the processor's registers and the amount of data it can handle at once. A 64-bit processor can process 64 bits of data in one go, compared to a 32-bit processor, which handles 32 bits at a time. This means a 64-bit system can work with larger chunks of data and access more memory.</p><br/>
+<p>One of the biggest advantages of 64-bit architecture is its ability to address more memory. A 32-bit system can only use up to 4 gigabytes (GB) of RAM, while a 64-bit system can theoretically access up to 18 exabytes of RAM. In practical terms, this means a 64-bit system can use much more memory, which is especially useful for running large applications or multiple programs simultaneously.</p><br/>
+<h3>Registers &amp; Pointers</h3><br/>
+<p>As I've already explained in my article on <a href="http://example.com">Introduction to Binary Exploitation</a>, registers are small storage locations within the CPU that hold data temporarily while the processor is working. In a 64-bit processor, these registers are 64 bits wide, allowing them to hold larger values compared to 32-bit registers. This results in more efficient processing and better performance for tasks that require handling large numbers or complex data.</p><br/>
+<p>Pointers are variables that store the memory addresses of other variables. In a 32-bit system, pointers are 32 bits long (4 bytes), which means they can address up to 4 GB of memory. In a 64-bit system, pointers are 64 bits long (8 bytes), allowing them to address a much larger range of memory—up to 18 exabytes in theory. This greatly expands the amount of memory a program can use.</p><br/>
+<p>Let’s create a simple program to demonstrate the difference between the size of pointers in 64-bit and 32-bit programs.</p><br/>
+<div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(){</span><span class="w"></span>
+
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="o">*</span><span class="n">pX</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">&amp;</span><span class="n">x</span><span class="p">;</span><span class="w"> </span>
+
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"pX pointer points to: %p</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">pX</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Value pointed to by pX: %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">pX</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+<p>This program performs two main tasks in sequence. First, it declares an integer variable named <code>x</code> and assigns it the value <code>5</code>. Next, it declares an integer pointer named <code>pX</code>, which is initialized to point to the memory address of the variable <code>x</code>. This means that <code>pX</code> now contains the address where <code>x</code> is stored.</p><br/>
+<p>The program then uses two <code>printf()</code> functions to display information about the pointer and the variable it points to. In the first <code>printf()</code> call, it prints the memory address that the pointer <code>pX</code> is pointing to. This shows where in memory the variable <code>x</code> is located. In the second <code>printf()</code> call, it shows the value stored at the memory address <code>pX</code> points to, which in this case is the value of the variable <code>x</code>, which is <code>5</code>.</p><br/>
+<p>Now, compile it with the <code>-m32</code> parameter to instruct the compiler to create a 32-bit binary:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">gcc</span> <span class="n">program</span><span class="o">.</span><span class="n">c</span> <span class="o">-</span><span class="n">o</span> <span class="n">program</span> <span class="o">-</span><span class="n">m32</span>
+</pre></div>
+<p>Let's execute it:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="o">./</span><span class="n">program</span>
+<span class="n">pX</span> <span class="n">pointer</span> <span class="n">points</span> <span class="n">to</span><span class="p">:</span> <span class="mh">0xffec94b4</span>
+<span class="n">Value</span> <span class="n">pointed</span> <span class="n">to</span> <span class="n">by</span> <span class="n">pX</span><span class="p">:</span> <span class="mi">5</span>
+</pre></div>
+<p>As observed, the program printed the memory address of the variable <code>x</code>. Since we compiled it with the <code>-m32</code> parameter, the memory address is 32 bits long (4 bytes).</p><br/>
+<p>Now, compile it without the <code>-m32</code> parameter. By default, the compiler creates a 64-bit binary if no other options are specified.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">gcc</span> <span class="n">program</span><span class="o">.</span><span class="n">c</span> <span class="o">-</span><span class="n">o</span> <span class="n">program</span>
+</pre></div>
+<p>Now, let's execute it: </p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="o">./</span><span class="n">program</span>
+<span class="n">pX</span> <span class="n">pointer</span> <span class="n">points</span> <span class="n">to</span><span class="p">:</span> <span class="mh">0x7ffe44198b9c</span>
+<span class="n">Value</span> <span class="n">pointed</span> <span class="n">to</span> <span class="n">by</span> <span class="n">pX</span><span class="p">:</span> <span class="mi">5</span>
+</pre></div>
+<p>As observed, the <code>pX</code> pointer holds a significantly larger address in the 64-bit version. The same applies to registers: in 64-bit systems, registers can hold 8-byte values. The following image shows a GDB output using the <code>context</code> tool from GEF, illustrating the differences between 32-bit and 64-bit programs:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/10/img/1.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/10/img/2.png"/></p><br/>
+<p>With larger registers and pointers, 64-bit systems can handle more data at once and access more memory, which changes how software is written and how vulnerabilities are exploited. For example, buffer overflows and other attacks that involve manipulating pointers can be more complex because the addresses are longer and more complex.</p><br/>
+<h3>Segmentation</h3><br/>
+<p>Segmentation refers to how memory is divided and managed by the CPU and operating system. In a 64-bit system, memory segmentation can be more complex because it handles a larger address space. Segmentation helps organize memory into different sections, such as code, data, and stack segments. This organization helps manage memory efficiently and prevents different types of data from interfering with each other.</p><br/>
+<h3>Security</h3><br/>
+<p>In 64-bit systems, memory protection features are more robust compared to 32-bit systems due to the larger address space and more advanced CPU features. </p><br/>
+<p><strong>ASLR:</strong> The larger memory address range in 64-bit systems allows for more effective implementation of ASLR, making it even harder for attackers to guess memory locations. </p><br/>
+<p>I discussed this in my first article on the <a href="https://elswix.github.io/articles/8/return-2-libc.html">ret2libc</a> technique. When demonstrating how to exploit a buffer overflow using this technique, I covered the Brute Force method. This method involves selecting a base libc address and executing the binary multiple times until the libc address matches the chosen one, allowing us to call arbitrary libc functions with valid memory addresses. In 32-bit systems, memory addresses are relatively small, so collisions can occur, making it feasible to eventually guess the correct address. However, in 64-bit systems, memory addresses are vastly larger, making it nearly impossible to achieve the same result through brute forcing with a base libc address.</p><br/>
+<p><strong>Enhanced Security:</strong> 64-bit CPUs often include additional security features like SMEP (Supervisor Mode Execution Prevention), which prevents code execution in supervisor mode (used by the operating system) from user-mode memory areas.</p><br/>
+<h2>Calling Conventions</h2><br/>
+<p>Calling conventions are a set of rules that define how functions receive parameters from the caller and how they return results. These rules include details on where parameters are stored (in registers or on the stack), how the stack is managed, and who is responsible for cleaning up the stack after a function call. Calling conventions ensure that functions communicate consistently, which is essential for correct program execution.</p><br/>
+<p>In 64-bit systems, calling conventions are different from those in 32-bit systems due to the changes in register sizes and the larger address space. For example:</p><br/>
+<p><strong>Registers for Parameters:</strong> In 64-bit systems, more parameters can be passed in registers rather than on the stack. This can speed up function calls and improve performance. For instance, the x86-64 architecture uses specific registers (like <code>rdi</code>, <code>rsi</code>, <code>rdx</code>, etc.) to pass the first few arguments to functions, while additional arguments are passed on the stack.</p><br/>
+<p><strong>Stack Management:</strong> The rules for stack alignment and management can be more stringent in 64-bit systems to ensure compatibility with the larger register sizes. Proper alignment helps maintain performance and stability.</p><br/>
+<p>In 32-bit systems, function parameters are typically passed on the stack. Only a limited number of parameters can be passed in registers, and the rest are pushed onto the stack. This can make function calls slower due to stack operations.</p><br/>
+<p>Let’s compare how functions are called in 32-bit versus 64-bit systems using the following program:</p><br/>
+<div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">sum</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="kt">int</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="kt">int</span><span class="w"> </span><span class="n">c</span><span class="p">,</span><span class="kt">int</span><span class="w"> </span><span class="n">d</span><span class="p">,</span><span class="kt">int</span><span class="w"> </span><span class="n">e</span><span class="p">,</span><span class="kt">int</span><span class="w"> </span><span class="n">f</span><span class="p">,</span><span class="kt">int</span><span class="w"> </span><span class="n">g</span><span class="p">,</span><span class="kt">int</span><span class="w"> </span><span class="n">h</span><span class="p">,</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="p">){</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">a</span><span class="o">+</span><span class="n">b</span><span class="o">+</span><span class="n">c</span><span class="o">+</span><span class="n">d</span><span class="o">+</span><span class="n">e</span><span class="o">+</span><span class="n">f</span><span class="o">+</span><span class="n">g</span><span class="o">+</span><span class="n">h</span><span class="o">+</span><span class="n">i</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(){</span><span class="w"></span>
+
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">result</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="mi">50</span><span class="p">,</span><span class="w"> </span><span class="mi">250</span><span class="p">,</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span><span class="w"> </span><span class="mi">500</span><span class="p">,</span><span class="w"> </span><span class="mi">500</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"[+] RESULT: %d"</span><span class="p">,</span><span class="w"> </span><span class="n">result</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+<p>Let's compile a version for 32-bit and another for 64-bit:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">gcc</span> <span class="n">program</span><span class="o">.</span><span class="n">c</span> <span class="o">-</span><span class="n">o</span> <span class="n">program64</span>
+<span class="nd">elswix@ubuntu$</span> <span class="n">gcc</span> <span class="n">program</span><span class="o">.</span><span class="n">c</span> <span class="o">-</span><span class="n">o</span> <span class="n">program32</span> <span class="o">-</span><span class="n">m32</span>
+</pre></div>
+<p>Both versions should print the same value:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="o">./</span><span class="n">program32</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">RESULT</span><span class="p">:</span> <span class="mi">1337</span>                                                            
+<span class="nd">elswix@ubuntu$</span> <span class="o">./</span><span class="n">program64</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">RESULT</span><span class="p">:</span> <span class="mi">1337</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>Let’s use GDB to thoroughly analyze what’s happening behind the scenes:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">gdb</span> <span class="o">-</span><span class="n">q</span> <span class="o">./</span><span class="n">program32</span>
+<span class="n">GEF</span> <span class="k">for</span> <span class="n">linux</span> <span class="n">ready</span><span class="p">,</span> <span class="nb">type</span> <span class="err">`</span><span class="n">gef</span><span class="s1">' to start, `gef config'</span> <span class="n">to</span> <span class="n">configure</span>
+<span class="mi">88</span> <span class="n">commands</span> <span class="n">loaded</span> <span class="ow">and</span> <span class="mi">5</span> <span class="n">functions</span> <span class="n">added</span> <span class="k">for</span> <span class="n">GDB</span> <span class="mf">12.1</span> <span class="ow">in</span> <span class="mf">0.00</span><span class="n">ms</span> <span class="n">using</span> <span class="n">Python</span> <span class="n">engine</span> <span class="mf">3.10</span>
+<span class="n">Reading</span> <span class="n">symbols</span> <span class="kn">from</span> <span class="nn">program32...</span>
+<span class="p">(</span><span class="n">No</span> <span class="n">debugging</span> <span class="n">symbols</span> <span class="n">found</span> <span class="ow">in</span> <span class="n">program32</span><span class="p">)</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>If we disassemble the main function in the 32-bit version, we will observe the following code:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/10/img/3.png"/></p><br/>
+<p>As observed, when calling the sum() function, each parameter value is pushed onto the stack before the function is invoked.</p><br/>
+<p>Let's see what happens in the 64-bit version:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/10/img/4.png"/></p><br/>
+<p>As observed, the <code>main</code> function is notably smaller in the 64-bit version. Additionally, we can see that the first six parameter values for the <code>sum</code> function are passed through the registers in the following order: <code>rdi</code>, <code>rsi</code>, <code>rdx</code>, <code>rcx</code>, <code>r8</code>, and <code>r9</code>.</p><br/>
+<p>Keep this in mind, as it is important for exploiting 64-bit programs.</p><br/>
+<h2>Examples of Calling Conventions in 64-bit</h2><br/>
+<p>Different operating systems and compilers may use different calling conventions. For instance:</p><br/>
+<p><strong>System V AMD64 ABI (used on Linux):</strong> This convention specifies that the first six integer or pointer arguments are passed in specific registers (<code>rdi</code>, <code>rsi</code>, <code>rdx</code>, <code>rcx</code>, <code>r8</code>, <code>r9</code>), while additional arguments are passed on the stack. Return values are typically passed in the <code>rax</code> register.</p><br/>
+<p><strong>Microsoft x64 Calling Convention (used on Windows):</strong> This convention also uses registers to pass the first four arguments (<code>rcx</code>, <code>rdx</code>, <code>r8</code>, <code>r9</code>) and the stack for additional arguments. Return values are passed in <code>rax</code>, and there are specific rules for stack alignment.</p><br/>
+<h2>Return-Oriented Programming (ROP)</h2><br/>
+<p>Return-Oriented Programming (ROP) is a sophisticated exploitation technique used to execute arbitrary code despite the presence of security mechanisms like Data Execution Prevention (DEP) and Address Space Layout Randomization (ASLR). ROP circumvents these defenses by reusing small sequences of instructions, known as "gadgets," that already exist within the program or its libraries. These gadgets typically end in a <code>ret</code> instruction, allowing the attacker to chain them together to perform malicious actions and achieve their objectives.</p><br/>
+<p><strong>How Does ROP Work?</strong></p><br/>
+<p><strong>Finding Gadgets:</strong> Gadgets are small pieces of code ending in a <code>ret</code> instruction. Each gadget performs a specific action, such as adding numbers or moving data. These gadgets are found within the executable code of a program or its libraries.</p><br/>
+<p><strong>Chaining Gadgets:</strong> An attacker crafts a sequence of gadgets that, when executed in order, performs the desired malicious operations. This sequence is controlled by manipulating the stack to set up the appropriate return addresses.</p><br/>
+<p><strong>Bypassing Protections:</strong> By using gadgets and manipulating the return address stack, ROP can bypass memory protection mechanisms like DEP, which prevents execution of code in non-executable regions. ROP does not inject new code but reuses existing code, making it effective against such defenses.</p><br/>
+<p>If you've read my article on Introduction to Binary Exploitation, you might understand why these instructions must always end with a <code>ret</code> instruction (which is why it's called Return-Oriented Programming). However, if you don't fully grasp why this instruction is always required, let's discuss it further.</p><br/>
+<p>The <code>ret</code> instruction is responsible for ending every function in a binary. It essentially serves the opposite function of the <code>call</code> instruction.</p><br/>
+<p>Imagine you call a function in your program; in assembly, it looks something like this:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">call</span><span class="w"> </span><span class="n">myFunction</span><span class="w"></span>
+</pre></div>
+<p>The <code>call</code> instruction performs two main actions. First, it pushes the address of the instruction following the <code>call</code> onto the stack; this is known as the return address for the called function. Then, it updates the Instruction Pointer to the beginning of the called function, thus altering the program's execution flow to redirect it to the new function.</p><br/>
+<p>When it's time to return to the previous function (the one that called the current function), the <code>ret</code> instruction plays a crucial role. As noted earlier, the <code>call</code> instruction pushes the return address onto the stack. When the <code>ret</code> instruction is executed, it pops this return address off the stack and loads it into the Instruction Pointer, thereby resuming execution at the point where the <code>call</code> was made.</p><br/>
+<p>But why is this important for exploitation, and why must instructions in Return-Oriented Programming (ROP) always end with a <code>ret</code>?</p><br/>
+<p>For instance, consider exploiting a <strong>stack-based buffer overflow</strong>. When you overflow the buffer on the stack, you eventually reach the return address. If you overwrite this address with the address of another function, the program will return to that function when the current function completes. In this scenario, you don’t need an additional <code>ret</code> instruction after the function call.</p><br/>
+<p>However, if you need to call a function that requires parameters, the situation changes. In 64-bit programs, parameters are typically passed through registers (at least the first six), so you need to place the parameter values in these registers. In 32-bit programs, parameters were often passed via the stack, but now, with 64-bit, you need to manipulate registers directly.</p><br/>
+<p>To achieve this, you can use <code>pop</code> instructions. For example, suppose you want to call the <code>system()</code> function, which expects a single parameter in the <code>rdi</code> register. You need to execute a <code>pop rdi</code> instruction to load this parameter into <code>rdi</code>. This requires placing the parameter value on the stack in such a way that when <code>pop rdi</code> is executed, it retrieves the correct value from the stack and loads it into <code>rdi</code>. After executing the <code>pop rdi</code> instruction, you must ensure that the next instruction to execute is a <code>ret</code>. This will load the address of <code>system()</code> (which you placed on the stack, following the value you want to load into <code>rdi</code>) into the Instruction Pointer. Without this <code>ret</code>, the <code>system()</code> function will not be called.</p><br/>
+<p>Thus, the <code>ret</code> instruction is essential because it ensures the correct function is called after setting up the necessary parameters.</p><br/>
+<h2>Conclusion</h2><br/>
+<p>In summary, there are notable differences between 32-bit and 64-bit programs. While exploiting 64-bit programs is more complex, it is manageable with the right approach.</p><br/>
+<p>Keep these concepts in mind, as the next article will be the second part of our exploration of <code>ret2libc</code>. It will focus on using Return-Oriented Programming (ROP) to exploit a 64-bit buffer overflow.</p><br/>
+<h3>References</h3><br/>
+<p>I learned these concepts from:</p><br/>
+<p><a href="https://en.wikipedia.org/wiki/Calling_convention">https://en.wikipedia.org/wiki/Calling_convention</a>
+<br/>
+<a href="https://en.wikipedia.org/wiki/X86_calling_conventions">https://en.wikipedia.org/wiki/X86_calling_conventions</a>
+<br/>
+<a href="https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention">https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention</a>
+<br/>
+<a href="https://learn.microsoft.com/en-us/cpp/cpp/calling-conventions">https://learn.microsoft.com/en-us/cpp/cpp/calling-conventions</a>
+<br/>
+<a href="https://ir0nstone.gitbook.io/notes/types/stack/return-oriented-programming/calling-conventions">https://ir0nstone.gitbook.io/notes/types/stack/return-oriented-programming/calling-conventions</a>
+<br/>
+<a href="https://book.hacktricks.xyz/binary-exploitation/rop-return-oriented-programing">https://book.hacktricks.xyz/binary-exploitation/rop-return-oriented-programing</a>
+<br/>
+<a href="https://en.wikipedia.org/wiki/Return-oriented_programming">https://en.wikipedia.org/wiki/Return-oriented_programming</a>
+<br/>
+<a href="https://ctf101.org/binary-exploitation/return-oriented-programming/">https://ctf101.org/binary-exploitation/return-oriented-programming/</a>
+<br/>
+<a href="https://www.youtube.com/watch?v=vXWHmucgZW0&amp;pp=ygUVbGl2ZW92ZXJmbG93IDMyIHZzIDY0">https://www.youtube.com/watch?v=vXWHmucgZW0&amp;pp=ygUVbGl2ZW92ZXJmbG93IDMyIHZzIDY0</a></p><br/>
+<p><br/></p><br/>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 elswix.github.io</p>
+    </footer>
+</body>
+</html>
