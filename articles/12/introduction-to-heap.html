@@ -53,7 +53,7 @@
 <p>Chunks can vary in size and can be split or merged depending on the allocation and deallocation patterns. When a chunk is freed, the memory allocator can <strong>combine it with adjacent free chunks</strong> to create <strong>larger blocks of free memory</strong>. This process is known as <strong>coalescing</strong>.</p><br/>
 <h3><br/>Allocated chunks structure</h3><br/>
 <p>A chunk consists of two parts: the header and the user-accessible data. The header stores metadata, such as the chunk's size and other details. In this article, these parts will be referred to as metadata and user data.</p><br/>
-<p><img alt="" src="http://localhost:8000/articles/12/img/1.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/12/img/1.png"/></p><br/>
 <h3><br/>Metadata</h3><br/>
 <p>In a chunk, the metadata stores crucial information about the chunk.</p><br/>
 <p><strong>prev_size:</strong> The <strong>prev_size</strong> field indicates the size of the previous chunk in memory. It is only set if the previous chunk is free; otherwise, it is part of the user data for that chunk.</p><br/>
@@ -130,16 +130,16 @@
 <p>Let’s break down this code.</p><br/>
 <p>Firstly, the code defines a structure called <code>heapStructure</code>, which contains two variables: <code>priority</code> (a 4-byte integer) and <code>name</code> (a character pointer, which occupies 8 bytes). Then, it creates two pointers, <code>i1</code> and <code>i2</code>, that will point to structures of type <code>heapStructure</code>.</p><br/>
 <p>Think of the heap as shown in the image below:</p><br/>
-<p><img alt="" src="http://localhost:8000/articles/12/img/2.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/12/img/2.png"/></p><br/>
 <p>Let’s explain this image so you can understand how to populate the heap. On the left are the addresses of each 'row' (of course, the heap doesn’t look like this, but it’s just for illustration). As you can see, above the HEAP box, there are the values you need to add to the addresses on the left to reach each field of the heap (0, 8, 16, 24). This heap represents a 64-bit architecture, so each 'field' is 8 bytes. That’s why we add 8 bytes for each field.</p><br/>
 <p>For example, imagine you want to access the blue-colored field below:</p><br/>
-<p><img alt="" src="http://localhost:8000/articles/12/img/3.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/12/img/3.png"/></p><br/>
 <p>This means you need to take the address on the left of the row, <code>0x5f11cd9372b0</code>, and add 16 bytes (0x10 in hex). The resulting address will be <code>0x5f11cd9372c0</code>, which is the address of the beginning of that field.</p><br/>
 <p>That said, the heap is currently empty.</p><br/>
 <p>To allocate the size of the structure on the heap, the code uses <code>malloc</code> and provides the structure size as a parameter. In this case, the total size is 12 bytes, since the <code>priority</code> variable is an <code>int</code> (which occupies 4 bytes in memory) and the <code>name</code> pointer occupies 8 bytes in a 64-bit architecture. However, the compiler will add 4 padding bytes after the <code>int</code> to correctly align the 8 bytes, so when you execute <code>sizeof(struct heapStructure)</code>, the program actually returns 16 bytes. Therefore, a 16-byte chunk will be requested.</p><br/>
 <p>However, remember that the chunk contains its own metadata, so it will occupy an additional 16 bytes for the <code>size</code> (an 8-byte number) and <code>prev_size</code> (another 8-byte number).</p><br/>
 <p>Once the first <code>malloc</code> is executed, the heap will look like this (I'll use a different color to represent each allocated chunk to make it easier to understand):</p><br/>
-<p><img alt="" src="http://localhost:8000/articles/12/img/4.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/12/img/4.png"/></p><br/>
 <p>As observed, a 32-byte chunk has been allocated. The <code>prev_size</code> field is empty (we'll ignore it for now), while the <code>size</code> field indicates the total size of the chunk, which is <code>0x20</code> (32 in hexadecimal). You might have noticed that it shows <code>0x21</code> instead of <code>0x20</code>. This discrepancy occurs because the <code>PREV_INUSE</code> bit is set. Since this is the first chunk available in the heap, the memory preceding it is allocated for other purposes, meaning it is in use.</p><br/>
 <p>Following the <code>size</code> field, the user data section begins, which contains the <code>priority</code> integer and the <code>char</code> pointer defined in the <code>heapStructure</code> structure. These fields are empty since no data has been assigned to them yet.</p><br/>
 <p>Following the first <code>malloc</code> call, the program sets the <code>priority</code> field of the structure pointed to by <code>i1</code> to the value <code>1</code>.</p><br/>
@@ -154,23 +154,23 @@
 <div class="highlight"><pre><span></span><span class="mh">0x5f11cd9372a0</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mh">0x0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x5f11cd9372a0</span><span class="w"> </span><span class="p">(</span><span class="n">priority</span><span class="w"> </span><span class="n">address</span><span class="p">)</span>
 </pre></div>
 <p>After performing that operation, the program assigns the value 1 to the resulting address. Then, the heap will look like this:</p><br/>
-<p><img alt="" src="http://localhost:8000/articles/12/img/5.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/12/img/5.png"/></p><br/>
 <p>As observed, the first user data field, corresponding to the <code>priority</code> member, has been populated with the value <code>1</code>.</p><br/>
 <p>On the next line, the program calls <code>malloc</code> again and assigns the return value to the <code>name</code> member of <code>i1</code>:</p><br/>
 <div class="highlight"><pre><span></span><span class="n">i1</span><span class="o">-&gt;</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">malloc</span><span class="p">(</span><span class="mi">8</span><span class="p">);</span>
 </pre></div>
 <p>Essentially, the program allocates a new 8-byte chunk and stores the returned address—corresponding to the beginning of the user data section of the newly allocated chunk—in the <code>name</code> member of the structure pointed to by <code>i1</code>.</p><br/>
 <p>So, the heap will look like this:</p><br/>
-<p><img alt="" src="http://localhost:8000/articles/12/img/6.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/12/img/6.png"/></p><br/>
 <p>As observed, a new chunk was allocated (which I've highlighted in a different color), and the <code>name</code> member now contains the address of the beginning of the user data portion of the newly allocated chunk.</p><br/>
 <p>As you may have noticed, <code>malloc()</code> allocated a new block with the same size as the previous one, even though we specified 8 bytes less. This is due to the need for the chunks to be correctly aligned (16 bytes), as we explained when we introduced <code>malloc</code>. The <code>PREV_INUSE</code> bit is also set because the previous chunk is allocated.</p><br/>
 <p>Subsequently, the program calls <code>malloc</code> again, but this time stores the returned address into the <code>i2</code> pointer:</p><br/>
 <div class="highlight"><pre><span></span><span class="n">i2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span><span class="w"> </span><span class="nc">heapStructure</span><span class="p">));</span>
 </pre></div>
 <p>This line performs the same action as the program did on the first call to <code>malloc</code>. Therefore, a new chunk is allocated:</p><br/>
-<p><img alt="" src="http://localhost:8000/articles/12/img/7.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/12/img/7.png"/></p><br/>
 <p>After the last <code>malloc</code> call, the heap appears as follows:</p><br/>
-<p><img alt="" src="http://localhost:8000/articles/12/img/8.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/12/img/8.png"/></p><br/>
 <p>Up to this point, there are four allocated chunks. This was a simple demonstration of how heap chunks are allocated and how we can interact with them.</p><br/>
 <p>We've seen that when we request an 8-byte chunk, the program actually allocates 16 bytes (including metadata). Similarly, if you request a 24-byte chunk (which is not a multiple of 16), it will also allocate 32 bytes in total—16 bytes for the user data and an additional 16 bytes for metadata. To illustrate this behavior, let's analyze the following program:</p><br/>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdlib.h&gt;</span>
@@ -191,13 +191,13 @@
 <p>As observed, it first defines a <code>char</code> pointer that points to a string in memory with a length of 24 characters. Then, it calls <code>malloc</code> to request a 24-byte chunk and stores the returned address in the <code>myChunk</code> pointer. Next, it calls <code>malloc</code> again to request a second chunk, which we won't use; this is just to demonstrate that the <code>prev_size</code> field of this chunk will be utilized as part of the previous chunk.</p><br/>
 <p>Finally, it calls <code>strncpy</code> to copy 24 bytes of the string pointed to by <code>exampleString</code> to the address stored in <code>myChunk</code>. If I were to call <code>strcpy</code>, it would copy 25 bytes instead of 24, as it also includes the null byte at the end of the string.</p><br/>
 <p>Initially, after the two calls to <code>malloc</code>, the heap appears as follows:</p><br/>
-<p><img alt="" src="http://localhost:8000/articles/12/img/9.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/12/img/9.png"/></p><br/>
 <p>Let's see what happens when we call <code>strcpy</code>:</p><br/>
-<p><img alt="" src="http://localhost:8000/articles/12/img/10.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/12/img/10.png"/></p><br/>
 <p>As observed, the <code>prev_size</code> field of the second chunk is utilized as part of the first chunk.</p><br/>
 <br/><h2>Free chunks</h2><br/>
 <p>Once we finish using the allocated chunk of memory, we call <code>free()</code> to tell libc we are done with this piece of memory.</p><br/>
-<p><img alt="" src="http://localhost:8000/articles/12/img/11.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/12/img/11.png"/></p><br/>
 <p>As noted, the structure differs from that of allocated chunks. After the chunk size field, two additional fields, <code>fd</code> and <code>bk</code>, are present. These are pointers that refer to the beginning of the next and previous chunks, respectively. These pointers are crucial for managing the chunk list, and we’ll explore their significance in more detail shortly.</p><br/>
 <p>To make memory management more efficient, glibc (the GNU C Library) works hard to reuse memory that has already been allocated and freed. As a result, calling <code>free()</code> enables the recycling of memory for future requests.</p><br/>
 <p>For example, suppose your program allocates 100 bytes to store a string entered by the user. Once you're done with that string, you tell glibc that you no longer need the memory. Later, if you need another 100 bytes for a new string, why not reuse the same memory? This saves time and resources.</p><br/>
@@ -304,17 +304,17 @@
 </pre></div>
 <p>As observed, during the reallocation process, <code>d</code> receives the chunk previously freed from <code>c</code>, <code>e</code> receives the chunk from <code>b</code>, and <code>f</code> receives the chunk from <code>a</code>.</p><br/>
 <p>Let’s visualize the process of updating the fastbin with the following image:</p><br/>
-<p><img alt="" src="http://localhost:8000/articles/12/img/12.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/12/img/12.png"/></p><br/>
 <p>As observed, after each call to <code>free()</code>, the <code>HEAD</code> is updated to point to the newly freed chunk. If a chunk already exists in the fastbin, the <code>fd</code> pointer of the newly freed chunk points to the previous <code>HEAD</code>, and then the <code>HEAD</code> is updated to point to the newly freed chunk.</p><br/>
 <p>The reverse process occurs when calling <code>malloc</code> after those <code>free()</code> calls:</p><br/>
-<p><img alt="" src="http://localhost:8000/articles/12/img/13.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/12/img/13.png"/></p><br/>
 <p>It might seem confusing at first why we add and remove chunks from the beginning of the list instead of the end, but it’s actually the most efficient approach. Remember that the goal of Fastbins is to be as fast and efficient as possible. Let’s consider the following example of a fastbin structure:</p><br/>
-<p><img alt="" src="http://localhost:8000/articles/12/img/14.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/12/img/14.png"/></p><br/>
 <p>In this case, the <code>HEAD</code> points to <code>a</code>, and the <code>fd</code> pointer of <code>a</code> points to <code>b</code>, indicating that <code>b</code> is the next chunk in the list. Now, let’s say we free another chunk, <code>c</code>. If we wanted to add <code>c</code> to the <strong>end</strong> of the list, it would look like this:</p><br/>
-<p><img alt="" src="http://localhost:8000/articles/12/img/15.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/12/img/15.png"/></p><br/>
 <p>To do this, we would need to update the <code>fd</code> pointer of <code>b</code> to point to <code>c</code>. However, glibc fastbins only track the <code>HEAD</code> of the list and don’t maintain a pointer to the end (there is no <code>TAIL</code>). This means that to add <code>c</code> at the end, we would need to start at the <code>HEAD</code> and traverse the entire list to find the last chunk. Once we reach the end, we would then update the <code>fd</code> pointer of the last chunk to point to <code>c</code>, making it the new last chunk.</p><br/>
 <p>On the other hand, if we add <code>c</code> to the <strong>HEAD</strong> of the list:</p><br/>
-<p><img alt="" src="http://localhost:8000/articles/12/img/16.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/12/img/16.png"/></p><br/>
 <p>The process is much simpler:</p><br/>
 <ol>
 <li>We set the <code>fd</code> pointer of <code>c</code> to point to <code>a</code> (since <code>a</code> was the previous head, and glibc already has a reference to it).</li>
@@ -352,7 +352,7 @@
 <p>When the top chunk, the unallocated region at the end of the heap, cannot satisfy an allocation request, the heap manager relies on system calls to obtain more memory from the kernel. Let’s explore how this process works.</p><br/>
 <p>Initially, the heap manager uses the <strong><code>sbrk</code></strong> system call, which internally invokes <strong><code>brk</code></strong> on most Linux-based systems. The <code>brk</code> call increases the "program break," effectively adding memory just beyond the region where the program was originally loaded. Since the heap manager creates the initial heap in this region, this system call extends the size of the program’s initial heap by appending new memory to its end.</p><br/>
 <p>To better understand this, let's examine an example of where a process's heap is located in memory. I ran a simple program and checked its memory mapping file at <code>/proc/{PID}/maps</code>.</p><br/>
-<p><img alt="" src="http://localhost:8000/articles/12/img/17.png"/></p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/12/img/17.png"/></p><br/>
 <p>As shown in the image, each section of the process—such as the heap, the stack, and shared libraries—occupies a specific range of memory addresses. In this example, the heap is mapped from <code>0x63dfbfd5d000</code> to <code>0x63dfbfd7e000</code>.</p><br/>
 <p>You may have noticed the large unused space between the end of the heap and the starting address of the <code>libc</code> library. This gap allows the <strong><code>brk</code></strong> system call to expand the heap when additional memory is required. For instance, the heap's range could grow from <code>0x63dfbfd5d000</code> to an address higher than the initial <code>0x63dfbfd7e000</code>, depending on the size of the requested allocation.</p><br/>
 <p>However, this approach has limitations. As the heap grows, it may eventually collide with other regions in the process's address space, such as memory mappings, shared libraries, or a thread’s stack. In this specific example, the limit would be the starting address of the <code>libc</code> library. When this happens, the heap manager can no longer use <code>sbrk</code> to extend the heap. Instead, it switches to <strong><code>mmap</code></strong>, which allocates non-contiguous memory blocks outside the initial heap.</p><br/>
