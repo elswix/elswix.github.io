@@ -18,13 +18,13 @@
                 <li><a href="/writeups.html">Writeups</a></li>
                 <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
                 <li><a href="/about.html">About me</a></li>
-            </ul>
+            </ul><br/>
         </nav>
     </header>
     <section class="hero">
         <div class="hero-content">
-            <img src="/img/articles/logo1.png" alt="index-logo" class="index-logo">
-            <h1>AD - Kerberos Authentication</h1>
+            <img src="/img/articles/logo13.png" alt="index-logo" class="index-logo">
+            <h1>Kerberos Authentication</h1>
             <p>Understanding Kerberos Authentication Protocol</p>
             <a href="/articles.html" class="mainbtn" class="mainbtn">More articles</a>
         </div>
@@ -32,13 +32,13 @@
     <section class="article-content">
         <div class="container">
             <div class="article-content-main">
-                <h2>Introduction</h2>
+                <h2>Introduction</h2><br/>
 <p>Kerberos is a widely used authentication protocol designed to provide secure identity verification in computer networks. Its robust design and ticket-based authentication mechanism make it a cornerstone of many enterprise environments, particularly in Active Directory. In this article, we will dive into the theoretical foundations of Kerberos, explaining its core components, how the authentication process works, and the various vulnerabilities attackers can exploit to compromise its security.</p><br/>
 <p>This article is focused on building a solid understanding of the protocol itself and the concepts behind some of the most common attacks, such as <strong>AS-REP Roasting</strong>, <strong>Golden Ticket</strong>, <strong>Silver Ticket</strong>, etc. While we won’t cover how to execute these attacks yet, this theoretical overview will help you understand their concepts.</p><br/>
 <p>In future articles, we’ll demonstrate how to exploit these vulnerabilities and provide insights on protecting against them. By the end of this series, you’ll gain both the knowledge and tools to pentest Kerberos-based systems.</p><br/>
-<h2>What is Active Directory?</h2>
+<h2>What is Active Directory?</h2><br/>
 <p>Active Directory (AD) is a directory service developed by Microsoft that is used to manage and organize a network's resources, including users, computers, and other devices. It provides centralized authentication, authorization, and configuration management, making it essential for managing security and access in corporate networks. AD operates using a hierarchical structure, which includes domains, trees, and forests, to efficiently organize and maintain networked resources.</p><br/>
-<h2>What is Kerberos?</h2>
+<h2>What is Kerberos?</h2><br/>
 <p>Kerberos is a network authentication protocol designed to provide secure communication over an insecure network. It uses a ticket-based system to authenticate users and services, ensuring that both parties are who they claim to be without transmitting sensitive information like passwords over the network. When a user attempts to access a service, Kerberos issues a "ticket" that allows the user to prove their identity to the service without needing to re-enter their credentials. This method of authentication helps prevent eavesdropping, replay attacks, and unauthorized access, making Kerberos a widely adopted protocol for securing network resources, especially in environments like Active Directory.</p><br/>
 <p>Kerberos plays a crucial role within Active Directory as the primary authentication protocol. When a user logs into a network, Kerberos ensures secure authentication by using a ticket-based system, allowing users to access network resources without repeatedly entering credentials. This integration of Kerberos into AD provides a secure, efficient, and scalable way to manage user identities and access in large-scale environments.</p><br/>
 <p>Kerberos uses either UDP or TCP as its transport protocol, both of which transmit data in cleartext. Therefore, Kerberos itself is responsible for providing encryption to secure the communication.</p><br/>
@@ -70,14 +70,14 @@
 <li>
 <p><strong>ST (Service Ticket):</strong> The Service Ticket is issued by the TGS based on a valid TGT and allows the user to authenticate directly to the service they want to access. The ST is encrypted with the Service master key, so only the targeted service can decrypt and validate it.</p><br/>
 </li>
-</ul>
+</ul><br/>
 <h3>Privilege Attribute Certificate (PAC)</h3><br/>
 <p>The <strong>Privilege Attribute Certificate (PAC)</strong> is a critical component in Kerberos authentication that contains authorization information about the user. This includes details such as:</p><br/>
 <ul>
 <li>The user's <strong>security identifiers (SIDs)</strong>, representing their account and group memberships.</li>
 <li>Privileges or roles assigned to the user.</li>
 <li>Other relevant attributes required for access control.</li>
-</ul>
+</ul><br/>
 <p>The <strong>PAC</strong> is embedded within Kerberos tickets, specifically the <strong>TGT</strong> and <strong>ST</strong>, and helps services determine what actions a user is allowed to perform once authenticated. To ensure its integrity, the PAC is signed by the <strong>KDC master key</strong>. While services can validate the PAC by verifying its signature with the KDC, this validation is not always enforced. If an attacker manages to tamper with the PAC (e.g., during a <strong>Silver Ticket attack</strong>) and the service does not verify its integrity, the attacker could impersonate any user or modify their privileges, potentially gaining unauthorized access or elevated permissions.</p><br/>
 <h3>Kerberos Messages</h3><br/>
 <p>Kerberos communication involves several types of messages, each serving a specific purpose in the authentication process. The most notable ones include:</p><br/>
@@ -89,11 +89,11 @@
 <li><strong>KRB_AP_REQ:</strong> Sent by the client to the service the user wants to access, to authenticate using the Service Ticket.</li>
 <li><strong>KRB_AP_REP:</strong> (Optional) Sent by the service to authenticate itself back to the client, ensuring mutual authentication.</li>
 <li><strong>KRB_ERROR:</strong> Used to communicate error conditions encountered during the authentication process.</li>
-</ul>
+</ul><br/>
 <p>Additionally, while not part of the core Kerberos protocol, the service may optionally send a <strong>KERB_VERIFY_PAC_REQUEST</strong> message (part of the Microsoft Netlogon Remote Protocol, NRPC) to the KDC. This message contains the PAC signature, allowing the KDC to verify its validity and ensure the PAC has not been tampered with.</p><br/>
 <h3>Kerberos Authentication Flow</h3><br/>
 <p>Now that we have a solid understanding of the key concepts behind Kerberos authentication, let's describe the authentication flow. In this section, we'll explain the steps involved in how Kerberos allows a user to connect to a service, i.e., the sequence of messages, starting from a user without tickets and ending with authentication against the desired service.</p><br/>
-<p><strong>1. KRB_AS_REQ</strong></p><br/>
+<h3>1. KRB_AS_REQ</h3><br/>
 <p>Initially, the user who wants to access a service, must obtain a TGT from the AS. It does it so by sending a <code>KRB_AS_REQ</code> message to the KDC.</p><br/>
 <p><img alt="" src="https://elswix.github.io/articles/13/img/1.png"/></p><br/>
 <p>Let’s break down the key components of the <code>KRB_AS_REQ</code> message:</p><br/>
@@ -102,9 +102,9 @@
 <li><strong>Username:</strong> Identifies the user requesting the TGT.</li>
 <li><strong>krbtgt SPN:</strong> Specifies the service principal name of the KRBTGT account, indicating the ticket's intended purpose.</li>
 <li><strong>User Nonce:</strong> A randomly generated value included by the client to ensure freshness and prevent the reuse of KDC responses.</li>
-</ul>
+</ul><br/>
 <p>While the <code>KRB_AS_REQ</code> can contain additional fields, these are the most important for understanding its role in the authentication process.</p><br/>
-<p><strong>2. KRB_AS_REP</strong></p><br/>
+<h3>2. KRB_AS_REP</h3><br/>
 <p>Upon receiving the <code>KRB_AS_REQ</code> message, the KDC processes its content. First, it verifies whether the username exists in the Active Directory. If the user is found, the KDC retrieves the associated NT hash and attempts to decrypt the Timestamp included in the request. If the decryption is successful, it confirms that the Timestamp was encrypted using the correct NT hash, which means the user knows their password—or at least possesses the necessary credentials. Once this verification is complete, the KDC generates a TGT and delivers it to the client within a <code>KRB_AS_REP</code> message.</p><br/>
 <p><img alt="" src="https://elswix.github.io/articles/13/img/2.png"/></p><br/>
 <p>The <code>KRB_AS_REP</code> message contains the <strong>TGT</strong>, which is a critical component in the Kerberos authentication process. Let’s explore its content:</p><br/>
@@ -113,13 +113,13 @@
 <li><strong>TGS Session Key/Session Key:</strong> A unique session key generated by the KDC for secure communication between the client and the TGS. This key plays a vital role in the next step of the authentication process. When the client later requests a Service Ticket (ST) from the TGS, the Session Key is used to encrypt and validate the <strong>Authenticator</strong> included in the request. This ensures that the request originates from the user who owns the TGT, further reinforcing authentication security.</li>
 <li><strong>TGT Expiration:</strong> Specifies the lifetime of the TGT, including the issue and expiration times. The expiration ensures that tickets are only valid for a limited period, reducing the risk of misuse if intercepted.</li>
 <li><strong>PAC (Privilege Attribute Certificate):</strong> Describes the user’s permissions and group memberships. The PAC is <strong>signed</strong> by the KDC’s master key to protect its integrity. While verifying the PAC signature is optional, it provides a mechanism for ensuring that the PAC has not been tampered with.</li>
-</ul>
+</ul><br/>
 <p>The entire <strong>TGT</strong> is encrypted with the KDC’s master key (derived from the KRBTGT account's NT hash). This encryption ensures that the TGT’s contents cannot be read or altered by anyone except the KDC or TGS, which possesses the corresponding decryption key.</p><br/>
 <p>Within the <code>KRB_AS_REP</code> message, we find an additional structure containing a copy of the <strong>Session Key</strong>, the <strong>TGT Expiration</strong>, and the <strong>User Nonce</strong> provided in the <code>KRB_AS_REQ</code>. This structure is <strong>encrypted</strong> using the User Master Key.</p><br/>
 <p>Why is this second structure included? As mentioned earlier, the <strong>Session Key</strong> plays a critical role in securing the communication process. It is used to encrypt the <strong>Authenticator</strong>, a structure included in subsequent requests to prevent replay attacks. Given that this structure is encrypted using the User Master Key, the user can decrypt it and then extract the <strong>Session Key</strong> for future usage. </p><br/>
 <p>When the TGS receives the request, it decrypts the TGT using the KDC Master Key, extracts the <strong>Session Key</strong>, and uses it to attempt decryption of the Authenticator. If the Authenticator is successfully decrypted, it confirms that the user possesses the <strong>Session Key</strong>. Finally, the TGS validates the information within the Authenticator to ensure the integrity of the request.</p><br/>
 <p>We'll delve into the <strong>Authenticator</strong> in the next section.</p><br/>
-<p><strong>3. KRB_TGS_REQ</strong></p><br/>
+<h3>3. KRB_TGS_REQ</h3><br/>
 <p>Upon recieving the <code>KRB_AS_REP</code> message, the user now possesses a <strong>TGT</strong>, which is essential for the next step in order to ask a <strong>Service Ticket</strong>. Moreover, the user also recieves the second structure which contains the <strong>Session Key</strong>, as it's encrypted with the User Master Key (i.e, the user NT hash), the user can decrypt it and obtain the <strong>Session Key</strong>, this session key is crucial for the next step. </p><br/>
 <p>Now, it's time to request a Service Ticket to the TGS. This is made through a <code>KRB_TGS_REQ</code>:</p><br/>
 <p><img alt="" src="https://elswix.github.io/articles/13/img/3.png"/></p><br/>
@@ -129,22 +129,22 @@
 <li><strong>Username:</strong> Identifies the user making the request.</li>
 <li><strong>Timestamp:</strong> Indicates when the request was issued. The timestamp is essential for preventing replay attacks. If an attacker intercepts the request and attempts to resend it, the TGS will reject it if the timestamp falls outside the acceptable time range (usually within a 5-minute tolerance to account for clock drift).</li>
 <li><strong>Optional Nonce:</strong> A randomly generated number that can further enhance replay protection by introducing uniqueness to the Authenticator, even if the Timestamp is reused within a valid time range. </li>
-</ul>
+</ul><br/>
 <p>The <strong>Authenticator</strong> is encrypted with the <strong>Session Key</strong> obtained during the previous <code>KRB_AS_REP</code> phase. This ensures that only a user who knows the <strong>Session Key</strong> can generate a valid Authenticator. The TGS decrypts the TGT (which also contains the Session Key) and uses it to decrypt the Authenticator. If successful, it validates the timestamp and the information provided.</p><br/>
 <p><strong>TGT:</strong> The Ticket Granting Ticket (TGT) obtained in the previous step is included in the <code>KRB_TGS_REQ</code>. The TGT enables the user to prove their identity without needing to re-enter their password. Since it is encrypted with the <strong>KDC Master Key</strong>, it remains tamper-proof and serves as a secure method of identity verification.</p><br/>
 <p><strong>Service Principal Name (SPN):</strong> The Service Principal Name (SPN) identifies the specific service the user wants to access. SPNs are unique to each service and typically follow a format such as:</p><br/>
 <ul>
 <li><code>LDAP/dc.domain.local</code></li>
 <li><code>HTTP/domain.local</code></li>
-</ul>
+</ul><br/>
 <p>An SPN helps the TGS determine which service ticket to issue, as it specifies the intended recipient of the ticket. Note that some services may have multiple SPNs depending on their configuration.</p><br/>
 <p><strong>User Nonce:</strong> A <strong>User Nonce</strong> is included in the <code>KRB_TGS_REQ</code> message as an additional measure to ensure freshness and prevent replay attacks at the level of the ticket exchange. This is not the same as the <strong>optional nonce</strong> that can be included within the <strong>Authenticator</strong>, this one has different purposes or at least, a different functionality. </p><br/>
 <ul>
 <li>This User Nonce is a randomly generated number provided by the client.</li>
 <li>It is included in the <code>KRB_TGS_REP</code> response so the client can verify that the response matches its request.</li>
 <li>It also helps synchronize the generation of the session key for the requested service.</li>
-</ul>
-<p><strong>4. KRB_TGS_REP</strong></p><br/>
+</ul><br/>
+<h3>4. KRB_TGS_REP</h3><br/>
 <p>After receiving the <code>KRB_TGS_REQ</code> message, the TGS performs the following steps:</p><br/>
 <ol>
 <li>
@@ -153,7 +153,7 @@
 <li>The TGS decrypts the embedded TGT using the KDC Master Key.</li>
 <li>If the decryption is successful, it confirms that the TGT is valid because it was signed with the correct KDC Master Key during its creation.</li>
 <li>The TGS then extracts the <strong>Session Key</strong> from the TGT for further validation.</li>
-</ul>
+</ul><br/>
 </li>
 <li>
 <p><strong>Decrypting and Verifying the Authenticator:</strong></p><br/>
@@ -161,14 +161,14 @@
 <li>The <strong>Authenticator</strong> (encrypted with the Session Key) is decrypted using the extracted Session Key.</li>
 <li>If decryption is successful, it confirms that the user knows the Session Key, which indirectly proves their identity.</li>
 <li>The TGS also checks the information inside the Authenticator, especially the <strong>Timestamp</strong>, to ensure the request is recent and prevent replay attacks.</li>
-</ul>
+</ul><br/>
 </li>
 <li>
 <p><strong>Generating a New Session Key:</strong></p><br/>
 <ul>
 <li>If all validations pass, the TGS generates a new <strong>Service Session Key</strong>.</li>
 <li>This key will be used for secure communication between the client and the target service.</li>
-</ul>
+</ul><br/>
 </li>
 <li>
 <p><strong>Creating the Service Ticket (ST):</strong></p><br/>
@@ -180,23 +180,23 @@
 <li><strong>Service Session Key:</strong> The new session key for client-service communication.</li>
 <li><strong>Expiration Time:</strong> The validity period of the ST.</li>
 <li><strong>PAC:</strong> The PAC from the TGT is copied to the ST.</li>
-</ul>
+</ul><br/>
 </li>
 <li>
 <p>The ST is then <strong>encrypted with the Service Master Key</strong>.</p><br/>
 <ul>
 <li>The Service Master Key is derived from the NT hash of the target service.</li>
 <li>The TGS identifies the correct service by using the SPN provided in the <code>KRB_TGS_REQ</code>.</li>
-</ul>
+</ul><br/>
 </li>
-</ul>
+</ul><br/>
 </li>
 <li>
 <p><strong>Encrypting the New Session Key for the Client:</strong></p><br/>
 <ul>
 <li>A new structure is created containing the <strong>Service Session Key</strong>, encrypted with the previous <strong>Session Key</strong> (obtained from the TGT).</li>
 <li>This ensures that only the user (who knows the previous Session Key) can decrypt it and obtain the Service Session Key.</li>
-</ul>
+</ul><br/>
 </li>
 <li>
 <p><strong>Finalizing the Response:</strong></p><br/>
@@ -204,9 +204,9 @@
 <li>The TGS sends back the <code>KRB_TGS_REP</code> message, which contains:<ul>
 <li>The encrypted Service Ticket (ST) for the target service.</li>
 <li>The encrypted Service Session Key for the client.</li>
-</ul>
+</ul><br/>
 </li>
-</ul>
+</ul><br/>
 </li>
 </ol>
 <p><img alt="" src="https://elswix.github.io/articles/13/img/4.png"/></p><br/>
@@ -221,6 +221,7 @@
 <li>Embedded in the <strong>Service Ticket</strong> (encrypted with the <strong>Service Master Key</strong>).</li>
 <li>Encrypted with the previous <strong>Session Key</strong> obtained from the <code>KRB_AS_REP</code>, allowing the user to extract it securely.</li>
 </ol>
+<br/>
 </li>
 <li>
 <p><strong>Username:</strong> The identity of the user requesting the <strong>Service Ticket</strong>. This is included for consistency and to help the target service identify the user.</p><br/>
@@ -228,7 +229,7 @@
 <li>
 <p><strong>User Nonce:</strong> The <strong>User Nonce</strong> sent by the client in the <code>KRB_TGS_REQ</code> is echoed back in this response. This confirms that the response is fresh and directly related to the specific request made by the client, preventing replay attacks.</p><br/>
 </li>
-</ul>
+</ul><br/>
 <p>As observed, the process is similar to the previous steps, in this case changes the type of ticket, but the steps that takes the user is the same.</p><br/>
 <h3>5. KRB_AP_REQ</h3><br/>
 <p>After receiving the <code>KRB_TGS_REP</code>, the user extracts and decrypts the <strong>Service Session Key</strong> included in the response using the previously established <strong>Session Key</strong>. The decrypted <strong>Service Session Key</strong> is then saved for secure communication with the target service. The next step involves the user attempting to access the service by sending a <code>KRB_AP_REQ</code> message.</p><br/>
@@ -239,18 +240,18 @@
 <ul>
 <li>The ST obtained from the <code>KRB_TGS_REP</code> is included in this request.</li>
 <li>This ticket, encrypted with the <strong>Service Master Key</strong>, serves as proof that the user has been authenticated by the KDC and is authorized to access the target service.</li>
-</ul>
+</ul><br/>
 <p><strong>2. Authenticator:</strong></p><br/>
 <ul>
-<li>The user generates a new <strong>Authenticator</strong> specifically for this request. Its role is to confirm the user's identity and prove possession of the <strong>Service Session Key</strong>.</li>
-<li>The <strong>Authenticator</strong> includes:<ul>
+<li>The user generates a new <strong>Authenticator</strong> specifically for this request. Its role is to confirm the user's identity and prove possession of the <strong>Service Session Key</strong>.</li><br/>
+<li>The <strong>Authenticator</strong> includes:<ul><br/>
 <li><strong>User information:</strong> Identifies the client making the request.</li>
 <li><strong>Timestamp:</strong> Prevents replay attacks by ensuring that the request is recent.</li>
 <li><strong>Optional Nonce:</strong> An optional nonce can be included to add an extra layer of security.</li>
-</ul>
+</ul><br/>
 </li>
 <li>The <strong>Authenticator</strong> is <strong>encrypted with the Service Session Key</strong>, ensuring that only the user who possesses the correct key can create a valid authenticator.</li>
-</ul>
+</ul><br/>
 <p>Once the service (<strong>Application Server</strong>) receives the <code>KRB_AP_REQ</code> message, it attempts to decrypt the <strong>Service Ticket (ST)</strong> using its own Service master key, which is the service's owner NT hash. If the decryption is successful, it indicates that the <strong>ST</strong> is valid and confirms that it was issued specifically to this particular service. </p><br/>
 <p>After successfully decrypting the <strong>ST</strong>, the <strong>AP</strong> extracts the <strong>Service Session Key</strong> from it. The service then attempts to decrypt the <strong>Authenticator</strong> with this <strong>Service Session Key</strong>. If the <strong>Authenticator</strong> decrypts correctly, it confirms that the user knows the correct <strong>Service Session Key</strong> associated with the <strong>ST</strong>, which acts as another layer of validation for the user's identity.</p><br/>
 <p>Once the <strong>Authenticator</strong> is decrypted, the service verifies whether the <strong>Timestamp</strong> is valid. If the timestamp is valid, the service proceeds to grant access to the user. For instance, if the service is a <strong>File Server</strong>, it might grant the user privileges to read files, list directories, or even write, depending on the permissions specified in the <strong>PAC</strong> embedded within the <strong>Service Ticket</strong>.</p><br/>
@@ -261,7 +262,7 @@
 <p>When we mention the user extracting tickets and session keys during the Kerberos authentication process, what actually happens is that these structures are stored in a <strong>ticket cache</strong>, often in the form of ccache files. For instance, upon receiving the <code>KRB_AS_REP</code> message, the user extracts the TGT, decrypts the Session Key using their NT hash, and stores both the TGT and the Session Key in a <code>ccache</code> file. This enables the user to reuse the TGT (as long as it remains valid) when requesting additional Service Tickets (STs).</p><br/>
 <p>A similar process occurs with the <code>KRB_TGS_REP</code> message. The user stores the ST and the corresponding Service Session Key in the cache, allowing for the reuse of these structures when accessing the associated service.</p><br/>
 <p>By storing these elements in a ticket cache, users can efficiently manage their authentication credentials without needing to repeatedly authenticate with the KDC for every service request, streamlining the authentication process.</p><br/>
-<h2>Introduction to Kerberos Exploitation</h2>
+<h2>Introduction to Kerberos Exploitation</h2><br/>
 <p>Now that we have a solid understanding of how the Kerberos authentication process works, let’s explore some common attacks that target its mechanisms. In this article, we’ll focus on the theoretical aspects of these attacks, laying the groundwork for a follow-up article where we’ll demonstrate their exploitation in practice.</p><br/>
 <h3>Kerberos Bruteforce (User Enumeration)</h3><br/>
 <p>This attack involves sending authentication requests with guessed usernames and observing the responses. Kerberos provides different error messages for valid and invalid usernames. Remember when we were discussing the process the AS does before sending a <code>KRB_AS_REP</code>. Firstly, when recieving the <code>KRB_AS_REQ</code>, we said that it first verifies whether the specified user exists. If it doesn't exist, the <code>KDC_ERR_C_PRINCIPAL_UNKNOWN</code> is sent. So this message is helpful for the attacker when is trying to guess usernames.</p><br/>
@@ -285,7 +286,7 @@
 <p><strong>Not Just NT hashes: Other Key Types</strong></p><br/>
 <p>Kerberos also supports other encryption keys, such as AES keys, which provide stronger security. To ensure compatibility, the <code>KRB_AS_REQ</code> includes an <strong>EncryptionType (etype)</strong> field that specifies the algorithm used to encrypt the timestamp. The KDC uses this field to identify the appropriate key type (e.g., NT hash, AES128, or AES256) and attempts decryption accordingly. </p><br/>
 <p>The KDC retrieves the user’s credentials from its database, which may include multiple key types (e.g., NT hash, AES128 key, AES256 key). Based on the <code>etype</code> specified in the <code>KRB_AS_REQ</code>, the KDC selects the corresponding key. The KDC attempts to decrypt the timestamp using the selected key. If decryption succeeds and the timestamp is valid, the KDC issues a TGT.</p><br/>
-<h2>Conclusion</h2>
+<h2>Conclusion</h2><br/>
 <p>Kerberos is a powerful and widely used authentication protocol, especially in Active Directory environments. Its ticket-based system and use of encryption make it a strong choice for securing networks. However, as we’ve seen, it’s not immune to attacks. Techniques like OverPass The Hash, Golden Ticket, and Silver Ticket show how attackers can exploit access to critical keys or misconfigurations to bypass authentication and compromise systems.</p><br/>
 <p>Understanding these attacks is essential for improving security. Regularly rotating sensitive keys (like the krbtgt key), monitoring ticket activity, and protecting accounts can significantly reduce risks. While Kerberos is effective when properly managed, it requires ongoing attention to maintain its security.</p><br/>
 <p>This overview provides a foundation for understanding Kerberos and its vulnerabilities. In future articles, we’ll explore these attacks in more detail, focusing on how they are exploited.</p><br/>
@@ -308,7 +309,7 @@
 <a href="https://learn.microsoft.com/en-us/windows/win32/secauthn/key-authentication">https://learn.microsoft.com/en-us/windows/win32/secauthn/key-authentication</a>
 <br/><a href="https://www.researchgate.net/publication/353593170_On_Attacking_Kerberos_Authentication_Protocol_in_Windows_Active_Directory_Services_A_Practical_Survey">https://www.researchgate.net/publication/353593170_On_Attacking_Kerberos_Authentication_Protocol_in_Windows_Active_Directory_Services_A_Practical_Survey</a>
 <br/>
-https://www.tarlogic.com/blog/how-kerberos-works/</p><br/>
+<a href="https://www.tarlogic.com/blog/how-kerberos-works/">https://www.tarlogic.com/blog/how-kerberos-works/</a><br/>
             </div>
         </div>
     </section>
