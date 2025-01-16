@@ -10,6 +10,7 @@
     <link rel="icon" href="favicon.ico" type="image/x-icon">
 </head>
 <body>
+    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
@@ -34,25 +35,25 @@
                 <!-- Hero Section -->
                 <section class="hero mb-5">
                     <img src="img/index-logo.png" alt="index-logo" class="mb-3" style="width: 120px; height: 120px;">
-                    <h2 style="color: #d32f2f">elswix.github.io</h2>
+                    <h2 style="color: #d32f2f">elswix.com</h2>
                     <p>Welcome to my personal blog!</p>
                 </section>
                 <section>
                     <h3>Latest Articles</h3>
                     <div class="writeup mb-4"><div class="d-flex align-items-center">
-                    <img src="/img/articles/logo14.png" alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;">
+                    <img src="/img/articles/logo14.png" alt="Logo" class="rounded-circle me-3" >
                     <div><h3 class="mb-1 text-light">Active Directory: Attacking Kerberos</h3>
                     <p class="mb-2 text-secondary">Today, we'll explore the exploitation of an AD environment, demonstrating how to carry out these attacks and apply the Kerberos Authentication Protocol in real-world exploitation scenarios.</p>
                     <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/14/Attacking-Kerberos.html">Read more</a></div></div>
                 </div>
                 <div class="writeup mb-4"><div class="d-flex align-items-center">
-                    <img src="/img/articles/logo13.png" alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;">
+                    <img src="/img/articles/logo13.png" alt="Logo" class="rounded-circle me-3" >
                     <div><h3 class="mb-1 text-light">Active Directory: Understanding Kerberos Authentication Protocol</h3>
                     <p class="mb-2 text-secondary">In this article, we will dive into the theoretical foundations of Kerberos, explaining its core components, how the authentication process works.</p>
                     <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/13/kerberos-authentication.html">Read more</a></div></div>
                 </div>
                 <div class="writeup mb-4"><div class="d-flex align-items-center">
-                    <img src="/img/articles/logo12.png" alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;">
+                    <img src="/img/articles/logo12.png" alt="Logo" class="rounded-circle me-3" >
                     <div><h3 class="mb-1 text-light">Understanding the Heap: A Foundation for Advanced Exploitation</h3>
                     <p class="mb-2 text-secondary">In this article, we explore the fundamentals of the heap as a stepping stone to understanding advanced memory corruption exploitation techniques.</p>
                     <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/12/understanding-the-heap.html">Read more</a></div></div>
@@ -60,19 +61,19 @@
                 <h3>Latest WriteUPs</h3>
                 <section>
                     <div class="writeup mb-4"><div class="d-flex align-items-center">
-                    <img alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;" src="/writeups/htb/insane/rebound/img/rebound.png" >
+                    <img alt="Logo" class="rounded-circle me-3"  src="/writeups/htb/insane/rebound/img/rebound.png" >
                     <div><h3 class="mb-1 text-light">Rebound - HTB</h3>
                     <p class="mb-2 text-secondary">Rebound is an insane difficulty machine on HackTheBox. Initially, we'll exploit RID brute force to obtain a list of valid users on the Domain Controller. One of these users is vulnerable to...</p>
                     <a class="btn btn-link p-0 text-decoration-none text-danger" href="/writeups/htb/insane/rebound/rebound.html">Read more</a></div></div>
                 </div>
                 <div class="writeup mb-4"><div class="d-flex align-items-center">
-                    <img alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;" src="/writeups/htb/easy/analytics/img/analytics.png">
+                    <img alt="Logo" class="rounded-circle me-3"  src="/writeups/htb/easy/analytics/img/analytics.png">
                     <div><h3 class="mb-1 text-light">Analytics - HTB</h3>
                     <p class="mb-2 text-secondary">Analytics is an easy machine on HackTheBox. Firstly, we'll exploit a vulnerable version of Metabase to achieve command execution on the victim machine...</p>
                     <a class="btn btn-link p-0 text-decoration-none text-danger" href="/writeups/htb/easy/analytics/analytics.html">Read more</a></div></div>
                 </div>
                 <div class="writeup mb-4"><div class="d-flex align-items-center">
-                    <img alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;" src="/writeups/htb/medium/manager/img/manager.png">
+                    <img alt="Logo" class="rounded-circle me-3"  src="/writeups/htb/medium/manager/img/manager.png">
                     <div><h3 class="mb-1 text-light">Manager - HTB</h3>
                     <p class="mb-2 text-secondary">Manager is a medium-difficulty machine on HackTheBox. Initially, we'll abuse the guest session to perform a RID Bruteforce attack to identify...</p>
                     <a class="btn btn-link p-0 text-decoration-none text-danger" href="/writeups/htb/medium/manager/manager.html">Read more</a></div></div>
@@ -82,5 +83,7 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/sidebarToggle.js"></script>
+    <script src="/js/fixMobileImages.js"></script>
 </body>
 </html>

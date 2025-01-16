@@ -152,3 +152,82 @@ pre code {
     display: inline;
     line-height: inherit;
 }
+
+/* Botón para la Sidebar */
+.sidebar-toggle {
+    display: none;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    background-color: #111;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 15px;
+    z-index: 1000;
+    cursor: pointer;
+    font-size: 20px;
+}
+
+.sidebar-toggle:focus {
+    outline: none;
+}
+
+.writeup img {
+    width: 100px;
+    height: 100px;
+}
+
+
+/* Ocultar la Sidebar por defecto en móviles */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-in-out;
+        width: 200px;
+        z-index: 10;
+    }
+
+    .sidebar.active {
+        transform: translateX(0);
+    }
+
+    .writeup h3 {
+        margin-top: 10px;
+        margin-left: 0px;
+        text-align: center;
+    }
+
+    .writeup p {
+        margin-left: 0px;
+    }
+
+
+    .writeup-img {
+        border-radius: 50%;
+        display: inline;
+        margin-left: 34%;
+    }
+
+    main {
+        margin-left: 0;
+        max-width: 100%;
+        padding-left: 20px;
+    }
+
+    .hero {
+        max-width: 100%;
+    }
+
+    .writeup {
+        max-width: 100%;
+    }
+
+    .sidebar-toggle {
+        display: block;
+    }
+
+    .sidebar-toggle:hover {
+        background-color: #333;
+    }
+}

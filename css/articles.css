@@ -118,6 +118,9 @@ ul {
         font-size: 16px;
     }
 
+    .article-container {
+        max-width: 100%;
+    }
 
     .writeup-content-main {
         margin-left: 0%; 
@@ -150,7 +153,6 @@ ul {
        text-align: center;
        margin-left: 25px;
        font-size: 14px;
-       opacity: 0.5;
     }
 
 
