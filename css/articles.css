@@ -31,6 +31,30 @@ strong {
   background-image: linear-gradient(62deg, #87c2fd 0%, #dcb9fc 100%) !important;
 }
 
+/* Pre/Code Blocks */
+pre {
+    border-radius: 10px;
+    background-color: #111111;
+    border: 1px solid #1f1f1f;
+    color: #c9c9c9;
+    page-break-inside: avoid;
+    font-family: Consolas, Monaco, "Courier New", monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    max-width: 100%;
+    overflow: auto;
+    padding: 15px;
+    display: block;
+}
+
+pre code {
+    background-color: inherit;
+    border: none;
+    padding: 0;
+    display: inline;
+    line-height: inherit;
+}
 
 img {
     max-width: 75%; 

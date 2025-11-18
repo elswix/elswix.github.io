@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>elswix - Articles</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/articles_index.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -14,145 +16,283 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="Logo">
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
                 </div>
                 <nav>
                     <ul class="nav flex-column">
-                        <li class="nav-item"><a href="/" class="nav-link"><i class="bi bi-house-door"></i> Home</a></li>
-                        <li class="nav-item"><a href="/articles" class="nav-link active"><i class="bi bi-card-text"></i> Articles</a></li>
-                        <li class="nav-item"><a href="/writeups" class="nav-link"><i class="bi bi-terminal"></i> WriteUPs</a></li>
-                        <li class="nav-item"><a href="/notes" class="nav-link"><i class="bi bi-journal-text"></i> Notes</a></li>
-                        <li class="nav-item"><a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link"><i class="bi bi-github"></i> KL-Sunset</a></li>
-                        <li class="nav-item"><a href="/about" class="nav-link"><i class="bi bi-person"></i> About me</a></li>
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i class="bi bi-house-door"></i> Home
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link active">
+                                <i class="bi bi-card-text"></i> Articles
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i class="bi bi-terminal"></i> WriteUPs
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link">
+                                <i class="bi bi-journal-text"></i> Notes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i class="bi bi-github"></i> KL-Sunset
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i class="bi bi-person"></i> About me
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </aside>
+
             <!-- Main Content -->
             <main>
                 <!-- Hero Section -->
-                <section class="hero mb-5" style="background: linear-gradient(135deg, #032536 10%, #000 90%);">
-                    <img src="/img/articles-logo.png" alt="index-logo" class="mb-3" style="width: 120px; height: 120px; filter: invert(100%);">
+                <section class="hero mb-5">
+                    <img src="/img/articles-logo.png" alt="Articles" style="filter: brightness(0) invert(1);" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
                     <h2>Articles</h2>
+                    <p>Technical deep-dives into cybersecurity topics</p>
                 </section>
+
                 <section>
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo18.png" alt="Logo" class="rounded-circle me-3" >
-                        <div><h3 class="mb-1 text-light">Active Directory: Certificate Services (Part 2)</h3>
-                        <p class="mb-2 text-secondary">Today, we will delve into how **Certificate Mapping** works, which security measurements were implemented after the Certifried vulnerability and more.</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/18/active-directory-certificate-services-part2.html">Read more</a></div></div>
+                    <!-- Active Directory Section -->
+                    <div class="writeup mb-4">
+                        <div class="d-flex align-items-center">
+                            <img src="/img/articles/logo18.png" alt="AD Certificate Services Part 2" class="rounded-circle me-3" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=AD'">
+                            <div>
+                                <h3 class="mb-1 text-light">Active Directory: Certificate Services (Part 2)</h3>
+                                <p class="mb-2 text-secondary">Today, we will delve into how Certificate Mapping works, which security measurements were implemented after the Certifried vulnerability and more.</p>
+                                <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/18/active-directory-certificate-services-part2.html">Read more</a>
+                            </div>
+                        </div>
                     </div>
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo17.png" alt="Logo" class="rounded-circle me-3" >
-                        <div><h3 class="mb-1 text-light">Active Directory: Certificate Services (Part 1)</h3>
-                        <p class="mb-2 text-secondary">Today, we'll delve into Active Directory Certificate Services (ADCS). In this article, we'll cover fundamental concepts and later introduce exploitation techniques, as well as how to exploit them.</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/17/active-directory-certificate-services.html">Read more</a></div></div>
+
+                    <div class="writeup mb-4">
+                        <div class="d-flex align-items-center">
+                            <img src="/img/articles/logo17.png" alt="AD Certificate Services Part 1" class="rounded-circle me-3" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=AD'">
+                            <div>
+                                <h3 class="mb-1 text-light">Active Directory: Certificate Services (Part 1)</h3>
+                                <p class="mb-2 text-secondary">Today, we'll delve into Active Directory Certificate Services (ADCS). In this article, we'll cover fundamental concepts and later introduce exploitation techniques, as well as how to exploit them.</p>
+                                <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/17/active-directory-certificate-services.html">Read more</a>
+                            </div>
+                        </div>
                     </div>
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo16.png" alt="Logo" class="rounded-circle me-3" >
-                        <div><h3 class="mb-1 text-light">Active Directory: DACL Abuse</h3>
-                        <p class="mb-2 text-secondary">Today, we'll explore the exploitation of insecure ACEs within the DACL of users and groups in an Active Directory environment.</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/16/active-directory-dacl-abuse.html">Read more</a></div></div>
+
+                    <div class="writeup mb-4">
+                        <div class="d-flex align-items-center">
+                            <img src="/img/articles/logo16.png" alt="DACL Abuse" class="rounded-circle me-3" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=DACL'">
+                            <div>
+                                <h3 class="mb-1 text-light">Active Directory: DACL Abuse</h3>
+                                <p class="mb-2 text-secondary">Today, we'll explore the exploitation of insecure ACEs within the DACL of users and groups in an Active Directory environment.</p>
+                                <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/16/active-directory-dacl-abuse.html">Read more</a>
+                            </div>
+                        </div>
                     </div>
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo15.png" alt="Logo" class="rounded-circle me-3" >
-                        <div><h3 class="mb-1 text-light">Active Directory: Windows ACLs</h3>
-                        <p class="mb-2 text-secondary">Today, we’ll explore the fundamentals of ACLs in Windows and later demonstrate common attacks that exploit ACL misconfigurations in an Active Directory environment.</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/15/active-directory-windows-acls.html">Read more</a></div></div>
+
+                    <div class="writeup mb-4">
+                        <div class="d-flex align-items-center">
+                            <img src="/img/articles/logo15.png" alt="Windows ACLs" class="rounded-circle me-3" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=ACL'">
+                            <div>
+                                <h3 class="mb-1 text-light">Active Directory: Windows ACLs</h3>
+                                <p class="mb-2 text-secondary">Today, we'll explore the fundamentals of ACLs in Windows and later demonstrate common attacks that exploit ACL misconfigurations in an Active Directory environment.</p>
+                                <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/15/active-directory-windows-acls.html">Read more</a>
+                            </div>
+                        </div>
                     </div>
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo14.png" alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;">
-                        <div><h3 class="mb-1 text-light">Active Directory: Attacking Kerberos</h3>
-                        <p class="mb-2 text-secondary">Today, we'll explore the exploitation of an AD environment, demonstrating how to carry out these attacks and apply the Kerberos Authentication Protocol in real-world exploitation scenarios.</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/14/Attacking-Kerberos.html">Read more</a></div></div>
+
+                    <div class="writeup mb-4">
+                        <div class="d-flex align-items-center">
+                            <img src="/img/articles/logo14.png" alt="Attacking Kerberos" class="rounded-circle me-3" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=KRB'">
+                            <div>
+                                <h3 class="mb-1 text-light">Active Directory: Attacking Kerberos</h3>
+                                <p class="mb-2 text-secondary">Today, we'll explore the exploitation of an AD environment, demonstrating how to carry out these attacks and apply the Kerberos Authentication Protocol in real-world exploitation scenarios.</p>
+                                <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/14/Attacking-Kerberos.html">Read more</a>
+                            </div>
+                        </div>
                     </div>
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo13.png" alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;">
-                        <div><h3 class="mb-1 text-light">Active Directory: Understanding Kerberos Authentication Protocol</h3>
-                        <p class="mb-2 text-secondary">In this article, we will dive into the theoretical foundations of Kerberos, explaining its core components, how the authentication process works.</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/13/kerberos-authentication.html">Read more</a></div></div>
+
+                    <div class="writeup mb-4">
+                        <div class="d-flex align-items-center">
+                            <img src="/img/articles/logo13.png" alt="Kerberos Auth" class="rounded-circle me-3" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=KRB'">
+                            <div>
+                                <h3 class="mb-1 text-light">Active Directory: Understanding Kerberos Authentication Protocol</h3>
+                                <p class="mb-2 text-secondary">In this article, we will dive into the theoretical foundations of Kerberos, explaining its core components, how the authentication process works.</p>
+                                <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/13/kerberos-authentication.html">Read more</a>
+                            </div>
+                        </div>
                     </div>
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo12.png" alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;">
-                        <div><h3 class="mb-1 text-light">Understanding the Heap: A Foundation for Advanced Exploitation</h3>
-                        <p class="mb-2 text-secondary">In this article, we explore the fundamentals of the heap as a stepping stone to understanding advanced memory corruption exploitation techniques.</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/12/understanding-the-heap.html">Read more</a></div></div>
+
+                    <!-- Binary Exploitation Section -->
+                    <div class="writeup mb-4">
+                        <div class="d-flex align-items-center">
+                            <img src="/img/articles/logo12.png" alt="Heap" class="rounded-circle me-3" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HEAP'">
+                            <div>
+                                <h3 class="mb-1 text-light">Understanding the Heap: A Foundation for Advanced Exploitation</h3>
+                                <p class="mb-2 text-secondary">In this article, we explore the fundamentals of the heap as a stepping stone to understanding advanced memory corruption exploitation techniques.</p>
+                                <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/12/understanding-the-heap.html">Read more</a>
+                            </div>
+                        </div>
                     </div>
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo11.png" alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;">
-                        <div><h3 class="mb-1 text-light">Buffer Overflow - Ret2libc (Part 2)</h3>
-                        <p class="mb-2 text-secondary">Today, we will continue exploring the Ret2libc technique, with a focus on 64-bit exploitation. </p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/11/return-2-libc-2.html">Read more</a></div></div>
+
+                    <div class="writeup mb-4">
+                        <div class="d-flex align-items-center">
+                            <img src="/img/articles/logo11.png" alt="Ret2libc Part 2" class="rounded-circle me-3" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=RET2'">
+                            <div>
+                                <h3 class="mb-1 text-light">Buffer Overflow - Ret2libc (Part 2)</h3>
+                                <p class="mb-2 text-secondary">Today, we will continue exploring the Ret2libc technique, with a focus on 64-bit exploitation.</p>
+                                <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/11/return-2-libc-2.html">Read more</a>
+                            </div>
+                        </div>
                     </div>
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo10.png" alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;">
-                        <div><h3 class="mb-1 text-light">64-bit vs 32-bit</h3>
-                        <p class="mb-2 text-secondary">Up to this point, we have covered exploiting binary vulnerabilities in 32-bit programs. However, with the prevalence of 64-bit computing systems today, this article will introduce x64 binary exploitation.</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/10/64-bit-vs-32-bit.html">Read more</a></div></div>
+
+                    <div class="writeup mb-4">
+                        <div class="d-flex align-items-center">
+                            <img src="/img/articles/logo10.png" alt="64-bit vs 32-bit" class="rounded-circle me-3" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=x64'">
+                            <div>
+                                <h3 class="mb-1 text-light">64-bit vs 32-bit</h3>
+                                <p class="mb-2 text-secondary">Up to this point, we have covered exploiting binary vulnerabilities in 32-bit programs. However, with the prevalence of 64-bit computing systems today, this article will introduce x64 binary exploitation.</p>
+                                <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/10/64-bit-vs-32-bit.html">Read more</a>
+                            </div>
+                        </div>
                     </div>
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo9.png" alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;">
-                        <div><h3 class="mb-1 text-light">Format String Vulnerability</h3>
-                        <p class="mb-2 text-secondary">Today, we'll discuss a Binary Exploitation technique called Format String Vulnerability. We'll delve into how this vulnerability operates at a low level and explore how to exploit it to achieve memory overwrite.</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/9/format-string-vulnerability.html">Read more</a></div></div>
-                    </div> 
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo8.png" alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;">
-                        <div><h3 class="mb-1 text-light">Buffer Overflow - Ret2libc (Part 1)</h3>
-                        <p class="mb-2 text-secondary">Today, we'll delve into the Return To Libc (ret2libc) technique and how we can take advantage of Libc to achieve code execution...</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/8/return-2-libc.html">Read more</a></div></div>
-                    </div> 
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo7.png" alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;">
-                        <div><h3 class="mb-1 text-light">Buffer Overflow - Shellcode</h3>
-                        <p class="mb-2 text-secondary">Today, we'll delve into the Shellcode technique, focusing on exploiting buffer overflow to gain system access or potentially escalate privileges...</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/7/buffer-overflow-shellcode.html">Read more</a></div></div>
-                    </div> 
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo6.png" alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;">
-                        <div><h3 class="mb-1 text-light">PLT & GOT: Key Players in Dynamic Linking</h3>
-                        <p class="mb-2 text-secondary">As a developer, you may have encountered these concepts and experienced how they interact with your programs. In this article, we'll delve into the Procedure Linkage Table (PLT) and the Global Offset Table (GOT).</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/6/PLT-and-GOT.html">Read more</a></div></div>
-                    </div> 
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo5.png" alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;">
-                        <div><h3 class="mb-1 text-light">Buffer Overflow - Introduction</h3>
-                        <p class="mb-2 text-secondary">What is a Buffer Overflow vulnerability? How can we achieve code execution by exploiting a Buffer Overflow? Today, we'll delve into various aspects related to Buffer Overflow vulnerabilities...</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/5/introduction-to-buffer-overflow.html">Read more</a></div></div>
-                    </div> 
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo4.png" alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;">
-                        <div><h3 class="mb-1 text-light">Binary Protections</h3>
-                        <p class="mb-2 text-secondary">What are binary protections? How do they prevent us from exploiting binaries? Today, we'll delve into these binary protections, exploring their purpose and how they function...</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/4/binary-protections.html">Read more</a></div></div>
-                    </div>  
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo3.png" alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;">
-                        <div><h3 class="mb-1 text-light">CPU & Assembly - Binary Exploitation Basics</h3>
-                        <p class="mb-2 text-secondary">Today, we'll delve into the fundamentals of the CPU, assembly language, memory, and how programs operate at a low level. This serves as a foundational knowledge for Binary Exploitation...</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/3/cpu-and-assembly-binexp-basics.html">Read more</a></div></div>
-                    </div>  
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo2.png" alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;">
-                        <div><h3 class="mb-1 text-light">Assembly Instructions - Intel x86</h3>
-                        <p class="mb-2 text-secondary">For those who are not familiar with Assembly, I wrote this extra article which I'll explain Assembly Instructions in Intel x86 syntax, after reading this article, you can continue reading the Binary Exploitation basics.</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/2/assembly-instructions-intel-x86.html">Read more</a></div></div>
-                    </div> 
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo1.png" alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;">
-                        <div><h3 class="mb-1 text-light">Understanding Linux User IDs</h3>
-                        <p class="mb-2 text-secondary">In Linux, User IDs (UIDs) are unique numerical identifiers assigned to each user account on the system. These identifiers are used by the operating system to determine...</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/understanding-linux-user-ids.html">Read more</a></div></div>
+
+                    <div class="writeup mb-4">
+                        <div class="d-flex align-items-center">
+                            <img src="/img/articles/logo9.png" alt="Format String" class="rounded-circle me-3" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=FSV'">
+                            <div>
+                                <h3 class="mb-1 text-light">Format String Vulnerability</h3>
+                                <p class="mb-2 text-secondary">Today, we'll discuss a Binary Exploitation technique called Format String Vulnerability. We'll delve into how this vulnerability operates at a low level and explore how to exploit it to achieve memory overwrite.</p>
+                                <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/9/format-string-vulnerability.html">Read more</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="writeup mb-4">
+                        <div class="d-flex align-items-center">
+                            <img src="/img/articles/logo8.png" alt="Ret2libc Part 1" class="rounded-circle me-3" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=RET2'">
+                            <div>
+                                <h3 class="mb-1 text-light">Buffer Overflow - Ret2libc (Part 1)</h3>
+                                <p class="mb-2 text-secondary">Today, we'll delve into the Return To Libc (ret2libc) technique and how we can take advantage of Libc to achieve code execution...</p>
+                                <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/8/return-2-libc.html">Read more</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="writeup mb-4">
+                        <div class="d-flex align-items-center">
+                            <img src="/img/articles/logo7.png" alt="Shellcode" class="rounded-circle me-3" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=SHEL'">
+                            <div>
+                                <h3 class="mb-1 text-light">Buffer Overflow - Shellcode</h3>
+                                <p class="mb-2 text-secondary">Today, we'll delve into the Shellcode technique, focusing on exploiting buffer overflow to gain system access or potentially escalate privileges...</p>
+                                <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/7/buffer-overflow-shellcode.html">Read more</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="writeup mb-4">
+                        <div class="d-flex align-items-center">
+                            <img src="/img/articles/logo6.png" alt="PLT & GOT" class="rounded-circle me-3" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=PLT'">
+                            <div>
+                                <h3 class="mb-1 text-light">PLT & GOT: Key Players in Dynamic Linking</h3>
+                                <p class="mb-2 text-secondary">As a developer, you may have encountered these concepts and experienced how they interact with your programs. In this article, we'll delve into the Procedure Linkage Table (PLT) and the Global Offset Table (GOT).</p>
+                                <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/6/PLT-and-GOT.html">Read more</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="writeup mb-4">
+                        <div class="d-flex align-items-center">
+                            <img src="/img/articles/logo5.png" alt="Buffer Overflow Intro" class="rounded-circle me-3" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=BOF'">
+                            <div>
+                                <h3 class="mb-1 text-light">Buffer Overflow - Introduction</h3>
+                                <p class="mb-2 text-secondary">What is a Buffer Overflow vulnerability? How can we achieve code execution by exploiting a Buffer Overflow? Today, we'll delve into various aspects related to Buffer Overflow vulnerabilities...</p>
+                                <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/5/introduction-to-buffer-overflow.html">Read more</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="writeup mb-4">
+                        <div class="d-flex align-items-center">
+                            <img src="/img/articles/logo4.png" alt="Binary Protections" class="rounded-circle me-3" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=PROT'">
+                            <div>
+                                <h3 class="mb-1 text-light">Binary Protections</h3>
+                                <p class="mb-2 text-secondary">What are binary protections? How do they prevent us from exploiting binaries? Today, we'll delve into these binary protections, exploring their purpose and how they function...</p>
+                                <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/4/binary-protections.html">Read more</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="writeup mb-4">
+                        <div class="d-flex align-items-center">
+                            <img src="/img/articles/logo3.png" alt="CPU & Assembly" class="rounded-circle me-3" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=CPU'">
+                            <div>
+                                <h3 class="mb-1 text-light">CPU & Assembly - Binary Exploitation Basics</h3>
+                                <p class="mb-2 text-secondary">Today, we'll delve into the fundamentals of the CPU, assembly language, memory, and how programs operate at a low level. This serves as a foundational knowledge for Binary Exploitation...</p>
+                                <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/3/cpu-and-assembly-binexp-basics.html">Read more</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="writeup mb-4">
+                        <div class="d-flex align-items-center">
+                            <img src="/img/articles/logo2.png" alt="Assembly Instructions" class="rounded-circle me-3" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=ASM'">
+                            <div>
+                                <h3 class="mb-1 text-light">Assembly Instructions - Intel x86</h3>
+                                <p class="mb-2 text-secondary">For those who are not familiar with Assembly, I wrote this extra article which I'll explain Assembly Instructions in Intel x86 syntax, after reading this article, you can continue reading the Binary Exploitation basics.</p>
+                                <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/2/assembly-instructions-intel-x86.html">Read more</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="writeup mb-4">
+                        <div class="d-flex align-items-center">
+                            <img src="/img/articles/logo1.png" alt="Linux UIDs" class="rounded-circle me-3" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=UID'">
+                            <div>
+                                <h3 class="mb-1 text-light">Understanding Linux User IDs</h3>
+                                <p class="mb-2 text-secondary">In Linux, User IDs (UIDs) are unique numerical identifiers assigned to each user account on the system. These identifiers are used by the operating system to determine...</p>
+                                <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/understanding-linux-user-ids.html">Read more</a>
+                            </div>
+                        </div>
                     </div>
                 </section>
             </main>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>window.history.pushState(null, '', '/articles');</script>
-    <script src="/js/sidebarToggle.js"></script>
-    <script src="/js/fixMobileImages.js"></script>
+
+    <script>
+        // Sidebar Toggle
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('sidebar');
+
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            sidebarToggle.classList.toggle('active');
+        });
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 1024) {
+                if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                    sidebar.classList.remove('active');
+                    sidebarToggle.classList.remove('active');
+                }
+            }
+        });
+
+        // Update URL without reload
+        window.history.pushState(null, '', '/articles');
+    </script>
 </body>
 </html>

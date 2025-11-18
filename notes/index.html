@@ -4,47 +4,145 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>elswix - Notes</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Notas y apuntes sobre hacking - Próximamente">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/notes.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
     <button class="sidebar-toggle" id="sidebarToggle">☰</button>
-    <style>body { overflow-y: hidden } </style>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="Logo" >
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
                 </div>
                 <nav>
                     <ul class="nav flex-column">
-                        <li class="nav-item"><a href="/" class="nav-link"><i class="bi bi-house-door"></i> Home</a></li>
-                        <li class="nav-item"><a href="/articles" class="nav-link"><i class="bi bi-card-text"></i> Articles</a></li>
-                        <li class="nav-item"><a href="/writeups" class="nav-link"><i class="bi bi-terminal"></i> WriteUPs</a></li>
-                        <li class="nav-item"><a href="/notes" class="nav-link active"><i class="bi bi-journal-text"></i> Notes</a></li>
-                        <li class="nav-item"><a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link"><i class="bi bi-github"></i> KL-Sunset</a></li>
-                        <li class="nav-item"><a href="/about" class="nav-link"><i class="bi bi-person"></i> About me</a></li>
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i class="bi bi-house-door"></i> Home
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link">
+                                <i class="bi bi-card-text"></i> Articles
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i class="bi bi-terminal"></i> WriteUPs
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link active">
+                                <i class="bi bi-journal-text"></i> Notes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i class="bi bi-github"></i> KL-Sunset
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i class="bi bi-person"></i> About me
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </aside>
+
             <!-- Main Content -->
             <main>
-                <!-- Hero Section -->
-                <section class="hero mb-5" style="background: linear-gradient(135deg, #252525 10%, #000 90%); padding: 180px 20px;" >
-                    <img src="/img/coming-soon.png" alt="index-logo" class="mb-3" style="width: 120px; height: 120px; filter: invert(100%);">
-                    <h2>Hacking Notes</h2>
-                    <p>Coming soon!</p>
-                </section>
+                <div class="coming-soon-container">
+                    <div class="coming-soon-content">
+                        <img src="/img/coming-soon.png" alt="Coming Soon" class="coming-soon-icon" onerror="this.src='https://via.placeholder.com/160/00ff88/ffffff?text=📚'">
+                        
+                        <h1 class="coming-soon-title">Hacking Notes</h1>
+                        <p class="coming-soon-subtitle">Coming Soon!</p>
+                        
+                        <p class="coming-soon-description">
+                            I'm currently working on a comprehensive collection of hacking notes, cheatsheets, and quick references for penetration testing and cybersecurity.
+                        </p>
+
+                        <!-- Progress Bar -->
+                        <div class="progress-container">
+                            <div class="progress-label">
+                                <span>Progress</span>
+                                <span>45%</span>
+                            </div>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill"></div>
+                            </div>
+                        </div>
+
+                        <!-- Features Coming -->
+                        <div class="features-grid">
+                            <div class="feature-item">
+                                <div class="feature-icon">🔐</div>
+                                <div class="feature-name">Pentesting</div>
+                                <div class="feature-description">Complete methodology</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">💻</div>
+                                <div class="feature-name">Exploitation</div>
+                                <div class="feature-description">Techniques & tools</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">📝</div>
+                                <div class="feature-name">Cheatsheets</div>
+                                <div class="feature-description">Quick references</div>
+                            </div>
+                        </div>
+
+                        <!-- Notify Badge -->
+                        <div class="notify-badge">
+                            <i class="bi bi-bell-fill"></i>
+                            <span>Stay tuned for updates!</span>
+                        </div>
+                    </div>
+                </div>
             </main>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>window.history.pushState(null, '', '/notes');</script>
-    <script src="/js/sidebarToggle.js"></script>
-    <script src="/js/fixMobileImages.js"></script>
+
+    <script>
+        // Sidebar Toggle
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('sidebar');
+
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            sidebarToggle.classList.toggle('active');
+        });
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 1024) {
+                if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                    sidebar.classList.remove('active');
+                    sidebarToggle.classList.remove('active');
+                }
+            }
+        });
+
+        // Update URL without reload
+        window.history.pushState(null, '', '/notes');
+
+        // Animate progress bar on load
+        window.addEventListener('load', () => {
+            const progressBar = document.querySelector('.progress-bar-fill');
+            progressBar.style.width = '0%';
+            setTimeout(() => {
+                progressBar.style.transition = 'width 2s ease-out';
+                progressBar.style.width = '45%';
+            }, 100);
+        });
+    </script>
 </body>
 </html>

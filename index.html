@@ -3,100 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>elswix - Home</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/css/styles.css" rel="stylesheet">
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <title>elswix - Cybersecurity & Hacking</title>
+    <meta name="description" content="Blog personal sobre ciberseguridad, hacking ético, writeups y artículos técnicos de Active Directory">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <aside class="sidebar">
-                <div class="sidebar-logo">
-                    <img src="img/new-logo.png" alt="Logo">
-                    <h3>elswix</h3>
-                </div>
-                <nav>
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a href="/" class="nav-link active"><i class="bi bi-house-door"></i> Home</a></li>
-                        <li class="nav-item"><a href="/articles" class="nav-link"><i class="bi bi-card-text"></i> Articles</a></li>
-                        <li class="nav-item"><a href="/writeups" class="nav-link"><i class="bi bi-terminal"></i> WriteUPs</a></li>
-                        <li class="nav-item"><a href="/notes" class="nav-link"><i class="bi bi-journal-text"></i> Notes</a></li>
-                        <li class="nav-item"><a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link"><i class="bi bi-github"></i> KL-Sunset</a></li>
-                        <li class="nav-item"><a href="/about" class="nav-link"><i class="bi bi-person"></i> About me</a></li>
-                    </ul>
-                </nav>
-            </aside>
-            <!-- Main Content -->
-            <main>
-                <!-- Hero Section -->
-                <section class="hero mb-5">
-                    <img src="img/index-logo.png" alt="index-logo" class="mb-3" style="width: 120px; height: 120px;">
-                    <h2 style="color: #d32f2f">elswix.com</h2>
-                    <p>Welcome to my personal blog!</p>
-                </section>
-                <section>
-                    <h3>Latest Articles</h3>
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo18.png" alt="Logo" class="rounded-circle me-3" >
-                        <div><h3 class="mb-1 text-light">Active Directory: Certificate Services (Part 2)</h3>
-                        <p class="mb-2 text-secondary">Today, we will delve into how **Certificate Mapping** works, which security measurements were implemented after the Certifried vulnerability and more.</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/18/active-directory-certificate-services-part2.html">Read more</a></div></div>
-                    </div>
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo17.png" alt="Logo" class="rounded-circle me-3" >
-                        <div><h3 class="mb-1 text-light">Active Directory: Certificate Services (Part 1)</h3>
-                        <p class="mb-2 text-secondary">Today, we'll delve into Active Directory Certificate Services (ADCS). In this article, we'll cover fundamental concepts and later introduce exploitation techniques, as well as how to exploit them.</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/17/active-directory-certificate-services.html">Read more</a></div></div>
-                    </div>
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo16.png" alt="Logo" class="rounded-circle me-3" >
-                        <div><h3 class="mb-1 text-light">Active Directory: DACL Abuse</h3>
-                        <p class="mb-2 text-secondary">Today, we'll explore the exploitation of insecure ACEs within the DACL of users and groups in an Active Directory environment.</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/16/active-directory-dacl-abuse.html">Read more</a></div></div>
-                    </div>
-                    <div class="writeup mb-4"><div class="d-flex align-items-center">
-                        <img src="/img/articles/logo15.png" alt="Logo" class="rounded-circle me-3" >
-                        <div><h3 class="mb-1 text-light">Active Directory: Windows ACLs</h3>
-                        <p class="mb-2 text-secondary">Today, we’ll explore the fundamentals of ACLs in Windows and later demonstrate common attacks that exploit ACL misconfigurations in an Active Directory environment.</p>
-                        <a class="btn btn-link p-0 text-decoration-none text-danger" href="articles/15/active-directory-windows-acls.html">Read more</a></div></div>
-                    </div>
-                    <h3>Latest WriteUPs</h3>
-                    <section>
-                        <div class="writeup mb-4"><div class="d-flex align-items-center">
-                            <img alt="Logo" class="rounded-circle me-3" style="width: 100px; height: 100px;" src="/writeups/vl/hard/kaiju/img/kaiju.png" >
-                            <div><h3 class="mb-1 text-light">Kaiju - VL</h3>
-                            <p class="mb-2 text-secondary">Today, we’ll walk through Kaiju, a hard-difficulty chain from VulnLab. This lab simulates a multi-host Active Directory environment where initial access is obtained through misconfigurations in exposed services....</p>
-                            <a class="btn btn-link p-0 text-decoration-none text-danger" href="/writeups/vl/hard/kaiju/kaiju.html">Read more</a></div></div>
-                        </div>
-                        <div class="writeup mb-4"><div class="d-flex align-items-center">
-                            <img alt="Logo" class="rounded-circle me-3"  src="/writeups/htb/insane/rebound/img/rebound.png" >
-                            <div><h3 class="mb-1 text-light">Rebound - HTB</h3>
-                            <p class="mb-2 text-secondary">Rebound is an insane difficulty machine on HackTheBox. Initially, we'll exploit RID brute force to obtain a list of valid users on the Domain Controller. One of these users is vulnerable to...</p>
-                            <a class="btn btn-link p-0 text-decoration-none text-danger" href="/writeups/htb/insane/rebound/rebound.html">Read more</a></div></div>
-                        </div>
-                        <div class="writeup mb-4"><div class="d-flex align-items-center">
-                            <img alt="Logo" class="rounded-circle me-3"  src="/writeups/htb/easy/analytics/img/analytics.png">
-                            <div><h3 class="mb-1 text-light">Analytics - HTB</h3>
-                            <p class="mb-2 text-secondary">Analytics is an easy machine on HackTheBox. Firstly, we'll exploit a vulnerable version of Metabase to achieve command execution on the victim machine...</p>
-                            <a class="btn btn-link p-0 text-decoration-none text-danger" href="/writeups/htb/easy/analytics/analytics.html">Read more</a></div></div>
-                        </div>
-                        <div class="writeup mb-4"><div class="d-flex align-items-center">
-                            <img alt="Logo" class="rounded-circle me-3"  src="/writeups/htb/medium/manager/img/manager.png">
-                            <div><h3 class="mb-1 text-light">Manager - HTB</h3>
-                            <p class="mb-2 text-secondary">Manager is a medium-difficulty machine on HackTheBox. Initially, we'll abuse the guest session to perform a RID Bruteforce attack to identify...</p>
-                            <a class="btn btn-link p-0 text-decoration-none text-danger" href="/writeups/htb/medium/manager/manager.html">Read more</a></div></div>
-                        </div>
-                    </section> 
-                </section>
-            </main>
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle Menu">
+        <span>☰</span>
+    </button>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <img src="img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+            <h3>elswix</h3>
         </div>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/sidebarToggle.js"></script>
-    <script src="/js/fixMobileImages.js"></script>
+        <nav>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="/" class="nav-link active">
+                        <i>🏠</i>
+                        <span>Home</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/articles" class="nav-link">
+                        <i>📝</i>
+                        <span>Articles</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/writeups" class="nav-link">
+                        <i>💻</i>
+                        <span>WriteUps</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/notes" class="nav-link">
+                        <i>📚</i>
+                        <span>Notes</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                        <i>⚡</i>
+                        <span>KL-Sunset</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/about" class="nav-link">
+                        <i>👤</i>
+                        <span>About me</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main>
+        <section class="hero">
+            <div class="hero-content">
+                <img src="img/index-logo2.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
+                <h1>elswix.com</h1>
+                <p>Cybersecurity • Hacking • Red Teaming</p>
+            </div>
+        </section>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">18</div>
+                <div class="stat-label">Articles</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">25+</div>
+                <div class="stat-label">WriteUps</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">1K+</div>
+                <div class="stat-label">Readers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">Active</div>
+                <div class="stat-label">Status</div>
+            </div>
+        </div>
+
+        <h2 class="section-title">Latest Articles</h2>
+        <div class="articles-grid">
+            <div class="article-card">
+                <div class="article-header">
+                    <img src="/img/articles/logo18.png" alt="AD Certificate Services" class="article-img" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=AD'">
+                    <div class="article-meta">
+                        <h3>Active Directory: Certificate Services (Part 2)</h3>
+                    </div>
+                </div>
+                <p>Today, we will delve into how Certificate Mapping works, which security measurements were implemented after the Certifried vulnerability and more.</p>
+                <a href="articles/18/active-directory-certificate-services-part2.html" class="article-link">Read more</a>
+            </div>
+
+            <div class="article-card">
+                <div class="article-header">
+                    <img src="/img/articles/logo17.png" alt="AD Certificate Services" class="article-img" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=AD'">
+                    <div class="article-meta">
+                        <h3>Active Directory: Certificate Services (Part 1)</h3>
+                    </div>
+                </div>
+                <p>Today, we'll delve into Active Directory Certificate Services (ADCS). In this article, we'll cover fundamental concepts and introduce exploitation techniques.</p>
+                <a href="articles/17/active-directory-certificate-services.html" class="article-link">Read more</a>
+            </div>
+
+            <div class="article-card">
+                <div class="article-header">
+                    <img src="/img/articles/logo16.png" alt="DACL Abuse" class="article-img" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=DACL'">
+                    <div class="article-meta">
+                        <h3>Active Directory: DACL Abuse</h3>
+                    </div>
+                </div>
+                <p>Today, we'll explore the exploitation of insecure ACEs within the DACL of users and groups in an Active Directory environment.</p>
+                <a href="articles/16/active-directory-dacl-abuse.html" class="article-link">Read more</a>
+            </div>
+
+            <div class="article-card">
+                <div class="article-header">
+                    <img src="/img/articles/logo15.png" alt="Windows ACLs" class="article-img" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=ACL'">
+                    <div class="article-meta">
+                        <h3>Active Directory: Windows ACLs</h3>
+                    </div>
+                </div>
+                <p>Today, we'll explore the fundamentals of ACLs in Windows and demonstrate common attacks that exploit ACL misconfigurations in Active Directory.</p>
+                <a href="articles/15/active-directory-windows-acls.html" class="article-link">Read more</a>
+            </div>
+        </div>
+
+        <h2 class="section-title">Latest WriteUps</h2>
+        <div class="articles-grid">
+            <div class="article-card">
+                <div class="article-header">
+                    <img src="/writeups/vl/hard/kaiju/img/kaiju.png" alt="Kaiju" class="article-img" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=VL'">
+                    <div class="article-meta">
+                        <h3>Kaiju - VulnLab</h3>
+                    </div>
+                </div>
+                <p>Today, we'll walk through Kaiju, a hard-difficulty chain from VulnLab. This lab simulates a multi-host Active Directory environment.</p>
+                <a href="/writeups/vl/hard/kaiju/kaiju.html" class="article-link">Read more</a>
+            </div>
+
+            <div class="article-card">
+                <div class="article-header">
+                    <img src="/writeups/htb/insane/rebound/img/rebound.png" alt="Rebound" class="article-img" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=HTB'">
+                    <div class="article-meta">
+                        <h3>Rebound - HackTheBox</h3>
+                    </div>
+                </div>
+                <p>Rebound is an insane difficulty machine on HackTheBox. Initially, we'll exploit RID brute force to obtain a list of valid users on the Domain Controller.</p>
+                <a href="/writeups/htb/insane/rebound/rebound.html" class="article-link">Read more</a>
+            </div>
+
+            <div class="article-card">
+                <div class="article-header">
+                    <img src="/writeups/htb/easy/analytics/img/analytics.png" alt="Analytics" class="article-img" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=HTB'">
+                    <div class="article-meta">
+                        <h3>Analytics - HackTheBox</h3>
+                    </div>
+                </div>
+                <p>Analytics is an easy machine on HackTheBox. Firstly, we'll exploit a vulnerable version of Metabase to achieve command execution on the victim machine.</p>
+                <a href="/writeups/htb/easy/analytics/analytics.html" class="article-link">Read more</a>
+            </div>
+
+            <div class="article-card">
+                <div class="article-header">
+                    <img src="/writeups/htb/medium/manager/img/manager.png" alt="Manager" class="article-img" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HTB'">
+                    <div class="article-meta">
+                        <h3>Manager - HackTheBox</h3>
+                    </div>
+                </div>
+                <p>Manager is a medium-difficulty machine on HackTheBox. Initially, we'll abuse the guest session to perform a RID Bruteforce attack.</p>
+                <a href="/writeups/htb/medium/manager/manager.html" class="article-link">Read more</a>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Sidebar Toggle
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('sidebar');
+
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            sidebarToggle.classList.toggle('active');
+        });
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 1024) {
+                if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                    sidebar.classList.remove('active');
+                    sidebarToggle.classList.remove('active');
+                }
+            }
+        });
+
+        // Active link detection
+        const currentPath = window.location.pathname;
+        document.querySelectorAll('.nav-link').forEach(link => {
+            if (link.getAttribute('href') === currentPath) {
+                link.classList.add('active');
+            }
+        });
+
+        // Smooth scroll for internal links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // Add parallax effect to hero
+        window.addEventListener('scroll', () => {
+            const hero = document.querySelector('.hero');
+            const scrolled = window.pageYOffset;
+            if (hero) {
+                hero.style.transform = `translateY(${scrolled * 0.3}px)`;
+            }
+        });
+    </script>
 </body>
 </html>
