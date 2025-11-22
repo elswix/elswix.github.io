@@ -1,44 +1,15 @@
-main {
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-}
+/* ========================================
+   ARTICLE CONTAINER
+   ======================================== */
 
-section.hero {
-    max-width: 78% !important;
-    width: 78% !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    box-sizing: border-box !important;
-}
-
-h3 {
-    color: #3dbae9;
-}
-
-h2 {
-    color: #d32f2f;
-}
-
-.note {
-    color: #DDBC2A;
-}
-
-img {
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-  width: 50%;
-}
-
-/* Article Container */
 .article-content {
     width: 100%;
     max-width: 100%;
 }
 
 .article-container {
-    padding: 2rem;
-    max-width: 100%;
+    padding: 2rem 50px;
+    max-width: 78%;
     width: 100%;
     margin: 0;
     box-sizing: border-box;
@@ -51,53 +22,115 @@ img {
     max-width: 100%;
 }
 
-/* Code Blocks - Arreglados */
-pre {
-    border-radius: 12px !important;
-    background: rgba(17, 17, 23, 0.95) !important;
-    border: 1px solid var(--border-color) !important;
-    color: #c9c9c9 !important;
-    font-family: 'Fira Code', Consolas, Monaco, "Courier New", monospace !important;
-    font-size: 14px !important;
-    line-height: 1.6 !important;
-    margin: 1.5rem 0 !important;
-    max-width: 100% !important;
-    overflow-x: auto !important;
-    padding: 1.5rem !important;
-    display: block !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+/* ========================================
+   TYPOGRAPHY
+   ======================================== */
+
+h2 {
+    color: #d32f2f;
 }
 
-/* Highlight wrapper */
+h3 {
+    color: #3dbae9;
+}
+
+strong {
+    background: linear-gradient(135deg, #87c2fd 0%, #dcb9fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+}
+
+/* ========================================
+   IMAGES
+   ======================================== */
+
+img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 75%;
+    width: 50%;
+    height: auto;
+    border-radius: 10px;
+    transition: transform 0.3s ease;
+}
+
+img:hover {
+    transform: scale(1.3);
+}
+
+/* ========================================
+   LISTS
+   ======================================== */
+
+ol,
+ul {
+    padding: 0 20px;
+}
+
+ol li {
+    padding: 0 10px;
+}
+
+/* ========================================
+   CODE BLOCKS
+   ======================================== */
+
+pre {
+    border-radius: 12px;
+    background: rgba(17, 17, 23, 0.95);
+    border: 1px solid var(--border-color);
+    color: #c9c9c9;
+    font-family: 'Fira Code', Consolas, Monaco, "Courier New", monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 1.5rem 0;
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 1.5rem;
+    display: block;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    page-break-inside: avoid;
+}
+
 .highlight {
     margin-bottom: 1.5rem;
     max-width: 100%;
 }
 
 .highlight pre {
-    margin: 0 !important;
+    margin: 0;
 }
 
-/* Inline Code */
+/* ========================================
+   INLINE CODE
+   ======================================== */
+
 code {
-    color: var(--accent-blue) !important;
-    background: rgba(0, 212, 255, 0.15) !important;
-    padding: 0.2rem 0.4rem !important;
-    border-radius: 4px !important;
-    font-family: 'Fira Code', Consolas, Monaco, monospace !important;
-    font-size: 0.9em !important;
-    border: 1px solid rgba(0, 212, 255, 0.3) !important;
+    color: var(--accent-blue);
+    background: rgba(0, 212, 255, 0.15);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'Fira Code', Consolas, Monaco, monospace;
+    font-size: 0.9em;
+    border: 1px solid rgba(0, 212, 255, 0.3);
 }
 
-/* Code inside pre should not have background */
 pre code {
-    background: transparent !important;
-    padding: 0 !important;
-    border: none !important;
-    color: inherit !important;
+    background: transparent;
+    padding: 0;
+    border: none;
+    color: inherit;
+    display: inline;
+    line-height: inherit;
 }
 
-/* Scrollbar for code blocks */
+/* ========================================
+   CODE SCROLLBAR
+   ======================================== */
+
 pre::-webkit-scrollbar {
     height: 8px;
 }
@@ -116,42 +149,9 @@ pre::-webkit-scrollbar-thumb:hover {
     background: var(--accent-green);
 }
 
-/* Strong/Bold Text */
-strong {
-    background: linear-gradient(135deg, #87c2fd 0%, #dcb9fc 100%) !important;
-    -webkit-background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-    background-clip: text !important;
-    font-weight: 700 !important;
-}
-
-
-img {
-    max-width: 75%; 
-    border-radius: 10px;
-    height: auto; 
-    transition: transform 0.3s ease;
-}
-
-img:hover {
-    transform: scale(1.3);
-}
-
-
-
-ol {
-    
-    padding: 0px 20px; 
-}
-
-ol li {
-    padding: 0px 10px; 
-}
-
-ul {
-    padding: 0px 20px;
-}
-
+/* ========================================
+   ARTICLES LIST (LEGACY)
+   ======================================== */
 
 .articles {
     background-color: #323232;
@@ -183,41 +183,22 @@ ul {
     font-weight: bold;
 }
 
-.articles a:hover{
+.articles a:hover {
     color: #f06d6d;
 }
 
-.article-content-main { 
-    line-height: 1.5;
-    color: #fff;
-}
-
-.article-container {
-    padding: 20px 50px;
-    max-width: 78%;   
-}
-
+/* ========================================
+   RESPONSIVE - MOBILE
+   ======================================== */
 
 @media (max-width: 768px) {
-
-    footer {
-      background-color: #9a0303; 
-      text-align: center;
-      padding: 10px 0;
-      margin-left: 0px;
-
-    }
-
-    body {
-        font-size: 16px;
-    }
-
     .article-container {
         max-width: 100%;
+        padding: 20px;
     }
 
     .writeup-content-main {
-        margin-left: 0%; 
+        margin-left: 0;
         margin-top: 15px;
         padding: 5px;
     }
@@ -225,13 +206,7 @@ ul {
     img {
         max-width: 100%;
         width: 100%;
-        height: 100%;
         height: auto;
-    }
-
-    a:hover {
-        color: #f3c07e;
-        text-decoration: underline;
     }
 
     h3 {
@@ -243,11 +218,16 @@ ul {
     }
 
     nav ul {
-       list-style: none;
-       text-align: center;
-       margin-left: 25px;
-       font-size: 14px;
+        list-style: none;
+        text-align: center;
+        margin-left: 25px;
+        font-size: 14px;
     }
 
-
+    footer {
+        background-color: #9a0303;
+        text-align: center;
+        padding: 10px 0;
+        margin-left: 0;
+    }
 }

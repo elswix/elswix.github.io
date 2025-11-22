@@ -1,14 +1,14 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AD - Certificate Services (Part 2)</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
@@ -17,34 +17,66 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="Logo">
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
                 </div>
                 <nav>
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a href="/" class="nav-link active"><i class="bi bi-house-door"></i> Home</a></li>
-                        <li class="nav-item"><a href="/articles" class="nav-link"><i class="bi bi-card-text"></i> Articles</a></li>
-                        <li class="nav-item"><a href="/writeups" class="nav-link"><i class="bi bi-terminal"></i> WriteUPs</a></li>
-                        <li class="nav-item"><a href="/notes" class="nav-link"><i class="bi bi-journal-text"></i> Notes</a></li>
-                        <li class="nav-item"><a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link"><i class="bi bi-github"></i> KL-Sunset</a></li>
-                        <li class="nav-item"><a href="/about" class="nav-link"><i class="bi bi-person"></i> About me</a></li>
+                    <ul class="nav-menu">   
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i>🏠</i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link active">
+                                <i>📝</i>
+                                <span>Articles</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i>💻</i>
+                                <span>WriteUps</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link">
+                                <i>📚</i>
+                                <span>Notes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i>⚡</i>
+                                <span>KL-Sunset</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i>👤</i>
+                                <span>About me</span>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </aside>
+
             <!-- Main Content -->
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/img/articles/logo18.png" alt="index-logo" class="mb-3" style="width: 120px; height: 120px; border-radius: 50%">
+                    <img src="/img/articles/logo18.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
                     <h2>AD - Certificate Services (Part 2)</h2>
                     <p>Certificate mapping, Certifried and more</p>
                 </section>
+
                 <section class="article-content">
-                    <div class="article-container">
-                        <div class="article-content-main">
-                           <h3>Introduction</h3><br/>
+<div class="article-container">
+<div class="article-content-main">
+<h3>Introduction</h3><br/>
 <p>In the previous article, we have introduced Active Directory Certificate Services (ADCS) and how it operates to implement PKI in Active Directory. We focused on how ADCS allows us to utilize PKINIT Authentication for Kerberos and how ADCS misconfigurations could lead to account persistence, Domain Escalation and Domain Persistence.</p><br/>
 <p>Nowadays, some of the techniques discussed in the previous article might not be possible to abuse nowadays. After the <strong><a href="https://research.ifcr.dk/certifried-active-directory-domain-privilege-escalation-cve-2022-26923-9e098fe298f4">CVE-2022–26923 (Certifried)</a></strong> vulnerability, which we will discuss later, Microsoft implemented many security measures that makes ADCS exploitation harder.</p><br/>
 <p>Today, we will delve into how <strong>Certificate Mapping</strong> works, which security measurements were implemented after the Certifried vulnerability and more.</p><br/>
@@ -52,8 +84,8 @@
 <p>Before starting with <strong>Certificate Mapping</strong>, let's recall the Kerberos PKINIT Authentication Process.</p><br/>
 <h3>Certificate Request</h3><br/>
 <p>Let's start with the certificate request, which involves creating a public/private key pair and then, send a CSR with the public key. The following image, representates the Certificate Request process.</p><br/>
-<p><img src="https://elswix.github.io/articles/17/img/Cert-Services-2.png"/>
-To sum up, the client generates a private/public key pair, then creates a Certificate Signing Request (CSR), which specifies like settings that the issued certificate must contain, like the Template and EKUs, and inserts the generated public key inside it, then sends the CSR to the Certification Authority. When the CA receives the CSR, it starts a verification process to determine whether a certification must be issued or not.</p><br/>
+<p><img src="https://elswix.github.io/articles/17/img/Cert-Services-2.png">
+To sum up, the client generates a private/public key pair, then creates a Certificate Signing Request (CSR), which specifies like settings that the issued certificate must contain, like the Template and EKUs, and inserts the generated public key inside it, then sends the CSR to the Certification Authority. When the CA receives the CSR, it starts a verification process to determine whether a certification must be issued or not.</img></p><br/>
 <p>Some of the most importants checks are the following:
 + Does the specified certificate template exist?
 + Are the settingsi n the CSR allowed by the tempalte? (for example, the specified EKU)
@@ -63,8 +95,8 @@ To sum up, the client generates a private/public key pair, then creates a Certif
 <h3>Kerberos PKINIT Authentication</h3><br/>
 <p>Upon obtaining the certificate, it can be used to perform Kerberos Authentication using PKINIT. Remember that this is due the specified template (the User template), has the <strong>Client Authentication EKU</strong> (other EKUs may also enable authentication, but many of them don't). </p><br/>
 <p>The following image representates a <code>KRB_AS_REQ</code> request through PKINIT:</p><br/>
-<p><img src="https://elswix.github.io/articles/17/img/Cert-Services-3.png"/> 
-The authentication process is fairly similar to the usual Kerberos Authentication flow, however, in this case, an extra certificate is included within the AS_REQ request, which will provide the necesary information to verify the timestamp.</p><br/>
+<p><img src="https://elswix.github.io/articles/17/img/Cert-Services-3.png"> 
+The authentication process is fairly similar to the usual Kerberos Authentication flow, however, in this case, an extra certificate is included within the AS_REQ request, which will provide the necesary information to verify the timestamp.</img></p><br/>
 <p>Once the KDC receives the request, it takes the certificate and performs some checks against the certificate data. For example, it checks whether the specified username matches the Subject Alternative Name (SAN) attribute of the certificate. It also checks whether the certificate's <strong>EKU</strong> allows authentication, which in this case, it does, since its <strong>Client Authentication</strong>. </p><br/>
 <p>Then, the KDC also verifies whether the certificate was issued from a trusted CA, this means that the certificate signature will be checked against a trust chain which should end with the RootCA certificate signature, also, the issuer CA must be inside the NTAuthCertificates container, otherwise it won't be allowed for authentication. </p><br/>
 <p>The timestamp value serves as preauthentication data, which is encrypted using the private key previously generated by the client. Since the certificate includes the corresponding public key, the KDC can extract this public key from the certificate and attempt to decrypt the timestamp. If successful, it indicates that the client possesses the corresponding private key associated with the public key, thereby confirming that the authentication message is valid and originates from a trusted source—since only the client holds the matching private key.</p><br/>
@@ -472,7 +504,7 @@ The authentication process is fairly similar to the usual Kerberos Authenticatio
 <li><code>HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Kdc\StrongCertificateBindingEnforcement</code> — controls behavior for Kerberos authentication.</li>
 </ul>
 <p>The <code>CertificateMappingMethods</code> key operates as a bitmask, where each bit enables a different certificate mapping method for SChannel. For instance, setting it to <code>0x4</code> enables UPN-based mapping, while <code>0x1F</code> activates all available mapping methods. The default value is currently <code>0x18</code> (S4U2Self &amp; S4U2Self Explicit). If UPN mapping is enabled (note: it's <strong>not</strong> enabled by default), it can override the behavior of the <code>szOID_NTDS_CA_SECURITY_EXT</code> extension—meaning that if UPN mapping succeeds, the presence of the extension is ignored. </p><br/>
-<p><img src="https://elswix.github.io/articles/18/img/1.png"></p><br/>
+<p><img src="https://elswix.github.io/articles/18/img/1.png"/></p><br/>
 <p>The second key, <code>StrongCertificateBindingEnforcement</code>, specifies how strictly the domain controller enforces validation of the new <code>objectSid</code> extension during certificate-based Kerberos authentication. It supports three values:</p><br/>
 <ul>
 <li>
@@ -739,15 +771,11 @@ The authentication process is fairly similar to the usual Kerberos Authenticatio
 <br/>
 <a href="https://www.thehacker.recipes/ad/movement/adcs/certifried">https://www.thehacker.recipes/ad/movement/adcs/certifried</a>
 <br/></p><br/>
-                        </div>
-                    </div>
-                </section>
-
+</div>
+</div>
+</section>
             </main>
         </div>
     </div>
-    <script src="/js/sidebarToggle.js"></script>
-    <script src="/js/fixMobileImages.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
