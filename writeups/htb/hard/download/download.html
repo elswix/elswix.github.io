@@ -1,16 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Download - HTB</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
-    <link href="/css/writeups.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -18,49 +17,78 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="Logo">
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
                 </div>
                 <nav>
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a href="/" class="nav-link active"><i class="bi bi-house-door"></i> Home</a></li>
-                        <li class="nav-item"><a href="/articles" class="nav-link"><i class="bi bi-card-text"></i> Articles</a></li>
-                        <li class="nav-item"><a href="/writeups" class="nav-link"><i class="bi bi-terminal"></i> WriteUPs</a></li>
-                        <li class="nav-item"><a href="/notes" class="nav-link"><i class="bi bi-journal-text"></i> Notes</a></li>
-                        <li class="nav-item"><a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link"><i class="bi bi-github"></i> KL-Sunset</a></li>
-                        <li class="nav-item"><a href="/about" class="nav-link"><i class="bi bi-person"></i> About me</a></li>
+                    <ul class="nav-menu">   
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i>🏠</i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link active">
+                                <i>📝</i>
+                                <span>Articles</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i>💻</i>
+                                <span>WriteUps</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link">
+                                <i>📚</i>
+                                <span>Notes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i>⚡</i>
+                                <span>KL-Sunset</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i>👤</i>
+                                <span>About me</span>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </aside>
+
             <!-- Main Content -->
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img alt="index-logo" class="mb-3" style="width: 120px; height: 120px; border-radius: 50%" src="/writeups/htb/hard/download/img/download.png">
-                <h2>Download - HTB</h2>
-                <p>walkthrough by elswix<p>
-                <ul class="machine-links" style="display: none">
-                    <li><a href="https://app.hackthebox.com/machines/Download">HackTheBox</a></li>
-                </ul>
-            </section>
+                    <img src="/writeups/htb/hard/download/img/download.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <h2>Download - HTB</h2>
+                    <p>walkthrough by elswixHackTheBox</p>
+                </section>
+
                 <section class="article-content">
-                    <div class="article-container">
-                        <div class="article-content-main">                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Download</span>
+<div class="article-container">
+<div class="article-content-main"> <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Download</span>
 <span class="k">Difficulty</span><span class="p">:</span> <span class="n">Hard</span>
 <span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
 <span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">08</span><span class="o">/</span><span class="mi">05</span><span class="o">/</span><span class="mi">2023</span>
 </pre></div>
 <h3><br/>About Download</h3><br/>
 Download is a hard difficulty machine on HackTheBox. The machine features a web service that allows file uploads. While attempting to download the files, we discover a Local File Inclusion (LFI) vulnerability, providing us access to the source code.<br/><br/>
-<h3><br>Shell as wesley</br></h3><br>
-Understanding how the website works behind the scenes, we discovered a potential security flaw that allowed us to extract passwords from other users in the database by manipulating our cookies. With access to the source code, we were able to obtain the <code>secret</code> key, enabling us to sign new cookies and exploit the vulnerability. Leveraging an ORM injection, we acquired credentials for the user <code>wesley</code> and gained access to the system through SSH.<br/><br/>
-<h3><br>Shell as root</br></h3><br>
-As Wesley, we run <code>pspy</code> to examine processes and commands running on the system. We discover a cron job that reveals the presence of a <code>.service</code> file containing credentials for connecting to a PostgreSQL database. Additionally, the root user utilizes the <code>su -l postgres</code> command to switch to the <code>postgres</code> user. Given that we now have credentials to access the database, we can exploit the authentication process performed by the root user on postgres by modifying the <code>.bash_profile</code> file in the home directory of the postgres user. This modification allows us to execute commands as the postgres user.<br/><br/>
+<h3><br/>Shell as wesley</h3><br/>
+Understanding how the website works behind the scenes, we discovered a potential security flaw that allowed us to extract passwords from other users in the database by manipulating our cookies. With access to the source code, we were able to obtain the <code>secret</code> key, enabling us to sign new cookies and exploit the vulnerability. Leveraging an ORM injection, we acquired credentials for the user <code>wesley</code> and gained access to the system through SSH.<br><br/>
+<h3><br/>Shell as root</h3><br/>
+As Wesley, we run <code>pspy</code> to examine processes and commands running on the system. We discover a cron job that reveals the presence of a <code>.service</code> file containing credentials for connecting to a PostgreSQL database. Additionally, the root user utilizes the <code>su -l postgres</code> command to switch to the <code>postgres</code> user. Given that we now have credentials to access the database, we can exploit the authentication process performed by the root user on postgres by modifying the <code>.bash_profile</code> file in the home directory of the postgres user. This modification allows us to execute commands as the postgres user.<br><br/>
 The concept of running commands as postgres involves exploiting the <code>TTY Pushback</code> vulnerability, which, due to the authentication performed by the root user, enables us to execute commands in this manner.<br/><br/>
-<h3><br>Recon</br></h3><br>
-To commence our analysis, we'll initiate a port scan to unveil the accessible ports on the target machine. It's crucial to bear in mind that a system's services are invariably accessible through these open ports.<br/><br/>
+<h3><br/>Recon</h3><br/>
+To commence our analysis, we'll initiate a port scan to unveil the accessible ports on the target machine. It's crucial to bear in mind that a system's services are invariably accessible through these open ports.<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="o">-</span><span class="n">n</span> <span class="mf">10.10.11.226</span> <span class="o">-</span><span class="n">oN</span> <span class="n">portScan</span>
 
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.226</span>
@@ -91,8 +119,8 @@ Once our initial scan wraps up, it's time to dig a bit deeper. We're going to ru
 </pre></div>
 
 Upon initial inspection, it is evident that the system hosts both an HTTP Service on port 80 and an SSH Service on port 22.<br/><br/>
-<h3><br>Web Application</br></h3><br>
-Prior to accessing the web service through our browser, I will execute the <code>whatweb</code> tool to gather insights into the technologies employed by the website:<br/><br/>
+<h3><br/>Web Application</h3><br/>
+Prior to accessing the web service through our browser, I will execute the <code>whatweb</code> tool to gather insights into the technologies employed by the website:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.226</span>
 <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.226</span> <span class="p">[</span><span class="mi">301</span> <span class="n">Moved</span> <span class="n">Permanently</span><span class="p">]</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">][</span><span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.226</span><span class="p">],</span> <span class="n">RedirectLocation</span><span class="p">[</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">htb</span><span class="p">],</span> <span class="n">Title</span><span class="p">[</span><span class="mi">301</span> <span class="n">Moved</span> <span class="n">Permanently</span><span class="p">],</span> <span class="n">nginx</span><span class="p">[</span><span class="mf">1.18.0</span><span class="p">]</span>
 <span class="n">ERROR</span> <span class="n">Opening</span><span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">htb</span> <span class="o">-</span> <span class="n">no</span> <span class="n">address</span> <span class="k">for</span> <span class="n">download</span><span class="o">.</span><span class="n">htb</span>
@@ -121,10 +149,10 @@ Now, let's make another attempt to gather information about the site using the <
 The domain is now resolving correctly, enabling access to the website.<br/><br/>
 Upon examination, it becomes apparent that the website is powered by Express.<br/><br/>
 Upon accessing the website via our web browser, the following content becomes visible:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/1.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/1.png"><br/><br/>
 Having grasped the website's functionality and objectives, it becomes evident that we possess the capability to both upload and download files, affording us the opportunity to store them on the server.<br/><br/>
 Despite the statement claiming that no registration is required, I will proceed to create an account by navigating to the <code>/login</code> section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/2.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/2.png"><br/><br/>
 At this point, we can experiment with common credentials such as <code>admin:admin</code>, <code>guest:guest</code>, etc. However, none of them prove successful. Therefore, let's proceed by clicking on the <code>Register Here</code> option:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/3.png"/><br/><br/>
 After completing the registration process, let's log in using the newly created credentials. Upon successful authentication, we will be presented with the following:<br/><br/>
@@ -303,8 +331,8 @@ It's worth mentioning that the website utilizes Prisma Client.<br/><br/>
 Prisma Client is a database access tool used with the Object-Relational Mapping (ORM) Prisma. Prisma Client simplifies database queries by providing a programming interface in the programming language you are using (e.g., JavaScript or TypeScript).<br/><br/>
 An ORM simplifies data manipulation in a relational database by allowing developers to work with objects and classes in their code, abstracting the complexity of SQL queries and simplifying database operations. This makes application development easier by providing a layer of abstraction between the code and the underlying database.<br/><br/>
 Understanding this concept could be beneficial for manipulating cookies, given that we have the <code>secret</code> key.<br/><br/>
-<h3><br>Cookie-monster</br></h3><br>
-With the tool <a href="https://github.com/DigitalInterruption/cookie-monster">cookie-monster</a>, we can generate and sign new cookies with the desired information.<br/><br/>
+<h3><br/>Cookie-monster</h3><br/>
+With the tool <a href="https://github.com/DigitalInterruption/cookie-monster">cookie-monster</a>, we can generate and sign new cookies with the desired information.<br><br/>
 The usage of this tool involves playing with parameters such as <code>-e</code>, <code>-k</code>, <code>-f</code>, and <code>-n</code>.<br/><br/>
 Firstly, we need to save our cookie in JSON format in a JSON file:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span>
@@ -820,8 +848,8 @@ After a while, we receive the HTTP request on our HTTP Server:<br/><br/>
 </pre></div>
 
 We're running commands as the <code>Postgres</code> user. At this point, we could gain access to the system as <code>Postgres</code>, but it's not necessary for this machine.<br/><br/>
-<h3><br>TTY Pushback</br></h3><br>
-After thorough research, I came across with the TTY Pushback vulnerability.<br/><br/>
+<h3><br/>TTY Pushback</h3><br/>
+After thorough research, I came across with the TTY Pushback vulnerability.<br><br/>
 Since 1985, there has been a security issue known as "TTY pushbash." This issue has been intermittently discussed over the decades, with some indications that it is now being addressed in certain Linux distributions.<br/><br/>
 When a privileged process executes the 'su' command without the -P/--pty option, the new process operates within the same pseudo-terminal (PTY) as the old one. The vulnerability lies in an IOCTL target called TIOCSTI, which enables the injection of bytes into the input queue of the TTY (or PTY).<br/><br/>
 In practical terms, if an attacker can execute commands as a lower-privileged user while a higher-privileged user transitions to that lower-privileged state, they can subsequently run commands as the higher-privileged user. This occurs when the attacker has the ability to write to a script that executes during login (such as .profile). When the privileged user employs 'su -' (or 'su -l'), these commands within the script will be executed with elevated privileges.<br/><br/>
@@ -885,15 +913,17 @@ It is <code>Set-UID</code>, so let's execute <code>bash -p</code> and subsequent
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="root1">#</span><span class="n"> cat root.txt</span>
 <span class="n">fb5e5</span><span class="o">**********************</span><span class="mi">96</span><span class="n">b50</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="root1">#</span>
-</pre></div></br></br></br></br></br></br>
-            </div>
+</pre></div></br></br></img></img></br></br></br></br>
+</div>
+</div>
+</section>
+<script src="/js/sidebarToggle.js"></script>
+<script src="/js/fixMobileImages.js"></script>
+<footer>
+<p>© 2024 elswix.github.io</p>
+</footer>
+            </main>
         </div>
-    </section>
-
-    <script src="/js/sidebarToggle.js"></script>
-    <script src="/js/fixMobileImages.js"></script>
-    <footer>
-        <p>&copy; 2024 elswix.github.io</p>
-    </footer>
+    </div>
 </body>
 </html>

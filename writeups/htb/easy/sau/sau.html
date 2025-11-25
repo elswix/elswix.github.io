@@ -1,16 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sau - HTB</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
-    <link href="/css/writeups.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -18,48 +17,77 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="Logo">
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
                 </div>
                 <nav>
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a href="/" class="nav-link active"><i class="bi bi-house-door"></i> Home</a></li>
-                        <li class="nav-item"><a href="/articles" class="nav-link"><i class="bi bi-card-text"></i> Articles</a></li>
-                        <li class="nav-item"><a href="/writeups" class="nav-link"><i class="bi bi-terminal"></i> WriteUPs</a></li>
-                        <li class="nav-item"><a href="/notes" class="nav-link"><i class="bi bi-journal-text"></i> Notes</a></li>
-                        <li class="nav-item"><a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link"><i class="bi bi-github"></i> KL-Sunset</a></li>
-                        <li class="nav-item"><a href="/about" class="nav-link"><i class="bi bi-person"></i> About me</a></li>
+                    <ul class="nav-menu">   
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i>🏠</i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link active">
+                                <i>📝</i>
+                                <span>Articles</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i>💻</i>
+                                <span>WriteUps</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link">
+                                <i>📚</i>
+                                <span>Notes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i>⚡</i>
+                                <span>KL-Sunset</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i>👤</i>
+                                <span>About me</span>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </aside>
+
             <!-- Main Content -->
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img alt="index-logo" class="mb-3" style="width: 120px; height: 120px; border-radius: 50%" src="/writeups/htb/easy/sau/img/sau.png">
-                <h2>Sau - HTB</h2>
-                <p>walkthrough by elswix<p>
-                <ul class="machine-links" style="display: none">
-                    <li><a href="https://app.hackthebox.com/machines/Sau">HackTheBox</a></li>
-                </ul>
-            </section>
+                    <img src="/writeups/htb/easy/sau/img/sau.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <h2>Sau - HTB</h2>
+                    <p>walkthrough by elswixHackTheBox</p>
+                </section>
+
                 <section class="article-content">
-                    <div class="article-container">
-                        <div class="article-content-main">                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Sau</span>
+<div class="article-container">
+<div class="article-content-main"> <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Sau</span>
 <span class="k">Difficulty</span><span class="p">:</span> <span class="n">Easy</span>
 <span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
 <span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">07</span><span class="o">/</span><span class="mi">08</span><span class="o">/</span><span class="mi">2023</span>
 </pre></div>
 <h3><br/>About Sau</h3><br/>
 Sau is an easy difficulty machine on the HackTheBox platform. Firstly, we will exploit an SSRF vulnerability in <code>requests-baskets</code> to gain access to an internal HTTP service.<br/><br/>
-<h3><br>Shell as Puma</br></h3><br>
-The internal HTTP service hosts a vulnerable version of <code>Maltrail</code> that enables us to execute commands on the victim machine with the privileges of the <code>Puma</code> user.<br/><br/>
-<h3><br>Shell as root</br></h3><br>
-As the <code>puma</code> user, we exploit a sudoer privilege to gain access as the <code>root</code> user.<br/><br/>
-<h3><br>Recon</br></h3><br>
-As always, we will perform a port scan to identify open ports on the victim machine. To conduct this scan, we'll utilize the <code>nmap</code> tool:<br/><br/>
+<h3><br/>Shell as Puma</h3><br/>
+The internal HTTP service hosts a vulnerable version of <code>Maltrail</code> that enables us to execute commands on the victim machine with the privileges of the <code>Puma</code> user.<br><br/>
+<h3><br/>Shell as root</h3><br/>
+As the <code>puma</code> user, we exploit a sudoer privilege to gain access as the <code>root</code> user.<br><br/>
+<h3><br/>Recon</h3><br/>
+As always, we will perform a port scan to identify open ports on the victim machine. To conduct this scan, we'll utilize the <code>nmap</code> tool:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="mf">10.10.11.224</span>
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.224</span> <span class="p">(</span><span class="mf">10.10.11.224</span><span class="p">)</span>
 <span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.14</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
@@ -112,8 +140,8 @@ To identify the service operating on port 55555, I will conduct a thorough scan 
 </pre></div>
 
 At first glance, port 55555 seems to be associated with an HTTP service.<br/><br/>
-<h3><br>Web Application - Port 55555</br></h3><br>
-Since we lack valid credentials to connect to the SSH service, our next step is to enumerate the web service hosted on port 55555. Before accessing the website through my browser, I run <code>whatweb</code> to identify the technologies employed by the website.<br/><br/>
+<h3><br/>Web Application - Port 55555</h3><br/>
+Since we lack valid credentials to connect to the SSH service, our next step is to enumerate the web service hosted on port 55555. Before accessing the website through my browser, I run <code>whatweb</code> to identify the technologies employed by the website.<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.224</span><span class="p">:</span><span class="mi">55555</span>
 <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.224</span><span class="p">:</span><span class="mi">55555</span> <span class="p">[</span><span class="mi">302</span> <span class="n">Found</span><span class="p">]</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.224</span><span class="p">],</span> <span class="n">RedirectLocation</span><span class="p">[</span><span class="o">/</span><span class="n">web</span><span class="p">]</span>
 <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.224</span><span class="p">:</span><span class="mi">55555</span><span class="o">/</span><span class="n">web</span> <span class="p">[</span><span class="mi">200</span> <span class="n">OK</span><span class="p">]</span> <span class="n">Bootstrap</span><span class="p">[</span><span class="mf">3.3.7</span><span class="p">],</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTML5</span><span class="p">,</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.224</span><span class="p">],</span> <span class="n">JQuery</span><span class="p">[</span><span class="mf">3.2.1</span><span class="p">],</span> <span class="n">PasswordField</span><span class="p">,</span> <span class="n">Script</span><span class="p">,</span> <span class="n">Title</span><span class="p">[</span><span class="n">Request</span> <span class="n">Baskets</span><span class="p">]</span>
@@ -121,9 +149,9 @@ Since we lack valid credentials to connect to the SSH service, our next step is 
 
 It didn't report any useful information.<br/><br/>
 When accessing the website through our browser, we will encounter the following content:<br/><br/>
-<img alt="" src="http://localhost/writeups/htb/easy/sau/img/1.png"/><br/><br/>
+<img alt="" src="http://localhost/writeups/htb/easy/sau/img/1.png"><br/><br/>
 The website appears to be utilizing <a href="https://github.com/darklynx/request-baskets">request-baskets</a>, as indicated in the footer, specifically <code>requests-baskets</code> version <code>1.2.1</code>. Upon conducting further research on the internet, I discovered vulnerabilities associated with this particular version of <code>requests-baskets</code>.<br/><br/>
-<img alt="" src="http://localhost/writeups/htb/easy/sau/img/2.png"/><br/><br/>
+<img alt="" src="http://localhost/writeups/htb/easy/sau/img/2.png"><br/><br/>
 There is an SSRF vulnerability in this version. SSRF (Server-Side Request Forgery) is a security vulnerability wherein an attacker can make the server perform requests to other web addresses on behalf of the server, potentially accessing sensitive information or executing unauthorized actions.<br/><br/>
 By exploiting this vulnerability, we could gain access to internal machine services that are not externally exposed. For instance, this machine might have an internal HTTP service hosted on port 80 that is not accessible externally.<br/><br/>
 While analyzing this <a href="https://github.com/entr0pie/CVE-2023-27163">POC</a>, I noticed that this vulnerability stems from insecure validation of an input field, allowing us to point to the IP of the local machine (127.0.0.1).<br/><br/>
@@ -224,8 +252,8 @@ We can read <code>user.txt</code>:<br/><br/>
 <span class="n">df6cc36de5fd8c237086219a9b248ed0</span>
 <span class="nd">puma@sau</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
-<h3><br>Shell as root</br></h3><br>
-As <code>puma</code>, we don't belong to any special group:<br/><br/>
+<h3><br/>Shell as root</h3><br/>
+As <code>puma</code>, we don't belong to any special group:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">puma@sau</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">maltrail</span><span class="err">$</span> <span class="nb">id</span>
 <span class="n">uid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">puma</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">puma</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">puma</span><span class="p">)</span>
 <span class="nd">puma@sau</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">maltrail</span><span class="err">$</span>
@@ -303,15 +331,17 @@ Finally, we can read <code>root.txt</code>:<br/><br/>
 <div class="highlight"><pre><span></span><span class="c1"># cat /root/root.txt</span>
 <span class="mi">6214</span><span class="o">*************************</span><span class="mi">5420</span>
 <span class="c1">#</span>
-</pre></div></br></br></br></br></br>
-            </div>
+</pre></div></br></img></img></br></br></br></br>
+</div>
+</div>
+</section>
+<script src="/js/sidebarToggle.js"></script>
+<script src="/js/fixMobileImages.js"></script>
+<footer>
+<p>© 2024 elswix.github.io</p>
+</footer>
+            </main>
         </div>
-    </section>
-
-    <script src="/js/sidebarToggle.js"></script>
-    <script src="/js/fixMobileImages.js"></script>
-    <footer>
-        <p>&copy; 2024 elswix.github.io</p>
-    </footer>
+    </div>
 </body>
 </html>

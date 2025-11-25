@@ -1,16 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Intentions - HTB</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
-    <link href="/css/writeups.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -18,50 +17,79 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="Logo">
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
                 </div>
                 <nav>
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a href="/" class="nav-link active"><i class="bi bi-house-door"></i> Home</a></li>
-                        <li class="nav-item"><a href="/articles" class="nav-link"><i class="bi bi-card-text"></i> Articles</a></li>
-                        <li class="nav-item"><a href="/writeups" class="nav-link"><i class="bi bi-terminal"></i> WriteUPs</a></li>
-                        <li class="nav-item"><a href="/notes" class="nav-link"><i class="bi bi-journal-text"></i> Notes</a></li>
-                        <li class="nav-item"><a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link"><i class="bi bi-github"></i> KL-Sunset</a></li>
-                        <li class="nav-item"><a href="/about" class="nav-link"><i class="bi bi-person"></i> About me</a></li>
+                    <ul class="nav-menu">   
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i>🏠</i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link active">
+                                <i>📝</i>
+                                <span>Articles</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i>💻</i>
+                                <span>WriteUps</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link">
+                                <i>📚</i>
+                                <span>Notes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i>⚡</i>
+                                <span>KL-Sunset</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i>👤</i>
+                                <span>About me</span>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </aside>
+
             <!-- Main Content -->
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img alt="index-logo" class="mb-3" style="width: 120px; height: 120px; border-radius: 50%" src="/writeups/htb/hard/intentions/img/intentions.png">
-                <h2>Intentions - HTB</h2>
-                <p>walkthrough by elswix<p>
-                <ul class="machine-links" style="display: none">
-                    <li><a href="https://app.hackthebox.com/machines/Intentions">HackTheBox</a></li>
-                </ul>
-            </section>
+                    <img src="/writeups/htb/hard/intentions/img/intentions.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <h2>Intentions - HTB</h2>
+                    <p>walkthrough by elswixHackTheBox</p>
+                </section>
+
                 <section class="article-content">
-                    <div class="article-container">
-                        <div class="article-content-main">                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Intentions</span>
+<div class="article-container">
+<div class="article-content-main"> <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Intentions</span>
 <span class="k">Difficulty</span><span class="p">:</span> <span class="n">Hard</span>
 <span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
 <span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">07</span><span class="o">/</span><span class="mi">01</span><span class="o">/</span><span class="mi">2023</span>
 </pre></div>
 <h3><br/>About Intentions</h3><br/>
 Intentions is a hard-level machine from the HackTheBox platform. Initially, we discovered a SQL injection vulnerability that allowed us to obtain hashes of administrator users. We also came across valuable information about a purported version 2 of the API, which enabled us to use these hashes as credentials.<br/><br/>
-<h3><br>Shell as www-data</br></h3><br>
-In the <code>admin</code> section, we encountered a function that applies effects to images provided by users. This technology utilizes PHP Imagick, through which we were able to execute commands by uploading a PHP web shell, exploiting a vulnerability.<br/><br/>
-<h3><br>Shell as greg</br></h3><br>
-By listing the contents of the directory where the website is hosted, we discovered a <code>.git</code> directory, indicating that the entire website is part of a Git repository. Upon inspecting the existing commits, we found one that leaked credentials, granting us access as the user <code>greg</code>.<br/><br/>
-<h3><br>Shell as root</br></h3><br>
-Finally, as the 'greg' user, we can execute a binary that will enable us to read system files without regard to our privileges, utilizing a clever exploitation and exploiting a capability. We've developed a Python script to automate a brute force process.<br/><br/>
-<h3><br>Recon</br></h3><br>
-As always, we'll kick off with a port scan to uncover open ports. Keep in mind that these ports expose various services on the machine. For this task, we'll employ Nmap:<br/><br/>
+<h3><br/>Shell as www-data</h3><br/>
+In the <code>admin</code> section, we encountered a function that applies effects to images provided by users. This technology utilizes PHP Imagick, through which we were able to execute commands by uploading a PHP web shell, exploiting a vulnerability.<br><br/>
+<h3><br/>Shell as greg</h3><br/>
+By listing the contents of the directory where the website is hosted, we discovered a <code>.git</code> directory, indicating that the entire website is part of a Git repository. Upon inspecting the existing commits, we found one that leaked credentials, granting us access as the user <code>greg</code>.<br><br/>
+<h3><br/>Shell as root</h3><br/>
+Finally, as the 'greg' user, we can execute a binary that will enable us to read system files without regard to our privileges, utilizing a clever exploitation and exploiting a capability. We've developed a Python script to automate a brute force process.<br><br/>
+<h3><br/>Recon</h3><br/>
+As always, we'll kick off with a port scan to uncover open ports. Keep in mind that these ports expose various services on the machine. For this task, we'll employ Nmap:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">sudo</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">-</span><span class="n">sS</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="o">-</span><span class="n">v</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">Pn</span> <span class="mf">10.10.11.220</span> <span class="o">-</span><span class="n">oN</span> <span class="n">portScan</span>
 
 <span class="n">PORT</span>   <span class="n">STATE</span> <span class="n">SERVICE</span>
@@ -85,18 +113,18 @@ Once again, we'll employ Nmap to execute this scan:<br/><br/>
 </pre></div>
 
 Based on the earlier findings, we can now ascertain that port 80 is associated with the HTTP service (Web Application Service), while port 22 corresponds to the SSH service.<br/><br/>
-<h3><br>Web Application</br></h3><br>
-Before accessing the website through our web browser, we can use <code>whatweb</code> to attempt to uncover the technologies, versions, and other details of the website.<br/><br/>
+<h3><br/>Web Application</h3><br/>
+Before accessing the website through our web browser, we can use <code>whatweb</code> to attempt to uncover the technologies, versions, and other details of the website.<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.220</span>
 <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.220</span> <span class="p">[</span><span class="mi">200</span> <span class="n">OK</span><span class="p">]</span> <span class="n">Cookies</span><span class="p">[</span><span class="n">XSRF</span><span class="o">-</span><span class="n">TOKEN</span><span class="p">,</span><span class="n">intentions_session</span><span class="p">],</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTML5</span><span class="p">,</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">][</span><span class="n">nginx</span><span class="o">/</span><span class="mf">1.18.0</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)],</span> <span class="n">HttpOnly</span><span class="p">[</span><span class="n">intentions_session</span><span class="p">],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.220</span><span class="p">],</span> <span class="n">Script</span><span class="p">,</span> <span class="n">Title</span><span class="p">[</span><span class="n">Intentions</span><span class="p">],</span> <span class="n">UncommonHeaders</span><span class="p">[</span><span class="n">x</span><span class="o">-</span><span class="n">content</span><span class="o">-</span><span class="nb">type</span><span class="o">-</span><span class="n">options</span><span class="p">],</span> <span class="n">X</span><span class="o">-</span><span class="n">Frame</span><span class="o">-</span><span class="n">Options</span><span class="p">[</span><span class="n">SAMEORIGIN</span><span class="p">],</span> <span class="n">X</span><span class="o">-</span><span class="n">XSS</span><span class="o">-</span><span class="n">Protection</span><span class="p">[</span><span class="mi">1</span><span class="p">;</span> <span class="n">mode</span><span class="o">=</span><span class="n">block</span><span class="p">],</span> <span class="n">nginx</span><span class="p">[</span><span class="mf">1.18.0</span><span class="p">]</span>
 </pre></div>
 
 Nothing of interest here.<br/><br/>
 Accessing the website through our browser, we observe the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/1.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/1.png"><br/><br/>
 It seems to be an authentication panel; however, we don't have valid credentials.<br/><br/>
 Some common attacks that we can attempt here include SQL injection. Let's try some typical queries:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/2.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/2.png"><br/><br/>
 If we attempt to enter this information, we'll find that only a valid email address format is accepted.<br/><br/>
 Now, let's proceed to create a new user in the registration section:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/3.png"/><br/><br/>
@@ -116,8 +144,8 @@ We have established that modifying the <code>Favorite Genres</code> information 
 At this juncture, I'll proceed to make all requests using Burp Suite. This allows me to receive more detailed responses and exercise greater control over my requests.<br/><br/>
 With the default information in the <code>Favorite Genres</code> section, I observe the following outcome when I initiate a request to the <code>Your Feed</code> section:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/9.png"/><br/><br/>
-<h3><br>SQL Injection</br></h3><br>
-What occurs if I add a single quote when altering the <code>Favorite Genres</code> information:<br/><br/>
+<h3><br/>SQL Injection</h3><br/>
+What occurs if I add a single quote when altering the <code>Favorite Genres</code> information:<br><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/10.png"/><br/><br/>
 After updating this information, let's proceed to make a GET request to the <code>Your Feed</code> section:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/11.png"/><br/><br/>
@@ -699,8 +727,8 @@ The <code>Admin</code> column contains two integer values: 1 and 0. Accounts wit
 
 There are two admin users. I've observed that the passwords are stored in an encrypted form, which means we can't retrieve the passwords in plaintext. One possible approach is to attempt to crack the hashes using tools such as <code>JohnTheRipper</code> or <code>Hashcat</code>. However, it's worth noting that the passwords don't appear to be present in the <code>rockyou.txt</code> wordlist.<br/><br/>
 Nonetheless, I've saved the hashes in a file for future reference.<br/><br/>
-<h3><br>API v2</br></h3><br>
-Our next step involves launching a fuzzing attack to uncover new directories and files on the website. For this purpose, I'll be utilizing the <a href="https://github.com/ffuf/ffuf">ffuf</a> tool to execute the attack.<br/><br/>
+<h3><br/>API v2</h3><br/>
+Our next step involves launching a fuzzing attack to uncover new directories and files on the website. For this purpose, I'll be utilizing the <a href="https://github.com/ffuf/ffuf">ffuf</a> tool to execute the attack.<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">--</span><span class="n">fc</span><span class="o">=</span><span class="mi">404</span> <span class="o">-</span><span class="n">t</span> <span class="mi">100</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">Web</span><span class="o">-</span><span class="n">Content</span><span class="o">/</span><span class="n">raft</span><span class="o">-</span><span class="n">small</span><span class="o">-</span><span class="n">directories</span><span class="o">.</span><span class="n">txt</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.220</span><span class="o">/</span><span class="n">FUZZ</span>
 
         <span class="o">/</span><span class="s1">'___\  /'</span><span class="n">___</span>\           <span class="o">/</span><span class="s1">'___\       </span>
@@ -861,8 +889,8 @@ Instead of specifying a system file, I will use a URL to an HTTP server hosted o
 </pre></div>
 
 It works as expected and initiates an HTTP request to my HTTP server. However, at this point, we are somewhat limited in terms of what we can do with this functionality.<br/><br/>
-<h3><br>Shell as www-data</br></h3><br>
-Every file we specify seems to trigger an effect, and knowing that they're using phpimagick, it's worth exploring potential vulnerabilities associated with this tool.<br/><br/>
+<h3><br/>Shell as www-data</h3><br/>
+Every file we specify seems to trigger an effect, and knowing that they're using phpimagick, it's worth exploring potential vulnerabilities associated with this tool.<br><br/>
 Following some research online, I came across an article on <a href="https://book.hacktricks.xyz/network-services-pentesting/pentesting-web/php-tricks-esp/php-rce-abusing-object-creation-new-usd_get-a-usd_get-b#rce-via-imagick-extension">HackTricks</a> discussing a potential method for achieving Remote Code Execution (RCE) by exploiting PHP Arbitrary Object Instantiations.<br/><br/>
 We can attempt to abuse this vulnerability by leveraging the <code>Vid Parser</code>, which allows us to write arbitrary content to an arbitrary path within the filesystem. This could be used to write a PHP webshell and potentially gain RCE.<br/><br/>
 For a more in-depth exploration of this exploitation, I recommend reading the article on <a href="https://swarm.ptsecurity.com/exploiting-arbitrary-object-instantiations/">PT Security</a>.<br/><br/>
@@ -929,8 +957,8 @@ We have successfully accessed the system, now we will simply adjust the TTY to i
 <span class="nd">www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="o">/</span><span class="n">public</span><span class="err">$</span> <span class="n">export</span> <span class="n">SHELL</span><span class="o">=/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
 <span class="nd">www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="o">/</span><span class="n">public</span><span class="err">$</span>
 </pre></div>
-<h3><br>Shell as greg</br></h3><br>
-While exploring the web directories, I discovered the presence of a <code>.git</code> file, indicating that the web application is a Git repository:<br/><br/>
+<h3><br/>Shell as greg</h3><br/>
+While exploring the web directories, I discovered the presence of a <code>.git</code> file, indicating that the web application is a Git repository:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">www</span><span class="o">-</span><span class="n">data</span><span class="nd">@intentions</span><span class="p">:</span><span class="o">~/</span><span class="n">html</span><span class="o">/</span><span class="n">intentions</span><span class="err">$</span>  <span class="n">ls</span> <span class="o">-</span><span class="n">la</span>
 <span class="n">total</span> <span class="mi">820</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span>  <span class="mi">14</span> <span class="n">root</span>     <span class="n">root</span>       <span class="mi">4096</span> <span class="n">Feb</span>  <span class="mi">2</span>  <span class="mi">2023</span> <span class="o">.</span>
@@ -1027,8 +1055,8 @@ I've uncovered the password <code>Gr3g1sTh3B3stDev3l0per!1998!</code> and I'm go
 </pre></div>
 
 It worked, and now we are <code>greg</code>.<br/><br/>
-<h3><br>Shell as root</br></h3><br>
-Upon examining our group memberships, it becomes apparent that we are a part of the <code>scanner</code> group:<br/><br/>
+<h3><br/>Shell as root</h3><br/>
+Upon examining our group memberships, it becomes apparent that we are a part of the <code>scanner</code> group:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span> <span class="nb">id</span>
 <span class="n">uid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">greg</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">greg</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">greg</span><span class="p">),</span><span class="mi">1003</span><span class="p">(</span><span class="n">scanner</span><span class="p">)</span>
 <span class="nd">greg@intentions</span><span class="p">:</span><span class="o">/</span><span class="n">tmp</span><span class="err">$</span>
@@ -1279,15 +1307,17 @@ Now, we can read the final flag:<br/><br/>
 <span class="nd">root@intentions</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"> cat /root/root.txt</span>
 <span class="mi">0</span><span class="n">f5c7</span><span class="o">***********************</span><span class="n">fe34</span>
 <span class="nd">root@intentions</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span>
-</pre></div></br></br></br></br></br></br></br></br></br></br>
-            </div>
+</pre></div></br></br></br></br></br></img></img></br></br></br></br></br>
+</div>
+</div>
+</section>
+<script src="/js/sidebarToggle.js"></script>
+<script src="/js/fixMobileImages.js"></script>
+<footer>
+<p>© 2024 elswix.github.io</p>
+</footer>
+            </main>
         </div>
-    </section>
-
-    <script src="/js/sidebarToggle.js"></script>
-    <script src="/js/fixMobileImages.js"></script>
-    <footer>
-        <p>&copy; 2024 elswix.github.io</p>
-    </footer>
+    </div>
 </body>
 </html>

@@ -1,17 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clicker - HTB</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
-    <link href="/css/writeups.css" rel="stylesheet">
-    <link href="/css/writeups.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -19,50 +17,79 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="Logo">
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
                 </div>
                 <nav>
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a href="/" class="nav-link active"><i class="bi bi-house-door"></i> Home</a></li>
-                        <li class="nav-item"><a href="/articles" class="nav-link"><i class="bi bi-card-text"></i> Articles</a></li>
-                        <li class="nav-item"><a href="/writeups" class="nav-link"><i class="bi bi-terminal"></i> WriteUPs</a></li>
-                        <li class="nav-item"><a href="/notes" class="nav-link"><i class="bi bi-journal-text"></i> Notes</a></li>
-                        <li class="nav-item"><a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link"><i class="bi bi-github"></i> KL-Sunset</a></li>
-                        <li class="nav-item"><a href="/about" class="nav-link"><i class="bi bi-person"></i> About me</a></li>
+                    <ul class="nav-menu">   
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i>🏠</i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link active">
+                                <i>📝</i>
+                                <span>Articles</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i>💻</i>
+                                <span>WriteUps</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link">
+                                <i>📚</i>
+                                <span>Notes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i>⚡</i>
+                                <span>KL-Sunset</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i>👤</i>
+                                <span>About me</span>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </aside>
+
             <!-- Main Content -->
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img alt="index-logo" class="mb-3" style="width: 120px; height: 120px; border-radius: 50%" src="/writeups/htb/medium/clicker/img/clicker.png">
-                <h2>Clicker - HTB</h2>
-                <p>walkthrough by elswix<p>
-                <ul class="machine-links" style="display: none">
-                    <li><a href="https://app.hackthebox.com/machines/Clicker">HackTheBox</a></li>
-                </ul>
-            </section>
+                    <img src="/writeups/htb/medium/clicker/img/clicker.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <h2>Clicker - HTB</h2>
+                    <p>walkthrough by elswixHackTheBox</p>
+                </section>
+
                 <section class="article-content">
-                    <div class="article-container">
-                        <div class="article-content-main">                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Clicker</span>
+<div class="article-container">
+<div class="article-content-main"> <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Clicker</span>
 <span class="k">Difficulty</span><span class="p">:</span> <span class="n">Medium</span>
 <span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
 <span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">09</span><span class="o">/</span><span class="mi">23</span><span class="o">/</span><span class="mi">2023</span>
 </pre></div>
 <h3><br/>About Clicker</h3><br/>
 Clicker is a medium-difficulty machine on HackTheBox. Firstly, we will exploit an NFS share to obtain the source code of a website. After reading the source code, we noticed that we could perform a mass assignment attack on the website to gain admin privileges.<br/><br/>
-<h3><br>Shell as www-data</br></h3><br>
-With admin privileges, we can extract information about the TOP players of the website. The POST request allows us to change the file extension to PHP, and by exploiting the same Mass Assignment Attack mentioned earlier, we modify our username to a PHP web shell.<br/><br/>
-<h3><br>Shell as jack</br></h3><br>
-While searching for Set-UID files on the system, we come across a Set-UID file owned by Jack. Using reverse engineering methods, we identify a file read vulnerability that allows us to obtain Jack's SSH private key.<br/><br/>
-<h3><br>Shell as root</br></h3><br>
-As Jack, we have sudo privileges that allow us to execute a bash script as root. The sudo privilege includes the SETENV attribute, enabling us to specify a malicious PRELOAD library through the LD_PRELOAD variable, thus achieving execution as root.<br/><br/>
-<h3><br>Recon</br></h3><br>
-To initiate the exploitation process, we need to identify the open ports on the target machine. Keep in mind that services are accessible through ports, making it crucial to ascertain their status. For conducting this scan, I will utilize the <code>nmap</code> tool:<br/><br/>
+<h3><br/>Shell as www-data</h3><br/>
+With admin privileges, we can extract information about the TOP players of the website. The POST request allows us to change the file extension to PHP, and by exploiting the same Mass Assignment Attack mentioned earlier, we modify our username to a PHP web shell.<br><br/>
+<h3><br/>Shell as jack</h3><br/>
+While searching for Set-UID files on the system, we come across a Set-UID file owned by Jack. Using reverse engineering methods, we identify a file read vulnerability that allows us to obtain Jack's SSH private key.<br><br/>
+<h3><br/>Shell as root</h3><br/>
+As Jack, we have sudo privileges that allow us to execute a bash script as root. The sudo privilege includes the SETENV attribute, enabling us to specify a malicious PRELOAD library through the LD_PRELOAD variable, thus achieving execution as root.<br><br/>
+<h3><br/>Recon</h3><br/>
+To initiate the exploitation process, we need to identify the open ports on the target machine. Keep in mind that services are accessible through ports, making it crucial to ascertain their status. For conducting this scan, I will utilize the <code>nmap</code> tool:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">v</span> <span class="mf">10.10.11.232</span>
 
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.232</span>
@@ -105,8 +132,8 @@ Once the scan is complete, we need to identify technologies and services running
 <span class="mi">56705</span><span class="o">/</span><span class="n">tcp</span> <span class="nb">open</span>  <span class="n">mountd</span>   <span class="mi">1</span><span class="o">-</span><span class="mi">3</span> <span class="p">(</span><span class="n">RPC</span> <span class="c1">#100005)</span>
 <span class="n">Service</span> <span class="n">Info</span><span class="p">:</span> <span class="n">OS</span><span class="p">:</span> <span class="n">Linux</span><span class="p">;</span> <span class="n">CPE</span><span class="p">:</span> <span class="n">cpe</span><span class="p">:</span><span class="o">/</span><span class="n">o</span><span class="p">:</span><span class="n">linux</span><span class="p">:</span><span class="n">linux_kernel</span>
 </pre></div>
-<h3><br>Web Application - Port 80</br></h3><br>
-As we've seen in the nmap report, the port 80 belongs to an HTTP service. Before accessing the website through my browser, I will utilize <code>whatweb</code> to obtain information about the page:<br/><br/>
+<h3><br/>Web Application - Port 80</h3><br/>
+As we've seen in the nmap report, the port 80 belongs to an HTTP service. Before accessing the website through my browser, I will utilize <code>whatweb</code> to obtain information about the page:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.232</span>
 <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.232</span> <span class="p">[</span><span class="mi">302</span> <span class="n">Found</span><span class="p">]</span> <span class="n">Apache</span><span class="p">[</span><span class="mf">2.4.52</span><span class="p">],</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Ubuntu</span> <span class="n">Linux</span><span class="p">][</span><span class="n">Apache</span><span class="o">/</span><span class="mf">2.4.52</span> <span class="p">(</span><span class="n">Ubuntu</span><span class="p">)],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.232</span><span class="p">],</span> <span class="n">RedirectLocation</span><span class="p">[</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="p">]</span>
 <span class="n">ERROR</span> <span class="n">Opening</span><span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span> <span class="o">-</span> <span class="n">no</span> <span class="n">address</span> <span class="k">for</span> <span class="n">clicker</span><span class="o">.</span><span class="n">htb</span>
@@ -134,9 +161,9 @@ If we attempt to run <code>whatweb</code> again:<br/><br/>
 
 It works, and the domain is resolved properly.<br/><br/>
 When accessing the website via our browser, we encounter the following content:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/1.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/1.png"><br/><br/>
 There is an information section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/2.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/2.png"><br/><br/>
 Here we can highlight three users: <code>ButtonLover99</code>, <code>Paol</code>, and <code>Th3Br0</code>.<br/><br/>
 There is also a login section:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/3.png"/><br/><br/>
@@ -176,8 +203,8 @@ The following response was returned, with the message <code>Game has been saved!
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/14.png"/><br/><br/>
 Upon accessing the <code>profile</code> section, I noticed that the values had changed this time.<br/><br/>
 I have concluded that, by saving the game, I am interacting with and passing values to columns in a database. This process could potentially be vulnerable to a Mass Assignment attack as well.<br/><br/>
-<h3><br>NFS - Port 2049</br></h3><br>
-The port 2049 belongs to the NFS service. NFS, or Network File System, is a distributed file system protocol that allows a user on a client computer to access files over a computer network much like local storage is accessed. It enables the sharing of files and directories between systems as if they were part of the same local file system. NFS is commonly used in Unix and Linux environments for networked file sharing.<br/><br/>
+<h3><br/>NFS - Port 2049</h3><br/>
+The port 2049 belongs to the NFS service. NFS, or Network File System, is a distributed file system protocol that allows a user on a client computer to access files over a computer network much like local storage is accessed. It enables the sharing of files and directories between systems as if they were part of the same local file system. NFS is commonly used in Unix and Linux environments for networked file sharing.<br><br/>
 It is similar to SMB but is commonly used in Linux environments.<br/><br/>
 Various tools can be employed for enumerating this service, and <a href="https://book.hacktricks.xyz/network-services-pentesting/nfs-service-pentesting">HackTricks</a> also provides information on how to enumerate it.<br/><br/>
 To identify which resources the service is exposing, you can use <code>showmount</code>:<br/><br/>
@@ -359,8 +386,8 @@ The <code>save_profile</code> function is defined in the <code>db_utils.php</cod
 </pre></div>
 
 Essentially, this function takes the player name and the GET parameters as arguments. The GET parameters and their corresponding values are then used in an SQL query.<br/><br/>
-<h3><br>Mass Assignment Attack - Abusing SQL Comments</br></h3><br>
-Since the <code>save_game.php</code> is preventing us from specifying the word <code>role</code> as a GET parameter, we cannot modify our role to <code>Admin</code>. However, we can use SQL comments to bypass the validation. Since parameters are passed to an SQL query, the comments won't be interpreted in the query, enabling us to modify the <code>role</code> value.<br/><br/>
+<h3><br/>Mass Assignment Attack - Abusing SQL Comments</h3><br/>
+Since the <code>save_game.php</code> is preventing us from specifying the word <code>role</code> as a GET parameter, we cannot modify our role to <code>Admin</code>. However, we can use SQL comments to bypass the validation. Since parameters are passed to an SQL query, the comments won't be interpreted in the query, enabling us to modify the <code>role</code> value.<br><br/>
 Let me clarify this. In SQL, the following expressions are equivalent:<br/><br/>
 <div class="highlight"><pre><span></span>role=Admin
 </pre></div>
@@ -381,8 +408,8 @@ I got the following response:<br/><br/>
 It appears to have worked. Initially, when loading the <code>/index.php</code> page, there were no immediate changes. However, after logging out and signing in again, the modifications became apparent.<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/17.png"/><br/><br/>
 It worked properly, we successfully modified the <code>ROLE</code> attribute of our account.<br/><br/>
-<h3><br>Shell as www-data</br></h3><br>
-As admins, now we can access the <code>/admin.php</code> section:<br/><br/>
+<h3><br/>Shell as www-data</h3><br/>
+As admins, now we can access the <code>/admin.php</code> section:<br><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/18.png"/><br/><br/>
 Here, you can observe the top players on the page. Additionally, there is an "Export" button. <br/><br/>
 When clicking on it, the following request is made:<br/><br/>
@@ -482,8 +509,8 @@ We have successfully accessed the system, now we will simply adjust the TTY to i
 <span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">exports$</span> <span class="n">export</span> <span class="n">SHELL</span><span class="o">=/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
 <span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">exports$</span>
 </pre></div>
-<h3><br>Shell as jack</br></h3><br>
-As <code>www-data</code>, we don't belong to any interesting group:<br/><br/>
+<h3><br/>Shell as jack</h3><br/>
+As <code>www-data</code>, we don't belong to any interesting group:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb$</span> <span class="nb">id</span>
 <span class="n">uid</span><span class="o">=</span><span class="mi">33</span><span class="p">(</span><span class="n">www</span><span class="o">-</span><span class="n">data</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">33</span><span class="p">(</span><span class="n">www</span><span class="o">-</span><span class="n">data</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">33</span><span class="p">(</span><span class="n">www</span><span class="o">-</span><span class="n">data</span><span class="p">)</span>
 <span class="nd">www-data@clicker</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">clicker</span><span class="o">.</span><span class="n">htb$</span>
@@ -903,22 +930,24 @@ So now, by running <code>bash -p</code>, we can achieve execution as root:<br/><
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1">#<span class="n"> whoami</span>
 <span class="n">root</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1">#</span>
-</pre></div>
+</span></pre></div>
 
 Finally, we can read <code>root.txt</code>:<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1">#<span class="n"> cd /root</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1">#<span class="n"> cat root.txt</span>
 <span class="mf">5e6</span><span class="n">e3</span><span class="o">**********************</span><span class="mi">9</span><span class="n">c668</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1">#</span>
-</pre></div></br></br></br></br></br></br></br></br></br>
-            </div>
+</span></span></pre></div></br></br></br></br></img></img></br></br></br></br></br>
+</div>
+</div>
+</section>
+<script src="/js/sidebarToggle.js"></script>
+<script src="/js/fixMobileImages.js"></script>
+<footer>
+<p>© 2024 elswix.github.io</p>
+</footer>
+            </main>
         </div>
-    </section>
-
-    <script src="/js/sidebarToggle.js"></script>
-    <script src="/js/fixMobileImages.js"></script>
-    <footer>
-        <p>&copy; 2024 elswix.github.io</p>
-    </footer>
+    </div>
 </body>
 </html>

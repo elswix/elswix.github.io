@@ -1,16 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Authority - HTB</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
-    <link href="/css/writeups.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -18,48 +17,77 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="Logo">
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
                 </div>
                 <nav>
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a href="/" class="nav-link active"><i class="bi bi-house-door"></i> Home</a></li>
-                        <li class="nav-item"><a href="/articles" class="nav-link"><i class="bi bi-card-text"></i> Articles</a></li>
-                        <li class="nav-item"><a href="/writeups" class="nav-link"><i class="bi bi-terminal"></i> WriteUPs</a></li>
-                        <li class="nav-item"><a href="/notes" class="nav-link"><i class="bi bi-journal-text"></i> Notes</a></li>
-                        <li class="nav-item"><a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link"><i class="bi bi-github"></i> KL-Sunset</a></li>
-                        <li class="nav-item"><a href="/about" class="nav-link"><i class="bi bi-person"></i> About me</a></li>
+                    <ul class="nav-menu">   
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i>🏠</i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link active">
+                                <i>📝</i>
+                                <span>Articles</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i>💻</i>
+                                <span>WriteUps</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link">
+                                <i>📚</i>
+                                <span>Notes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i>⚡</i>
+                                <span>KL-Sunset</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i>👤</i>
+                                <span>About me</span>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </aside>
+
             <!-- Main Content -->
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img alt="index-logo" class="mb-3" style="width: 120px; height: 120px; border-radius: 50%" src="/writeups/htb/medium/authority/img/authority.png">
-                <h2>Authority - HTB</h2>
-                <p>walkthrough by elswix<p>
-                <ul class="machine-links" style="display: none">
-                    <li><a href="https://app.hackthebox.com/machines/Authority">HackTheBox</a></li>
-                </ul>
-            </section>
+                    <img src="/writeups/htb/medium/authority/img/authority.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <h2>Authority - HTB</h2>
+                    <p>walkthrough by elswixHackTheBox</p>
+                </section>
+
                 <section class="article-content">
-                    <div class="article-container">
-                        <div class="article-content-main">                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Authority</span>
+<div class="article-container">
+<div class="article-content-main"> <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Authority</span>
 <span class="k">Difficulty</span><span class="p">:</span> <span class="n">Medium</span>
 <span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
 <span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">07</span><span class="o">/</span><span class="mi">15</span><span class="o">/</span><span class="mi">2023</span>
 </pre></div>
 <h3><br/>About Authority</h3><br/>
 Authority is a medium-difficulty machine on HackTheBox. Initially, we will decrypt Ansible vaults using the <code>ansible2john</code> tool to extract John hashes. Once we obtain the Vault password, we discover passwords that can be employed for authentication on the PWM website.<br/><br/>
-<h3><br>Shell as svc_ldap</br></h3><br>
-On the PWM website, we can modify certain configurations to trigger an LDAP request to our LDAP server and capture the LDAP authentication along with the password. This grants us access as <code>svc_ldap</code> by exploiting the <code>WinRM</code> service.<br/><br/>
-<h3><br>Shell as Administrator</br></h3><br>
-We identify a vulnerable template in ADCS. By adding a domain computer, we can exploit this vulnerability to obtain a PFX file of the administrator user. Using <code>PassTheCert</code>, we can bypass disabled Kerberos authentication.<br/><br/>
-<h3><br>Recon</br></h3><br>
-First, we will perform a port scan to identify open ports on the victim machine. To do this, we will use the <code>nmap</code> tool:<br/><br/>
+<h3><br/>Shell as svc_ldap</h3><br/>
+On the PWM website, we can modify certain configurations to trigger an LDAP request to our LDAP server and capture the LDAP authentication along with the password. This grants us access as <code>svc_ldap</code> by exploiting the <code>WinRM</code> service.<br><br/>
+<h3><br/>Shell as Administrator</h3><br/>
+We identify a vulnerable template in ADCS. By adding a domain computer, we can exploit this vulnerability to obtain a PFX file of the administrator user. Using <code>PassTheCert</code>, we can bypass disabled Kerberos authentication.<br><br/>
+<h3><br/>Recon</h3><br/>
+First, we will perform a port scan to identify open ports on the victim machine. To do this, we will use the <code>nmap</code> tool:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">sudo</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="o">-</span><span class="n">n</span> <span class="mf">10.10.11.222</span> <span class="o">-</span><span class="n">oG</span> <span class="n">portScan</span>
 
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.222</span>
@@ -229,9 +257,9 @@ At first glance, we notice the <code>authority.htb</code> domain, which we will 
 <span class="c1"># HackTheBox</span>
 <span class="mf">10.10.11.222</span> <span class="n">authority</span><span class="o">.</span><span class="n">htb</span>
 </pre></div>
-<h3><br>DNS - Port 53</br></h3><br>
-Let's perform DNS enumeration using the <code>dig</code> tool.<br/><br/>
-<h3><br>Name Servers</br></h3><br>
+<h3><br/>DNS - Port 53</h3><br/>
+Let's perform DNS enumeration using the <code>dig</code> tool.<br><br/>
+<h3><br/>Name Servers</h3><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">dig</span> <span class="o">@</span><span class="mf">10.10.11.222</span> <span class="n">authority</span><span class="o">.</span><span class="n">htb</span> <span class="n">ns</span>
 
 <span class="p">;</span> <span class="o">&lt;&lt;&gt;&gt;</span> <span class="n">DiG</span> <span class="mf">9.19.17</span><span class="o">-</span><span class="mi">2</span><span class="o">~</span><span class="n">kali1</span><span class="o">-</span><span class="n">Kali</span> <span class="o">&lt;&lt;&gt;&gt;</span> <span class="o">@</span><span class="mf">10.10.11.222</span> <span class="n">authority</span><span class="o">.</span><span class="n">htb</span> <span class="n">ns</span>
@@ -260,7 +288,7 @@ Let's perform DNS enumeration using the <code>dig</code> tool.<br/><br/>
 <span class="p">;;</span> <span class="n">MSG</span> <span class="n">SIZE</span>  <span class="n">rcvd</span><span class="p">:</span> <span class="mi">138</span>
 </pre></div>
 
-We can identify the <code>authority.authority.htb</code> subdomain, which appears to point to the DC DNS server.<br/><br/>
+We can identify the <code>authority.authority.htb</code> subdomain, which appears to point to the DC DNS server.<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
 <span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
 <span class="mf">127.0.1.1</span>   <span class="n">kali</span><span class="o">.</span><span class="n">localhost</span> <span class="n">kali</span>
@@ -273,8 +301,8 @@ We can identify the <code>authority.authority.htb</code> subdomain, which appear
 <span class="c1"># HackTheBox</span>
 <span class="mf">10.10.11.222</span> <span class="n">authority</span><span class="o">.</span><span class="n">authority</span><span class="o">.</span><span class="n">htb</span> <span class="n">authority</span><span class="o">.</span><span class="n">htb</span>
 </pre></div>
-<h3><br>Zone Transfer Attack</br></h3><br>
-Sometimes DNS servers are misconfigured. The DNS server typically holds a Zone file, which it uses to replicate the map of a domain. It should be configured so that only the authorized replicating DNS server can access it. However, misconfigurations can occur, allowing anyone to request the zone file and thereby receive the entire list of subdomains.<br/><br/>
+<h3><br/>Zone Transfer Attack</h3><br/>
+Sometimes DNS servers are misconfigured. The DNS server typically holds a Zone file, which it uses to replicate the map of a domain. It should be configured so that only the authorized replicating DNS server can access it. However, misconfigurations can occur, allowing anyone to request the zone file and thereby receive the entire list of subdomains.<br><br/>
 This can be exploited as follows:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">dig</span> <span class="o">@</span><span class="mf">10.10.11.222</span> <span class="n">authority</span><span class="o">.</span><span class="n">htb</span> <span class="n">axfr</span>
 <span class="p">;</span> <span class="o">&lt;&lt;&gt;&gt;</span> <span class="n">DiG</span> <span class="mf">9.19.17</span><span class="o">-</span><span class="mi">2</span><span class="o">~</span><span class="n">kali1</span><span class="o">-</span><span class="n">Kali</span> <span class="o">&lt;&lt;&gt;&gt;</span> <span class="o">@</span><span class="mf">10.10.11.222</span> <span class="n">authority</span><span class="o">.</span><span class="n">htb</span> <span class="n">axfr</span>
@@ -282,8 +310,8 @@ This can be exploited as follows:<br/><br/>
 <span class="p">;;</span> <span class="k">global</span> <span class="n">options</span><span class="p">:</span> <span class="o">+</span><span class="n">cmd</span>
 <span class="p">;</span> <span class="n">Transfer</span> <span class="n">failed</span><span class="o">.</span>
 </pre></div>
-<h3><br>RPC - Port 135</br></h3><br>
-Through the RPC service, we might be able to enumerate valid users on the domain controller. This process may require credentials, but sometimes the NULL Session Authentication is available. Let's try connecting to the RPC service using the <code>rpcclient</code> tool:<br/><br/>
+<h3><br/>RPC - Port 135</h3><br/>
+Through the RPC service, we might be able to enumerate valid users on the domain controller. This process may require credentials, but sometimes the NULL Session Authentication is available. Let's try connecting to the RPC service using the <code>rpcclient</code> tool:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">rpcclient</span> <span class="o">-</span><span class="n">U</span> <span class="s2">""</span> <span class="mf">10.10.11.222</span> <span class="o">-</span><span class="n">N</span>
 <span class="n">rpcclient</span> <span class="err">$</span><span class="o">&gt;</span>
 </pre></div>
@@ -295,8 +323,8 @@ While we successfully established a connection, it seems that access is denied w
 <span class="n">do_cmd</span><span class="p">:</span> <span class="n">Could</span> <span class="ow">not</span> <span class="n">initialise</span> <span class="n">samr</span><span class="o">.</span> <span class="n">Error</span> <span class="n">was</span> <span class="n">NT_STATUS_ACCESS_DENIED</span>
 <span class="n">rpcclient</span> <span class="err">$</span><span class="o">&gt;</span>
 </pre></div>
-<h3><br>LDAP - Port 389</br></h3><br>
-The <code>ldapsearch</code> command will provide the base naming context, and it should match <code>authority.htb</code>:<br/><br/>
+<h3><br/>LDAP - Port 389</h3><br/>
+The <code>ldapsearch</code> command will provide the base naming context, and it should match <code>authority.htb</code>:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">ldapsearch</span> <span class="o">-</span><span class="n">H</span> <span class="n">ldap</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.222</span><span class="o">/</span> <span class="o">-</span><span class="n">x</span> <span class="o">-</span><span class="n">s</span> <span class="n">base</span> <span class="n">namingcontexts</span>
 <span class="c1"># extended LDIF</span>
 <span class="c1">#</span>
@@ -340,8 +368,8 @@ Attempting to gather additional information requires authentication:<br/><br/>
 
 <span class="c1"># numResponses: 1</span>
 </pre></div>
-<h3><br>SMB - Port 445</br></h3><br>
-We can perform enumeration of the <code>SMB</code> service using <code>crackmapexec</code>:<br/><br/>
+<h3><br/>SMB - Port 445</h3><br/>
+We can perform enumeration of the <code>SMB</code> service using <code>crackmapexec</code>:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.222</span>
 <span class="n">SMB</span>         <span class="mf">10.10.11.222</span>    <span class="mi">445</span>    <span class="n">AUTHORITY</span>        <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">10.0</span> <span class="n">Build</span> <span class="mi">17763</span> <span class="n">x64</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">AUTHORITY</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">authority</span><span class="o">.</span><span class="n">htb</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">True</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
@@ -469,15 +497,15 @@ With the <code>find</code> command, we can list the content of all subdirectorie
 </pre></div>
 
 Before inspecting these files, let's access the web services hosted on ports <code>80</code> and <code>8443</code>.<br/><br/>
-<h3><br>Web Application - Port 80</br></h3><br>
-Before accessing the website through our browser, I will run the <code>whatweb</code> scan to discover the technologies and services used by this page.<br/><br/>
+<h3><br/>Web Application - Port 80</h3><br/>
+Before accessing the website through our browser, I will run the <code>whatweb</code> scan to discover the technologies and services used by this page.<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.222</span>
 <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.222</span> <span class="p">[</span><span class="mi">200</span> <span class="n">OK</span><span class="p">]</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Microsoft</span><span class="o">-</span><span class="n">IIS</span><span class="o">/</span><span class="mf">10.0</span><span class="p">],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.222</span><span class="p">],</span> <span class="n">Microsoft</span><span class="o">-</span><span class="n">IIS</span><span class="p">[</span><span class="mf">10.0</span><span class="p">],</span> <span class="n">Title</span><span class="p">[</span><span class="n">IIS</span> <span class="n">Windows</span> <span class="n">Server</span><span class="p">]</span>
 </pre></div>
 
 The web service hosted on port 80 belongs to Microsoft IIS on Windows Server. It appears to be a default IIS website, so there is no immediate action needed there at the moment.<br/><br/>
-<h3><br>Web Application - Port 8443</br></h3><br>
-Let's run the <code>whatweb</code> scan on this website:<br/><br/>
+<h3><br/>Web Application - Port 8443</h3><br/>
+Let's run the <code>whatweb</code> scan on this website:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.222</span><span class="p">:</span><span class="mi">8443</span>
 <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.222</span><span class="p">:</span><span class="mi">8443</span> <span class="p">[</span><span class="mi">200</span> <span class="n">OK</span><span class="p">]</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.222</span><span class="p">],</span> <span class="n">Meta</span><span class="o">-</span><span class="n">Refresh</span><span class="o">-</span><span class="n">Redirect</span><span class="p">[</span><span class="o">/</span><span class="n">pwm</span><span class="p">]</span>
 <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.222</span><span class="p">:</span><span class="mi">8443</span><span class="o">/</span><span class="n">pwm</span> <span class="p">[</span><span class="mi">302</span> <span class="n">Found</span><span class="p">]</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.222</span><span class="p">],</span> <span class="n">RedirectLocation</span><span class="p">[</span><span class="o">/</span><span class="n">pwm</span><span class="o">/</span><span class="p">]</span>
@@ -490,10 +518,10 @@ Since it is an HTTPS service, we can inspect its certificate using <code>openssl
 
 While there doesn't seem to be anything particularly interesting in the certificate, it's worth checking, as sometimes user details can be leaked.<br/><br/>
 Upon accessing the website through our browser, we are redirected to the <code>/pwm/private/login</code> section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/authority/img/3.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/authority/img/3.png"><br/><br/>
 The <a href="https://github.com/pwm-project/pwm">"PWM Project"</a> refers to an open-source software project that provides a web-based interface for end-users to manage their own passwords, as well as administrators to configure and manage password policies. PWM stands for "Password Policy Management." This project is designed to work with LDAP directories, including those used in conjunction with Active Directory. It aims to enhance password security and simplify the process of password management within organizations. Users can change their passwords and perform other related tasks through a user-friendly web interface provided by PWM.<br/><br/>
 Upon entering some random credentials, it returned the following error:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/authority/img/2.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/authority/img/2.png"><br/><br/>
 It appears that a domain user, <code>svc_ldap</code>, is being leaked. While we may not be able to do much without its credentials, I've saved this information into a file.<br/><br/>
 Clicking on <code>Configuration Manager</code> prompts us for a password:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/authority/img/4.png"/><br/><br/>
@@ -662,8 +690,8 @@ The other two vaults are known to store passwords:<br/><br/>
 <span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">vault3</span><span class="o">.</span><span class="n">txt</span>
 <span class="n">DevT3st</span><span class="o">@</span><span class="mi">123</span>
 </pre></div>
-<h3><br>Shell as svc_ldap</br></h3><br>
-Using these passwords to authenticate to PWM, the password <code>pWm_@dm!N_!23</code> is valid and allowed me to access the <code>Configuration Manager</code>:<br/><br/>
+<h3><br/>Shell as svc_ldap</h3><br/>
+Using these passwords to authenticate to PWM, the password <code>pWm_@dm!N_!23</code> is valid and allowed me to access the <code>Configuration Manager</code>:<br><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/authority/img/5.png"/><br/><br/>
 Since I wasn't familiar with how PWM works, I searched for information on the internet.<br/><br/>
 Firstly, I clicked on <code>Configuration Editor</code>:<br/><br/>
@@ -1059,15 +1087,17 @@ We can obtain a shell as the <code>administrator</code> user using <code>Evil-Wi
 <span class="o">*</span><span class="n">Evil</span><span class="o">-</span><span class="n">WinRM</span><span class="o">*</span> <span class="n">PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">Administrator</span>\<span class="n">Documents</span><span class="o">&gt;</span> <span class="n">cat</span> <span class="o">..</span>\<span class="n">Desktop</span>\<span class="n">root</span><span class="o">.</span><span class="n">txt</span>
 <span class="n">a35ec</span><span class="o">**********************</span><span class="n">f650a</span>
 <span class="o">*</span><span class="n">Evil</span><span class="o">-</span><span class="n">WinRM</span><span class="o">*</span> <span class="n">PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Users</span>\<span class="n">Administrator</span>\<span class="n">Documents</span><span class="o">&gt;</span>
-</pre></div></br></br></br></br></br></br></br></br></br></br></br></br>
-            </div>
+</pre></div></br></img></img></br></br></br></br></br></br></br></br></br></br></br>
+</div>
+</div>
+</section>
+<script src="/js/sidebarToggle.js"></script>
+<script src="/js/fixMobileImages.js"></script>
+<footer>
+<p>© 2024 elswix.github.io</p>
+</footer>
+            </main>
         </div>
-    </section>
-
-    <script src="/js/sidebarToggle.js"></script>
-    <script src="/js/fixMobileImages.js"></script>
-    <footer>
-        <p>&copy; 2024 elswix.github.io</p>
-    </footer>
+    </div>
 </body>
 </html>

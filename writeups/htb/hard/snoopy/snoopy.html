@@ -1,16 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Snoopy - HTB</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
-    <link href="/css/writeups.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -18,36 +17,65 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="Logo">
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
                 </div>
                 <nav>
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a href="/" class="nav-link active"><i class="bi bi-house-door"></i> Home</a></li>
-                        <li class="nav-item"><a href="/articles" class="nav-link"><i class="bi bi-card-text"></i> Articles</a></li>
-                        <li class="nav-item"><a href="/writeups" class="nav-link"><i class="bi bi-terminal"></i> WriteUPs</a></li>
-                        <li class="nav-item"><a href="/notes" class="nav-link"><i class="bi bi-journal-text"></i> Notes</a></li>
-                        <li class="nav-item"><a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link"><i class="bi bi-github"></i> KL-Sunset</a></li>
-                        <li class="nav-item"><a href="/about" class="nav-link"><i class="bi bi-person"></i> About me</a></li>
+                    <ul class="nav-menu">   
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i>🏠</i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link active">
+                                <i>📝</i>
+                                <span>Articles</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i>💻</i>
+                                <span>WriteUps</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link">
+                                <i>📚</i>
+                                <span>Notes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i>⚡</i>
+                                <span>KL-Sunset</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i>👤</i>
+                                <span>About me</span>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </aside>
+
             <!-- Main Content -->
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img alt="index-logo" class="mb-3" style="width: 120px; height: 120px; border-radius: 50%" src="/writeups/htb/hard/snoopy/img/snoopy.png">
-                <h2>Snoopy - HTB</h2>
-                <p>walkthrough by elswix<p>
-                <ul class="machine-links" style="display: none">
-                    <li><a href="https://app.hackthebox.com/machines/Snoopy">HackTheBox</a></li>
-                </ul>
-            </section>
+                    <img src="/writeups/htb/hard/snoopy/img/snoopy.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <h2>Snoopy - HTB</h2>
+                    <p>walkthrough by elswixHackTheBox</p>
+                </section>
+
                 <section class="article-content">
-                    <div class="article-container">
-                        <div class="article-content-main">                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Snoopy</span>
+<div class="article-container">
+<div class="article-content-main"> <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Snoopy</span>
 <span class="k">Difficulty</span><span class="p">:</span> <span class="n">Hard</span>
 <span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
 <span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">05</span><span class="o">/</span><span class="mi">06</span><span class="o">/</span><span class="mi">2023</span>
@@ -55,15 +83,15 @@
 <h3><br/>About Snoopy</h3><br/>
 Snoopy is a hard level machine featured on the HackTheBox platform. Initially, our objective entails exploiting a Local File Inclusion vulnerability to extract a key located within the <code>/etc/bind/named.conf</code> file. This key serves as a crucial component, granting us the capability to introduce a DNS Record alteration, consequently directing the "mail.snoopy.htb" subdomain to our designated IP address. This maneuver is akin to a DNS Poisoning attack.<br/><br/>
 Subsequently, our task involves initiating a password reset request within the "mattermost" subdomain, with the aim of intercepting the email (SMTP Request) that the machine dispatches to the user in the process of resetting their password.<br/><br/>
-<h3><br>Shell as cbrown</br></h3><br>
-Subsequent to successfully modifying the user's password, we gain entry to the Mattermost platform. Within the chat interface, we possess the capability to execute commands, with one of them appearing to initiate SSH requests to a specified IP address. Our strategic objective is to intercept these requests with the intent of acquiring credentials using the <code>ssh-mitm</code> tool.<br/><br/>
+<h3><br/>Shell as cbrown</h3><br/>
+Subsequent to successfully modifying the user's password, we gain entry to the Mattermost platform. Within the chat interface, we possess the capability to execute commands, with one of them appearing to initiate SSH requests to a specified IP address. Our strategic objective is to intercept these requests with the intent of acquiring credentials using the <code>ssh-mitm</code> tool.<br><br/>
 Upon effectively intercepting these requests, we are able to extract the credentials belonging to the user <code>cbrown</code>, thereby affording us the privilege to establish an SSH connection to the system.<br/><br/>
-<h3><br>Shell as sbrown</br></h3><br>
-As <code>cbrown</code> user, we have the capability to execute the <code>git apply -v</code> command as the user <code>sbrown.</code> To elevate privileges to the <code>sbrown</code> user, we exploit a vulnerability associated with <code>git apply.</code> This vulnerability leverages symbolic links, enabling us to overwrite system-level files as another user. By manipulating the <code>ssh</code> keys, we successfully overwrite the <code>authorized_keys</code> file of the <code>sbrown</code> user. As a result, we gain SSH access without the need to provide passwords, thereby achieving unauthorized access.<br/><br/>
-<h3><br>Shell as root</br></h3><br>
-Once again, operating under the user account <code>sbrown</code>, we possess elevated privileges with sudo capabilities, particularly for executing commands as the root user. The specific command at our disposal is <code>clamscan --debug</code>. Our investigative efforts led us to uncover a vulnerability associated with ClamAV's <code>clamscan</code> utility. This vulnerability enables us to exploit the system's sudo privilege, allowing us to read internal files by crafting malicious DMG files. In doing so, we can gain unauthorized access to sensitive files on the system while operating with root-level permissions.<br/><br/>
-<h3><br>Recon</br></h3><br>
-Before we begin exploiting the services, we need to understand what we're up against. To do this, we will perform a full port scan (65535) on the target machine, specifically filtering for those that are open.<br/><br/>
+<h3><br/>Shell as sbrown</h3><br/>
+As <code>cbrown</code> user, we have the capability to execute the <code>git apply -v</code> command as the user <code>sbrown.</code> To elevate privileges to the <code>sbrown</code> user, we exploit a vulnerability associated with <code>git apply.</code> This vulnerability leverages symbolic links, enabling us to overwrite system-level files as another user. By manipulating the <code>ssh</code> keys, we successfully overwrite the <code>authorized_keys</code> file of the <code>sbrown</code> user. As a result, we gain SSH access without the need to provide passwords, thereby achieving unauthorized access.<br><br/>
+<h3><br/>Shell as root</h3><br/>
+Once again, operating under the user account <code>sbrown</code>, we possess elevated privileges with sudo capabilities, particularly for executing commands as the root user. The specific command at our disposal is <code>clamscan --debug</code>. Our investigative efforts led us to uncover a vulnerability associated with ClamAV's <code>clamscan</code> utility. This vulnerability enables us to exploit the system's sudo privilege, allowing us to read internal files by crafting malicious DMG files. In doing so, we can gain unauthorized access to sensitive files on the system while operating with root-level permissions.<br><br/>
+<h3><br/>Recon</h3><br/>
+Before we begin exploiting the services, we need to understand what we're up against. To do this, we will perform a full port scan (65535) on the target machine, specifically filtering for those that are open.<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">sudo</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">-</span><span class="n">sS</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">5000</span> <span class="o">-</span><span class="n">vvv</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">Pn</span> <span class="mf">10.10.11.212</span> <span class="o">-</span><span class="n">oN</span> <span class="n">portScan</span>
 
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.212</span>
@@ -116,8 +144,8 @@ We didn't obtain very relevant information, but we did notice a domain <code>sno
 <span class="c1"># HackTheBox</span>
 <span class="mf">10.10.11.212</span> <span class="n">snoopy</span><span class="o">.</span><span class="n">htb</span>
 </pre></div>
-<h3><br>DNS Enumeration</br></h3><br>
-First, we will target the DNS service (hosted on port 53). Specifically, the DNS service uses <code>BIND</code> (as we identified in the comprehensive <code>nmap</code> scan), which is the most commonly used DNS server.<br/><br/>
+<h3><br/>DNS Enumeration</h3><br/>
+First, we will target the DNS service (hosted on port 53). Specifically, the DNS service uses <code>BIND</code> (as we identified in the comprehensive <code>nmap</code> scan), which is the most commonly used DNS server.<br><br/>
 To perform DNS reconnaissance, we have a wide range of tools at our disposal, and in my case, I will use <code>dig</code>.<br/><br/>
 <h4>Name Servers</h4>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">dig</span> <span class="o">@</span><span class="mf">10.10.11.212</span> <span class="n">snoopy</span><span class="o">.</span><span class="n">htb</span> <span class="n">ns</span>
@@ -175,9 +203,9 @@ A Zone Transfer attack is a type of attack in which an attacker attempts to obta
 </pre></div>
 
 We have successfully executed the attack and obtained sensitive information from the DNS server. We can see that a large number of domain names are returned, but we will only add the subdomain <code>mm.snoopy.htb</code> to our <code>/etc/hosts</code> file since the others are not relevant, at least for now.<br/><br/>
-<h3><br>Web application</br></h3><br>
-When accessing the web service through the browser, we encountered the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/1.png"/><br/><br/>
+<h3><br/>Web application</h3><br/>
+When accessing the web service through the browser, we encountered the following:<br><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/1.png"><br/><br/>
 While reading the content of the web service, we are informed that we can download a "press release package" or a "recent announcement." It appears that these are files containing information about their product.<br/><br/>
 Upon downloading the file, we notice that it makes a GET request to the <code>/download</code> section and is a ZIP file named <code>press_release.zip</code>:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">file</span> <span class="n">press_release</span><span class="o">.</span><span class="n">zip</span>
@@ -209,12 +237,12 @@ Using the <code>7z</code> tool, we can inspect the archive:<br/><br/>
 </pre></div>
 
 If we navigate to the "Contact" section, we are notified of the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/4.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/4.png"><br/><br/>
 This comment mentions that they are making changes to the DNS records and that their mail server (mailserver) is currently out of service.<br/><br/>
 We can note that a subdomain <code>mail.snoopy.htb</code> is mentioned here. I will immediately add it to my <code>/etc/hosts</code> file.<br/><br/>
 However, there's something peculiar here. If we recall the Zone Transfer attack, this subdomain was not returned in the response of the attack. It seems that this subdomain is not listed in the DNS records. This could be a crucial piece of information for us to proceed further on the machine.<br/><br/>
-<h3><br>mm.snoopy.htb</br></h3><br>
-Before continuing to investigate the main page, I will navigate to the subdomain <code>mm.snoopy.htb</code>. When the page loads, we can see that Mattermost is being used.<br/><br/>
+<h3><br/>mm.snoopy.htb</h3><br/>
+Before continuing to investigate the main page, I will navigate to the subdomain <code>mm.snoopy.htb</code>. When the page loads, we can see that Mattermost is being used.<br><br/>
 Mattermost is an open-source enterprise communication platform that provides instant messaging, team collaboration, and chat tools similar to Slack. It enables organizations to create their own private and secure chat servers to facilitate internal communication, collaboration, and project management.<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/2.png"/><br/><br/>
 If we click on the "View in Browser" link, it allows us to access an authentication panel:<br/><br/>
@@ -223,8 +251,8 @@ One of the first things to try on an authentication panel is to check if the ser
 We also have an option to attempt to recover the password. In my case, since I don't have any known credentials, I tried entering random data:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/5.png"/><br/><br/>
 It appears that behind the scenes, there is some SMTP request being made, as it mentions that if the account exists, an email will be sent to the email address you provided.<br/><br/>
-<h3><br>LFI</br></h3><br>
-Setting this aside, if we click on the second download link on the main webpage, something immediately catches our attention:<br/><br/>
+<h3><br/>LFI</h3><br/>
+Setting this aside, if we click on the second download link on the main webpage, something immediately catches our attention:<br><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/18.png"/><br/><br/>
 It appears that the <code>/download</code> section allows specifying a parameter via the GET method called <code>file</code>. This parameter seems to be pointing to a file on the system, which means we could attempt to read system files, i.e., perform an LFI (Local File Inclusion) if it's not sanitized.<br/><br/>
 To inspect this more comfortably, I will use the <code>Burp Suite</code> tool to analyze the requests.<br/><br/>
@@ -431,8 +459,8 @@ Using the <code>nsupdate</code> tool and the information we obtained, we can att
 
 It appears that the key worked, so we can begin to change DNS records. To understand what we will attempt to do, we need to know what a DNS record is.<br/><br/>
 In brief, a DNS (Domain Name System) record is an entry in a database that associates a domain name (such as example.com) with an IP address.<br/><br/>
-<h3><br>DNS Record</br></h3><br>
-Our goal is to alter a DNS record to make the subdomain <code>mail.snoopy.htb</code> point to our IP address because on our machine, we will run an SMTP server to see what information is transmitted behind the scenes.<br/><br/>
+<h3><br/>DNS Record</h3><br/>
+Our goal is to alter a DNS record to make the subdomain <code>mail.snoopy.htb</code> point to our IP address because on our machine, we will run an SMTP server to see what information is transmitted behind the scenes.<br><br/>
 Why are we doing this? As we recall, on the <code>mm.snoopy.htb</code> subdomain, there was an option to reset the password.<br/><br/>
 When you entered an email address and submitted the request, it appears that the server behind the scenes sent an email to the entered email address to reset the password.<br/><br/>
 As we were informed that the <code>mailserver</code> (the mail server associated with the <code>mail.snoopy.htb</code> subdomain) was out of service, we can attempt to "hijack" the request or email that will be sent to the email address we enter in order to attempt a password reset for a valid user. We will achieve all of this by changing the DNS records, forcing the <code>mail.snoopy.htb</code> subdomain to point to our attacker IP.<br/><br/>
@@ -500,8 +528,8 @@ We adapt the format of the link by removing the URL-encoded characters:<br/><br/
 We check if it allows us to change the password for the user <code>sbrown</code> by accessing the link:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/7.png"/><br/><br/>
 We successfully changed the password for the user <code>sbrown</code>, and we can now try testing the credentials on the authentication panel.<br/><br/>
-<h3><br>Shell as cbrown</br></h3><br>
-After entering the credentials we obtained, we successfully access the Mattermost chat:<br/><br/>
+<h3><br/>Shell as cbrown</h3><br/>
+After entering the credentials we obtained, we successfully access the Mattermost chat:<br><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/8.png"/><br/><br/>
 If we enter a <code>/</code>, we are shown a list of what appears to be commands that we can execute:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/9.png"/><br/><br/>
@@ -564,8 +592,8 @@ Next, we will verify if these credentials belong to the user <code>cbrown</code>
 </pre></div>
 
 We successfully access the system as the user <code>cbrown</code>.<br/><br/>
-<h3><br>Shell as sbrown</br></h3><br>
-Performing a basic enumeration with the user <code>cbrown</code>, when listing the sudo privileges, we observe the following:<br/><br/>
+<h3><br/>Shell as sbrown</h3><br/>
+Performing a basic enumeration with the user <code>cbrown</code>, when listing the sudo privileges, we observe the following:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">cbrown@snoopy</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
 <span class="p">[</span><span class="n">sudo</span><span class="p">]</span> <span class="n">password</span> <span class="k">for</span> <span class="n">cbrown</span><span class="p">:</span> 
 <span class="n">Matching</span> <span class="n">Defaults</span> <span class="n">entries</span> <span class="k">for</span> <span class="n">cbrown</span> <span class="n">on</span> <span class="n">snoopy</span><span class="p">:</span>
@@ -591,8 +619,8 @@ If we list the version of <code>git</code>, it shows us that it's <code>2.34.1</
 
 Searching a bit on the internet, I found a security advisory for <a href="https://chat.openai.com/c/GHSA-r87m-v37r-cwfh">git</a>.<br/><br/>
 Additionally, I came across an <a href="https://github.blog/2023-02-14-git-security-vulnerabilities-announced-3/">article</a> that explains two vulnerabilities in <code>git</code>, including the one we are interested in, <code>CVE-2023-23946</code>.<br/><br/>
-<h3><br><a href="https://github.blog/2023-02-14-git-security-vulnerabilities-announced-3/">CVE-2023-23946</a></br></h3><br>
-<em>Git allows for applying arbitrary patches to your repository’s history with <code>git apply</code>. In order to prevent malicious patches from creating files outside of the working copy, <code>git apply</code> rejects patches which attempt to write a file beyond a symbolic link.</em><br/><br/>
+<h3><br/><a href="https://github.blog/2023-02-14-git-security-vulnerabilities-announced-3/">CVE-2023-23946</a></h3><br/>
+<em>Git allows for applying arbitrary patches to your repository’s history with <code>git apply</code>. In order to prevent malicious patches from creating files outside of the working copy, <code>git apply</code> rejects patches which attempt to write a file beyond a symbolic link.</em><br><br/>
 <em>However, this mechanism can be tricked when the malicious patch creates that symbolic link in the first place. This can be leveraged to write arbitrary files on a victim’s filesystem when applying malicious patches from untrusted sources.</em><br/><br/>
 It appears that the vulnerability may allow us to create files through patch application by abusing symbolic links. In this <a href="https://github.com/git/git/commit/c867e4fa180bec4750e9b54eb10f459030dbebfd">commit</a>, you can see how the vulnerability works.<br/><br/>
 Inspecting the commit further, we can see in <a href="https://github.com/git/git/commit/c867e4fa180bec4750e9b54eb10f459030dbebfd#diff-d37fceb39eb9394533430ff8956cad41dd7f9233672dc778fd5690625906069f">t/t4115-apply-symlink.sh</a> how it could potentially be exploited:<br/><br/>
@@ -680,8 +708,8 @@ Now, if I try to connect from my attacker machine to the <code>sbrown</code> use
 <span class="mi">1</span><span class="n">b1358247bf3849430f5ab2e70893de3</span>
 <span class="nd">sbrown@snoopy</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
-<h3><br>Shell as root</br></h3><br>
-Once we have accessed as <code>sbrown</code>, again listing their sudo privileges, we find the following:<br/><br/>
+<h3><br/>Shell as root</h3><br/>
+Once we have accessed as <code>sbrown</code>, again listing their sudo privileges, we find the following:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">sbrown@snoopy</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
 <span class="n">Matching</span> <span class="n">Defaults</span> <span class="n">entries</span> <span class="k">for</span> <span class="n">sbrown</span> <span class="n">on</span> <span class="n">snoopy</span><span class="p">:</span>
     <span class="n">env_keep</span><span class="o">+=</span><span class="s2">"LANG LANGUAGE LINGUAS LC_* _XKB_CHARSET"</span><span class="p">,</span> <span class="n">env_keep</span><span class="o">+=</span><span class="s2">"XAPPLRESDIR XFILESEARCHPATH XUSERFILESEARCHPATH"</span><span class="p">,</span>
@@ -814,15 +842,17 @@ Finally as root, we can now read the last flag:<br/><br/>
 <span class="nd">root@snoopy</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"> cat /root/root.txt</span>
 <span class="mi">4602</span><span class="n">b</span><span class="o">**********************</span><span class="mi">4</span><span class="n">cf39</span>
 <span class="nd">root@snoopy</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span>
-</pre></div></br></br></br></br></br></br></br></br></br></br></br></br></br>
-            </div>
+</pre></div></br></br></br></br></br></br></br></img></img></br></br></br></br></br></br>
+</div>
+</div>
+</section>
+<script src="/js/sidebarToggle.js"></script>
+<script src="/js/fixMobileImages.js"></script>
+<footer>
+<p>© 2024 elswix.github.io</p>
+</footer>
+            </main>
         </div>
-    </section>
-
-    <script src="/js/sidebarToggle.js"></script>
-    <script src="/js/fixMobileImages.js"></script>
-    <footer>
-        <p>&copy; 2024 elswix.github.io</p>
-    </footer>
+    </div>
 </body>
 </html>

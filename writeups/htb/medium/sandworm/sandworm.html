@@ -1,16 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sandworm - HTB</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
-    <link href="/css/writeups.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -18,52 +17,81 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="Logo">
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
                 </div>
                 <nav>
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a href="/" class="nav-link active"><i class="bi bi-house-door"></i> Home</a></li>
-                        <li class="nav-item"><a href="/articles" class="nav-link"><i class="bi bi-card-text"></i> Articles</a></li>
-                        <li class="nav-item"><a href="/writeups" class="nav-link"><i class="bi bi-terminal"></i> WriteUPs</a></li>
-                        <li class="nav-item"><a href="/notes" class="nav-link"><i class="bi bi-journal-text"></i> Notes</a></li>
-                        <li class="nav-item"><a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link"><i class="bi bi-github"></i> KL-Sunset</a></li>
-                        <li class="nav-item"><a href="/about" class="nav-link"><i class="bi bi-person"></i> About me</a></li>
+                    <ul class="nav-menu">   
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i>🏠</i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link active">
+                                <i>📝</i>
+                                <span>Articles</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i>💻</i>
+                                <span>WriteUps</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link">
+                                <i>📚</i>
+                                <span>Notes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i>⚡</i>
+                                <span>KL-Sunset</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i>👤</i>
+                                <span>About me</span>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </aside>
+
             <!-- Main Content -->
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img alt="index-logo" class="mb-3" style="width: 120px; height: 120px; border-radius: 50%" src="/writeups/htb/medium/sandworm/img/sandworm.png">
-                <h2>Sandworm - HTB</h2>
-                <p>walkthrough by elswix<p>
-                <ul class="machine-links" style="display: none">
-                    <li><a href="https://app.hackthebox.com/machines/Sandworm">HackTheBox</a></li>
-                </ul>
-            </section>
+                    <img src="/writeups/htb/medium/sandworm/img/sandworm.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <h2>Sandworm - HTB</h2>
+                    <p>walkthrough by elswixHackTheBox</p>
+                </section>
+
                 <section class="article-content">
-                    <div class="article-container">
-                        <div class="article-content-main">                <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Sandworm</span>
+<div class="article-container">
+<div class="article-content-main"> <div class="highlight"><pre><span></span><span class="k">Machine</span><span class="p">:</span> <span class="n">Sandworm</span>
 <span class="k">Difficulty</span><span class="p">:</span> <span class="n">Medium</span>
 <span class="k">Platform</span><span class="p">:</span> <span class="n">HackTheBox</span>
 <span class="k">Release</span><span class="p">:</span> <span class="n">Released</span> <span class="n">on</span> <span class="mi">06</span><span class="o">/</span><span class="mi">17</span><span class="o">/</span><span class="mi">2023</span>
 </pre></div>
 <h3><br/>About Sandworm</h3><br/>
 Sandworm is a medium difficulty machine on HackTheBox. Firstly, we will exploit an SSTI vulnerability by abusing reflection when verifying signed PGP messages.<br/><br/>
-<h3><br>Shell as atlas (on firejail)</br></h3><br>
-Thanks to the SSTI, we discovered a malicious payload to execute commands as <code>atlas</code>, and by utilizing a Bash Reverse Shell, we gained access to the user.<br/><br/>
-<h3><br>Shell as silentobserver</br></h3><br>
-In the home directory of <code>atlas</code>, we discover credentials for the user <code>silentobserver</code> and we gain access to the user through SSH.<br/><br/>
-<h3><br>Shell as atlas</br></h3><br>
-There is a cron job executed by <code>atlas</code>. <code>Atlas</code> runs a Set-UID file owned by him, and we have the privileges to hijack a library used by the binary executed by <code>atlas</code>. After identifying the library, we add malicious content to execute commands as <code>atlas</code>.<br/><br/>
-<h3><br>Shell as root</br></h3><br>
-As <code>atlas</code>, we belong to the <code>Jailer</code> group, which has the ability to execute the Set-UID binary <code>firejail</code>. This version of <code>firejail</code> is vulnerable to <code>CVE‑2022‑31214</code>, which we exploit to gain root access.<br/><br/>
-<h3><br>Recon</br></h3><br>
-First, we will conduct a port scan to discover open ports on the victim machine. For this, we will use the <code>nmap</code> tool:<br/><br/>
+<h3><br/>Shell as atlas (on firejail)</h3><br/>
+Thanks to the SSTI, we discovered a malicious payload to execute commands as <code>atlas</code>, and by utilizing a Bash Reverse Shell, we gained access to the user.<br><br/>
+<h3><br/>Shell as silentobserver</h3><br/>
+In the home directory of <code>atlas</code>, we discover credentials for the user <code>silentobserver</code> and we gain access to the user through SSH.<br><br/>
+<h3><br/>Shell as atlas</h3><br/>
+There is a cron job executed by <code>atlas</code>. <code>Atlas</code> runs a Set-UID file owned by him, and we have the privileges to hijack a library used by the binary executed by <code>atlas</code>. After identifying the library, we add malicious content to execute commands as <code>atlas</code>.<br><br/>
+<h3><br/>Shell as root</h3><br/>
+As <code>atlas</code>, we belong to the <code>Jailer</code> group, which has the ability to execute the Set-UID binary <code>firejail</code>. This version of <code>firejail</code> is vulnerable to <code>CVE‑2022‑31214</code>, which we exploit to gain root access.<br><br/>
+<h3><br/>Recon</h3><br/>
+First, we will conduct a port scan to discover open ports on the victim machine. For this, we will use the <code>nmap</code> tool:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nmap</span> <span class="o">-</span><span class="n">p</span><span class="o">-</span> <span class="o">--</span><span class="nb">open</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">rate</span> <span class="mi">10000</span> <span class="o">-</span><span class="n">n</span> <span class="mf">10.10.11.218</span>
 <span class="n">Nmap</span> <span class="n">scan</span> <span class="n">report</span> <span class="k">for</span> <span class="mf">10.10.11.218</span>
 <span class="n">Host</span> <span class="ow">is</span> <span class="n">up</span> <span class="p">(</span><span class="mf">0.14</span><span class="n">s</span> <span class="n">latency</span><span class="p">)</span><span class="o">.</span>
@@ -111,21 +139,21 @@ Upon initial inspection, it becomes evident that there are two web services and 
 <span class="c1"># HackTheBox</span>
 <span class="mf">10.10.11.218</span> <span class="n">ssa</span><span class="o">.</span><span class="n">htb</span>
 </pre></div>
-<h3><br>SSL Certificate Inspection</br></h3><br>
-Making use of <code>openssl</code>, we can examine the SSL certificate on port 443:<br/><br/>
+<h3><br/>SSL Certificate Inspection</h3><br/>
+Making use of <code>openssl</code>, we can examine the SSL certificate on port 443:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">openssl</span> <span class="n">s_client</span> <span class="o">-</span><span class="n">connect</span> <span class="mf">10.10.11.218</span><span class="p">:</span><span class="mi">443</span>
 </pre></div>
 
 While there may not be immediately intriguing information, it's worth noting a potential user named <code>atlas</code>.<br/><br/>
-<h3><br>Web Application</br></h3><br>
-Upon accessing the website through our browser, we will see the following content:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/1.png"/><br/><br/>
+<h3><br/>Web Application</h3><br/>
+Upon accessing the website through our browser, we will see the following content:<br><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/1.png"><br/><br/>
 Upon entering the <code>contact</code> section, we encounter information related to PGP messages:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/2.png"/><br/><br/>
+<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/2.png"><br/><br/>
 A message with a hyperlink redirects us to the following page:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/4.png"/><br/><br/>
-<h3><br>PGP</br></h3><br>
-<em>PGP (Pretty Good Privacy) is a software program developed by Phil Zimmermann in 1991, providing public-key cryptography for secure data communication. It uses a pair of keys, public and private, for encrypting and decrypting information. PGP is commonly used for encrypting emails and files. It ensures privacy by allowing users to share their public keys for encryption and maintain the secrecy of their private keys for decryption. Additionally, PGP supports digital signatures for verifying data integrity, making it a widely adopted standard for digital communication security.</em><br/><br/>
+<h3><br/>PGP</h3><br/>
+<em>PGP (Pretty Good Privacy) is a software program developed by Phil Zimmermann in 1991, providing public-key cryptography for secure data communication. It uses a pair of keys, public and private, for encrypting and decrypting information. PGP is commonly used for encrypting emails and files. It ensures privacy by allowing users to share their public keys for encryption and maintain the secrecy of their private keys for decryption. Additionally, PGP supports digital signatures for verifying data integrity, making it a widely adopted standard for digital communication security.</em><br><br/>
 This web application provides functionality for encrypting, decrypting, and validating the signing of PGP messages. Let's explore its features.<br/><br/>
 To begin, there is a section dedicated to decrypting messages:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/5.png"/><br/><br/>
@@ -156,8 +184,8 @@ Utilizing the same Public Key, I will encrypt the following payload obtained fro
 Now, let's input the PGP-encrypted message into the <code>Encrypted Text</code> field:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/14.png"/><br/><br/>
 It seems that the attempt to input the SSTI PGP-encrypted message was unsuccessful. Consequently, the encryption and decryption functionality may not be exploitable at this point.<br/><br/>
-<h3><br>Verifying signed messages</br></h3><br>
-Verifying the signature of messages involves confirming their authenticity and integrity by checking a digital signature created with a private key against the corresponding public key. This ensures that the message hasn't been tampered with and originates from the holder of the private key.<br/><br/>
+<h3><br/>Verifying signed messages</h3><br/>
+Verifying the signature of messages involves confirming their authenticity and integrity by checking a digital signature created with a private key against the corresponding public key. This ensures that the message hasn't been tampered with and originates from the holder of the private key.<br><br/>
 At the bottom of the page, there is an illustrative example:<br/><br/>
 <img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/15.png"/><br/><br/>
 Let's copy this message and input it into the <code>Signed Text</code> field:<br/><br/>
@@ -568,8 +596,8 @@ Let's try to establish a shell as <code>silentobserver</code> using these creden
 </pre></div>
 
 We have successfully gained access to Sandworm as the user <code>silentobserver</code>.<br/><br/>
-<h3><br>Shell as atlas</br></h3><br>
-It appears that <code>silentobserver</code> does not belong to any specific groups:<br/><br/>
+<h3><br/>Shell as atlas</h3><br/>
+It appears that <code>silentobserver</code> does not belong to any specific groups:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="nb">id</span>
 <span class="n">uid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">silentobserver</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">silentobserver</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1001</span><span class="p">(</span><span class="n">silentobserver</span><span class="p">)</span>
 </pre></div>
@@ -935,8 +963,8 @@ Now, let's simply adjust the TTY to interact more comfortably with the system:<b
 <span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span> <span class="n">export</span> <span class="n">SHELL</span><span class="o">=/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
 <span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span>
 </pre></div>
-<h3><br>Shell as root</br></h3><br>
-Upon listing the groups, we notice an interesting group:<br/><br/>
+<h3><br/>Shell as root</h3><br/>
+Upon listing the groups, we notice an interesting group:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span> <span class="nb">id</span>
 <span class="n">uid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">atlas</span><span class="p">)</span> <span class="n">gid</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">atlas</span><span class="p">)</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1000</span><span class="p">(</span><span class="n">atlas</span><span class="p">),</span><span class="mi">1002</span><span class="p">(</span><span class="n">jailer</span><span class="p">)</span>
 <span class="nd">atlas@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="err">$</span>
@@ -1094,15 +1122,17 @@ Finally, you will be able to read the last flag:<br/><br/>
 <span class="nd">root@sandworm</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"> cat root.txt</span>
 <span class="mi">3498205</span><span class="n">da1d717f043d4a64415b1b8f3</span>
 <span class="nd">root@sandworm</span><span class="p">:</span><span class="o">~</span><span class="root1">#</span><span class="n"></span>
-</pre></div></br></br></br></br></br></br></br></br></br></br></br>
-            </div>
+</pre></div></br></br></br></br></img></img></br></br></br></br></br></br></br>
+</div>
+</div>
+</section>
+<script src="/js/sidebarToggle.js"></script>
+<script src="/js/fixMobileImages.js"></script>
+<footer>
+<p>© 2024 elswix.github.io</p>
+</footer>
+            </main>
         </div>
-    </section>
-
-    <script src="/js/sidebarToggle.js"></script>
-    <script src="/js/fixMobileImages.js"></script>
-    <footer>
-        <p>&copy; 2024 elswix.github.io</p>
-    </footer>
+    </div>
 </body>
 </html>
