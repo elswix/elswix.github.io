@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Account Control</title>
+    <meta name="description" content="test">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/styles.css" rel="stylesheet">
+    <link href="/css/articles.css" rel="stylesheet">
+    <link href="/css/monokai.css" rel="stylesheet">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-logo">
+                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <h3>elswix</h3>
+                </div>
+                <nav>
+                    <ul class="nav-menu">
+                        <li class="nav-item">
+                            <a href="/" class="nav-link">
+                                <i>🏠</i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/articles" class="nav-link active">
+                                <i>📝</i>
+                                <span>Articles</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/writeups" class="nav-link">
+                                <i>💻</i>
+                                <span>WriteUps</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/notes" class="nav-link">
+                                <i>📚</i>
+                                <span>Notes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
+                                <i>⚡</i>
+                                <span>KL-Sunset</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/about" class="nav-link">
+                                <i>👤</i>
+                                <span>About me</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </aside>
+            <!-- Main Content -->
+            <main>
+                <!-- Hero Section -->
+                <section class="hero mb-5">
+                    <img src="/img/articles/logo21.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <h2>User Account Control</h2>
+                    <p>bypassing UAC to get full privileges</p>
+                </section>
+                <section class="article-content">
+                    <div class="article-container">
+                        <div class="article-content-main">
+                            <h3>Introduction</h3><br/>
+<p>Since my last article was about Windows Access Tokens, I thought it would be interesting to write about the User Account Control security feature in Windows.</p><br/>
+<p>Today, we'll go over what UAC is and how it works at a high level, building on the concepts from my previous article. We'll also look at some common bypass techniques and how it has historically been shown to be a not very effective security feature.</p><br/>
+<p>Before continuing, if you’re not familiar with Windows access tokens, I recommend checking out <a href="https://elswix.com/articles/20/windows-access-tokens.html">my previous article</a> on the topic, where I dive into what they are and the crucial role they play in the Windows operating system.</p><br/>
+<h3>Note</h3><br/>
+<p>There are many articles out there describing this security feature and how to bypass it. In this article, I'll explain how it works and walk through some techniques to get around it. I’m not introducing any novel bypass techniques here, so full credit goes to the original authors of each technique shown.</p><br/>
+<h3>User Account Control</h3><br/>
+<p>I'm pretty sure that at some point you've come across this dialog when running something as administrator:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/21/img/21-1.png"/></p><br/>
+<p>Well, that's the UAC consent prompt. Basically, it shows up when an application needs to perform a privileged action or when you run something as administrator. When you click "Yes", the application requesting those administrator privileges switches to a higher-privilege context, which allows it to perform more sensitive actions.</p><br/>
+<p>But why does this even exist?</p><br/>
+<p>User Account Control (UAC) is a built-in Windows security feature meant to help prevent unauthorized changes to the system. Whenever something tries to make changes that require administrator-level permissions, UAC steps in and asks the user to either approve or deny the action.</p><br/>
+<p>The idea behind this is to reduce the chances of malicious code running with full administrative privileges. Instead of everything having full control by default, UAC forces a checkpoint where the user has to explicitly allow sensitive actions.</p><br/>
+<p>Unless UAC is turned off, it's also designed to make it harder for malware to tamper with its settings or disable it altogether. It's enabled by default on Windows systems, but it can be configured if you have administrative privileges.</p><br/>
+<h3>How it works</h3><br/>
+<p>Let's look at an example of UAC in action. I'll run <code>cmd.exe</code> (without using "Run as administrator") and check my user privileges:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/21/img/21-2.png"/></p><br/>
+<p>As shown in the output, my user is a local administrator (since it's a member of the Administrators group). However, when running <code>whoami /priv</code>, we can see that no special privileges are enabled, we're effectively in a limited context.</p><br/>
+<p>And that's exactly what's going on. UAC restricts the user access token to prevent every application from running with full privileges by default.</p><br/>
+<p>Now, let's see what happens when we run <code>cmd.exe</code> as administrator:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/21/img/21-3.png"/></p><br/>
+<p>This time, we have all the privileges of a local administrator. In other words, our token is no longer limited.</p><br/>
+<h3>Limited Access Token and Full Access Token</h3><br/>
+<p>Previously, I mentioned some important concepts like the “limited token”, but what does that actually mean?</p><br/>
+<p>As I explained in my last article, an access token represents the security context of a process or thread and defines what privileges it has. In simple terms, it's what Windows uses to decide what a process is allowed to do and what it isn’t.</p><br/>
+<p>An access token includes things like the user identity, the groups the user belongs to (like Administrators), and a set of privileges (such as the ability to debug processes or modify system settings). Every time a process is created, it gets a copy of a token, and from that point on, all access checks are based on it.</p><br/>
+<p>Now, tying this back to UAC, not all tokens are created equal. Even if you're part of the Administrators group, Windows can give your processes a <em>filtered</em> (or limited) token, where certain privileges are removed or disabled. This is what prevents everything from running with full administrative rights by default.</p><br/>
+<h3>Logon process</h3><br/>
+<p>When you log in to the system, the LSA verifies your credentials and creates your access token, which defines your security context.</p><br/>
+<p>If you're a member of the Administrators group, things get a bit more interesting. Instead of giving you full privileges right away, Windows actually creates two separate access tokens: a standard (limited) token and a full administrator token. The last one is linked to the initial one.</p><br/>
+<p>The standard token is the one used by default. It contains your user information, but most administrative privileges are removed or disabled, and the Administrators group SID is marked as deny-only. In practice, this means your processes behave like those of a regular user, even though you're technically an administrator.</p><br/>
+<p>This limited token is used to start the desktop (via <code>explorer.exe</code>) and, from there, all child processes inherit it. That’s why everything you launch normally runs in a restricted context.</p><br/>
+<p>The full administrator token, on the other hand, is only used when you explicitly approve an elevation prompt (the UAC prompt). Once you click "Yes", the process is started again, but this time using the unrestricted token, with all administrative privileges enabled.</p><br/>
+<p>This is exactly what we saw when running <code>whoami /priv</code> without elevation, the <code>cmd</code> process was created using the standard (limited) user token.</p><br/>
+<p>On the other hand, when we ran <code>cmd</code> as administrator, the process was started with the full access token instead, which is why all privileges were available.</p><br/>
+<h3>Secure Desktop</h3><br/>
+<p>When running something as administrator, Windows switches to a different environment called the <em>Secure Desktop</em>.</p><br/>
+<p>This is an extra security layer used during the elevation process. When an application requests administrative privileges, the normal desktop (the one you're interacting with) is temporarily dimmed, and the UAC prompt is shown in this isolated environment instead.</p><br/>
+<p>The key thing here is isolation. Only trusted Windows processes can interact with the Secure Desktop, which means other applications, especially potentially malicious ones, can't interfere with the prompt, simulate clicks, or try to trick the user into approving something, thereby preventing attacks like <em>UI spoofing</em> or <em>shatter attacks</em>, where a malicious process might try to send input or manipulate another window to gain elevated privileges.</p><br/>
+<p>Once the user responds to the prompt (either "Yes" or "No"), Windows switches back to the normal desktop, and the process either continues with elevated privileges or is denied.</p><br/>
+<h3>Standard user vs Local Administrator</h3><br/>
+<p>UAC also applies to standard users, but it behaves differently compared to local administrators. Standard users are those who are not members of the "Administrators" group, which means they don’t have sensitive privileges, even if they had a full token.</p><br/>
+<p>However, sometimes these users still need to perform sensitive actions, like installing a program. In those cases, another UAC prompt is shown to the user, but this time it’s a Credential Prompt:</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/21/img/21-4.png"/></p><br/>
+<p>This time, instead of just clicking Yes or No, users must provide local administrator credentials to run with elevated privileges, since they don’t have a full token with high privileges.</p><br/>
+<p>I make this distinction because a UAC bypass typically involves having local administrator access with a limited token, and then trying to obtain a full token without triggering a prompt for the user. </p><br/>
+<p>In this article, we’ll assume we’ve gained access as a local administrator, but without elevation (with a limited token), and we’ll try to bypass that restriction without triggering a UAC prompt for the user.</p><br/>
+<h3>Is UAC secure?</h3><br/>
+<p>Now, the question is: Is UAC really secure?</p><br/>
+<p>Let’s say a local administrator (running with a limited token) executes a malicious program without elevation. This program will only have limited access to the system unless the user explicitly approves administrative actions by clicking 'Yes' on the UAC prompt. On its own, the program can’t really abuse token privileges, since it’s running with standard user permissions, which aren’t an escalation vector.</p><br/>
+<p>So, is there a way to bypass this limited token and gain full privileged access without even showing a UAC prompt to the user?</p><br/>
+<p>Historically, it’s been shown that UAC isn’t really effective at preventing elevated actions. In fact, there are multiple techniques that can bypass these token restrictions and obtain full token privileges.</p><br/>
+<p>Many of these techniques abuse the fact that, when something runs as administrator, parts of the environment context are shared. This opens the door to modifying certain environment variables used by elevated processes that don’t trigger a UAC prompt, such as Scheduled Tasks.</p><br/>
+<h3>SilentCleanup Scheduled Task UAC Bypass</h3><br/>
+<p>One of the simplest well-known UAC bypass techniques is abusing the <a href="https://www.tiraniddo.dev/2017/05/exploiting-environment-variables-in.html">SilentCleanup Scheduled Task</a>. This method was first discovered by the legendary <a href="https://github.com/tyranid">James Forshaw</a> in 2017, and still works today.</p><br/>
+<p>Conceptually, this technique abuses how certain Scheduled Tasks are configured in Windows.</p><br/>
+<p>The <strong>SilentCleanup</strong> task is interesting for two key reasons:</p><br/>
+<ul>
+<li>It can be triggered by a regular user (or a split-token administrator running without elevation)</li>
+<li>It is configured to run with <strong>highest privileges</strong>, meaning it will auto-elevate without showing a UAC prompt</li>
+</ul>
+<p>So far, that already sounds like a perfect candidate for a UAC bypass.</p><br/>
+<p>Now, here’s where things get interesting.</p><br/>
+<p>When the task runs, it launches <code>cleanmgr.exe</code> using a path that includes the <code>%windir%</code> environment variable (normally <code>C:\Windows</code>):</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/21/img/21-5.png"/></p><br/>
+<p>The problem is that this variable is <strong>not hardcoded</strong>, and can be influenced by the user through the <code>HKCU\Environment</code> registry key</p><br/>
+<p>This basically means:</p><br/>
+<ul>
+<li>The task runs with high privileges (auto-elevated)</li>
+<li>But part of what it executes depends on a user-controlled environment variable</li>
+</ul>
+<p>In other words, you get a privileged process partially controlled by an unprivileged context.</p><br/>
+<p>By overriding <code>%windir%</code> to point to something attacker-controlled (or even injecting commands), when the task executes, it will run <strong>our payload instead of the expected binary</strong>, but now with elevated privileges. And since the task is auto-elevated, this happens <strong>completely silently</strong>, without triggering any UAC prompt. </p><br/>
+<p>You can easily abuse this technique using the following commands:</p><br/>
+<div class="highlight"><pre><span></span><span class="c"># Modify environment variable to cmd.exe</span>
+<span class="n">reg</span> <span class="n">add</span> <span class="s2">"HKCU\Environment"</span> <span class="p">/</span><span class="n">v</span> <span class="s2">"windir"</span> <span class="p">/</span><span class="n">d</span> <span class="s2">"C:\Windows\System32\cmd.exe\"</span> <span class="p">/</span><span class="n">f</span>
+
+<span class="c"># run scheduled task</span>
+<span class="n">schtasks</span> <span class="p">/</span><span class="n">run</span> <span class="p">/</span><span class="n">tn</span> <span class="p">\</span><span class="n">Microsoft</span><span class="p">\</span><span class="n">Windows</span><span class="p">\</span><span class="n">DiskCleanup</span><span class="p">\</span><span class="n">SilentCleanup</span> <span class="p">/</span><span class="n">I</span>
+</pre></div>
+<p><img alt="" src="https://elswix.github.io/articles/21/img/21-6.png"/></p><br/>
+<p>As observed, it worked and and we ended up with a <code>cmd.exe</code> running with full privileges.</p><br/>
+<p>There are many other techniques that rely on abusing the shared environment between the limited token and the full access token. Of course, most of these techniques are now flagged by AV solutions, but with a bit of creativity, you can still experiment and try to bypass those restrictions.</p><br/>
+<p>So, how can this be patched? The core issue here is the shared environment between low-privileged and high-privileged tokens. This happens because both tokens belong to the same principal.</p><br/>
+<p>Ideally, the solution would be to isolate the environments between the low-privileged context and the high-privileged one, something we’ll come back to at the end of the article.</p><br/>
+<h3>Bypassing UAC with SSPI Datagram Contexts</h3><br/>
+<p>Another cool technique to bypass UAC is playing with NTLM authentication with <a href="https://splintercod3.blogspot.com/p/bypassing-uac-with-sspi-datagram.html">Datagram contexts</a>. This technique was discovered by <a href="https://github.com/antonioCoco">antonioCoco</a>.</p><br/>
+<p>I won't enter in detail on how this technique works because <a href="https://splintercod3.blogspot.com/p/bypassing-uac-with-sspi-datagram.html">the original article</a> already explains it really well. </p><br/>
+<p>At a high level, this technique abuses how UAC restrictions are applied differently depending on the type of authentication.</p><br/>
+<p>When a user logs in interactively, UAC enforces a filtered token (the limited token we’ve been discussing). However, this restriction does <strong>not apply in the same way to network authentication</strong>. When authentication happens over the network (e.g., NTLM), the system may generate tokens that are not filtered by UAC (this does not always happen, but won't enter in detail here).</p><br/>
+<p>So the question is: what if we could perform a network authentication locally?</p><br/>
+<p>This is where SSPI comes into play. By using APIs like <code>AcquireCredentialsHandle</code> and <code>InitializeSecurityContext</code> with the <code>ISC_REQ_DATAGRAM</code> flag, it’s possible to force NTLM into a datagram-based flow. This changes how the authentication is handled and prevents LSASS from recognizing it as a local authentication.</p><br/>
+<p>As a result, the system treats it as a network logon, even though everything is happening on the same machine.</p><br/>
+<p>During this process, LSASS creates a new logon session and generates both a filtered token and an elevated one. Once created, we impersonate the new security context, which is unfortunately associated with the filtered token. However, because of how tokens are later referenced internally, some operations may end up using the elevated token, even if the caller appears to be running with a limited one.</p><br/>
+<p>This happens because the <code>AcquireCredentialsHandle</code> API, when used in network redirectors and receives the logon session of the caller, resolves it using the base token associated with that session. In our case, that ends up being the elevated token.</p><br/>
+<p>The reason for this behavior is the order in which the tokens are created. When using <code>ISC_REQ_DATAGRAM</code> to simulate a network authentication, the system first creates the elevated token and associates it with the new logon session. After that, the filtered (UAC-restricted) token is derived from it.</p><br/>
+<p>So even if we are impersonating the filtered token, when we authenticate to a local service that calls <code>AcquireCredentialsHandle</code> in network redirectors and passes the caller’s logon ID (this has to be a local service, since providing a logon ID directly requires kernel-level privileges), LSASS ends up referencing the first token created for that logon session, which is the elevated one.</p><br/>
+<p>In practice, this allows us to authenticate against local services (for example over <code>\\127.0.0.1</code>) and perform actions with elevated privileges, all without triggering a UAC prompt.</p><br/>
+<p>This combined with CreateSvcRpc it's possible to achieve command execution with system privileges. The <a href="https://github.com/antonioCoco/SspiUacBypass">exploit</a> was created by antonioCoco.</p><br/>
+<p><img alt="" src="https://elswix.github.io/articles/21/img/21-7.png"/></p><br/>
+<p>As observed, we achieved command execution as system.</p><br/>
+<h3>Other techniques</h3><br/>
+<p>So far, we've looked at two different techniques to bypass UAC. However, there are many more that I won't cover here. That said, you can check out the <a href="https://github.com/hfiref0x/UACME">UACME</a> project, which contains a large collection of UAC bypass techniques implemented in a practical way. It's a great resource if you want to discover more techniques, since it not only shows different approaches, but also how they behave across Windows versions. It contains patched and unpatched techniques.</p><br/>
+<h3>Administrator Protection</h3><br/>
+<p>Previously, when describing the SilentCleanup scheduled task UAC bypass technique, I mentioned that the issue was that the high-privileged context and the low-privileged context share the same environment, such as environment variables and so on. This happens because when you run something as administrator, even though you switch to a more privileged context, the full access token still belongs to the same principal, which ends up having the exact same environment.</p><br/>
+<p>As explained earlier, many of the bypass techniques in the wild rely on abusing this behavior. So, what did Microsoft do about this? Well, as described in the documentation, UAC is a security feature, not a security boundary, which means that most bypass techniques are not treated as security issues—especially those related to environment-based abuse.</p><br/>
+<p>However, something new is being cooked in the preview builds in the Windows Insider Program. A new security feature (which was introduced and then removed from Windows 11 25H2 due to compatibility/security issues lol) is expected to come back in future releases of Windows 11.</p><br/>
+<h3>What is Administrator Protection</h3><br/>
+<p><a href="https://blogs.windows.com/windowsdeveloper/2025/05/19/enhance-your-application-security-with-administrator-protection/">Administrator protection</a> is a new security feature in Windows 11 that aims to rethink how elevation works under the hood.</p><br/>
+<p>At its core, it follows the principle of least privilege: users run in a deprivileged state by default and only receive administrative rights when they’re actually needed, and only after explicitly approving the action. So far, this sounds similar to how UAC already behaves, but the implementation is quite different.</p><br/>
+<p>When a user signs in, instead of having both a filtered token and a full admin token tied to the same account, they only get a deprivileged token. Then, when an operation requires admin privileges, Windows prompts the user for authorization as usual.</p><br/>
+<p>The key difference is what happens next.</p><br/>
+<p>Instead of reusing the same user context with a more privileged token, Windows creates a completely separate, system-generated (and hidden) account. This account is used to generate an isolated admin token, which is then assigned only to the process requesting elevation.</p><br/>
+<p>Once that process finishes, the token is destroyed to prevent malicious programs from reusing it.</p><br/>
+<p>Because the elevated process runs under a different account, there is also a clear separation between the user environment and the elevated environment. In other words, the elevated context no longer shares things like environment variables or other user-controlled state with the original user.</p><br/>
+<p>This feature integrates with Windows Hello, allowing users to approve elevation requests using secure and user-friendly authentication methods.</p><br/>
+<p>This time, Administrator Protection actually sounds like a much stronger security boundary compared to plain UAC. However, as said earlier, it hasn’t been implemented in official releases yet.</p><br/>
+<p>Before wrapping up, I’d like to recommend two articles by <a href="https://github.com/tyranid">James Forshaw</a>, who has done some great research on Administrator Protection in Windows Insider preview builds. I think they’re definitely worth a read, super interesting and very informative.</p><br/>
+<ul>
+<li><a href="https://projectzero.google/2026/26/windows-administrator-protection.html">Bypassing Windows Administrator Protection</a></li>
+<li><a href="https://projectzero.google/2026/02/windows-administrator-protection.html">Bypassing Administrator Protection by Abusing UI Access</a></li>
+</ul>
+<br/><h3>Conclusion</h3><br/>
+<p>In this article, we explored what User Account Control (UAC) is and how, over time, it has been shown to be far from a robust security feature. As we’ve seen, it comes with several caveats that make it possible to completely bypass it under certain conditions.</p><br/>
+<p>We also introduced Administrator Protection, which appears to be a much stronger approach, as it actually enforces a clearer security boundary between user and administrator actions.</p><br/>
+<p>None of the techniques discussed in this article are mine, I’m just sharing them because I think they’re great, and the original authors did an excellent job discovering and documenting them. All credit goes to them.</p><br/>
+<p>That's all folks, hope you enjoyed it. See you next time 👋</p><br/>
+<h3>References</h3><br/>
+<p><a href="https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/">https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/</a><br/>
+<a href="https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/how-it-works">https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/how-it-works</a><br/>
+<a href="https://splintercod3.blogspot.com/p/bypassing-uac-with-sspi-datagram.html">https://splintercod3.blogspot.com/p/bypassing-uac-with-sspi-datagram.html</a><br/>
+<a href="https://www.tiraniddo.dev/2017/05/exploiting-environment-variables-in.html">https://www.tiraniddo.dev/2017/05/exploiting-environment-variables-in.html</a><br/>
+<a href="https://github.com/antonioCoco/SspiUacBypass">https://github.com/antonioCoco/SspiUacBypass</a><br/>
+<a href="https://projectzero.google/2026/26/windows-administrator-protection.html">https://projectzero.google/2026/26/windows-administrator-protection.html</a><br/>
+<a href="https://projectzero.google/2026/02/windows-administrator-protection.html">https://projectzero.google/2026/02/windows-administrator-protection.html</a><br/>
+<a href="https://learn.microsoft.com/en-us/windows/security/application-security/application-control/administrator-protection/?tabs=intune">https://learn.microsoft.com/en-us/windows/security/application-security/application-control/administrator-protection/?tabs=intune</a><br/>
+<a href="https://github.com/hfiref0x/UACME">https://github.com/hfiref0x/UACME</a><br/></p><br/>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+</body>
+</html>
