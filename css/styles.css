@@ -61,17 +61,24 @@ body::before {
 
 .sidebar {
     position: fixed;
-    left: 0;
     top: 0;
+    left: -280px;
     width: 280px;
     height: 100vh;
     background: rgba(18, 18, 26, 0.8);
+    -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
     border-right: 1px solid var(--border-color);
     padding: 2rem 1.5rem;
     overflow-y: auto;
     z-index: 1000;
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 1025px) {
+    .sidebar {
+        left: 0 !important;
+    }
 }
 
 .sidebar::-webkit-scrollbar {
@@ -523,11 +530,11 @@ main {
 
 @media (max-width: 1024px) {
     .sidebar {
-        transform: translateX(-100%);
+        left: -280px;
     }
 
     .sidebar.active {
-        transform: translateX(0);
+        left: 0;
     }
 
     .sidebar-toggle {
@@ -612,6 +619,11 @@ main {
 @media (max-width: 480px) {
     .sidebar {
         width: 250px;
+        left: -250px;
+    }
+
+    .sidebar.active {
+        left: 0;
     }
 
     .writeup .d-flex,
