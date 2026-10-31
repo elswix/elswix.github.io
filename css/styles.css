@@ -147,6 +147,7 @@ body::after {
     padding: 4px;
     background: var(--bg-primary);
     box-shadow: 0 0 0 1px rgba(255, 46, 77, 0.15), 0 0 32px var(--accent-red-glow);
+    object-fit: cover;
     transition: transform 0.4s ease, box-shadow 0.4s ease;
 }
 
@@ -736,10 +737,33 @@ footer {
 .writeup:nth-child(5) { animation-delay: 0.25s; }
 .writeup:nth-child(6) { animation-delay: 0.3s; }
 
+/* Profile photo flies from the sidebar into the About me hero (and back) */
+@view-transition {
+    navigation: auto;
+}
+
+@media (min-width: 1025px) {
+    .sidebar-logo img,
+    .profile-image {
+        view-transition-name: profile-photo;
+    }
+}
+
+::view-transition-group(profile-photo) {
+    animation-duration: 0.5s;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         animation: none !important;
         transition: none !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    @view-transition {
+        navigation: none;
     }
 }
 
