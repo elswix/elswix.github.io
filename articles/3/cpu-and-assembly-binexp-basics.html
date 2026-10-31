@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CPU & Assembly</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/img/articles/logo3.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/img/articles/logo3.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>CPU & Assembly</h2>
                     <p>CPU & Assembly: Binary exploitation basics</p>
                 </section>
@@ -103,13 +107,13 @@
 <p>These registers mentioned above are the most important ones. We'll discuss them extensively and explore how they function within a program. Additionally, we'll treat the <strong>Program Counter</strong>, <strong>Return Pointer</strong>, and <strong>Instruction Pointer</strong> as the same register in this article. Although they are essentially identical, the naming convention differs between assembly syntaxes. However, since we'll be focusing on Intel x86 syntax, we'll refer to it as the <strong>Instruction Pointer</strong>.</p><br/>
 <p>Don't worry about the complexity of these words and concepts; they'll become clearer once you see them in practice.</p><br/>
 <p>In various CPU architectures, registers may have different sizes and names based on the word size of the architecture. Here's a brief overview:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/2.png"/></p><br/>
+<p><img width="606" height="285" loading="lazy" decoding="async" alt="" src="/articles/3/img/2.png"/></p><br/>
 <h3>What are memory addresses?</h3><br/>
 <p>Memory addresses are <strong>numerical identifiers</strong> used to locate and access data stored in <strong>computer memory</strong>. In a computer system, memory is organized as a sequence of <strong>bytes</strong>, each with a unique address. These addresses serve as references to specific locations within the <strong>memory space</strong>.</p><br/>
 <p>When a program is executed, <strong>data</strong> and <strong>instructions</strong> are loaded into memory, and the CPU uses memory addresses to read or write data and execute instructions. For example, when a <strong>variable</strong> is declared in a program, it is assigned a memory address where its value is stored. Similarly, when an <strong>instruction</strong> is fetched for execution, its corresponding memory address is used to retrieve the instruction from memory.</p><br/>
 <p>Memory addresses are typically represented in <strong>hexadecimal notation</strong> and can range from <strong>0x00000000</strong> to <strong>0xFFFFFFFF</strong> (on a 32-bit system) or even higher on a 64-bit system. The <strong>size</strong> of a memory address determines the maximum amount of memory that can be addressed by the CPU, known as the <strong>addressable memory space</strong>.</p><br/>
 <p>To grasp it better, let's use the following image as an example:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/1.png"/></p><br/>
+<p><img width="349" height="468" loading="lazy" decoding="async" alt="" src="/articles/3/img/1.png"/></p><br/>
 <p>As you can see, on the left, there are numbers; these numbers represent memory addresses. On the right, the blue text represents instructions in assembly language. Notice that each instruction has its own corresponding memory address.</p><br/>
 <h3>The Stack</h3><br/>
 <p><strong>The stack</strong> is a region of memory used by computer programs to <strong>store temporary data</strong> and <strong>manage function calls</strong>. It operates on a <strong>Last-In-First-Out (LIFO)</strong> basis, meaning that the most recently <strong>pushed</strong> data onto the stack is the first to be <strong>popped</strong> off.</p><br/>
@@ -118,7 +122,7 @@
 <p>In a system with a <strong>downward-growing</strong> stack, such as <strong>x86 architecture</strong>, the stack starts at the <strong>highest memory address</strong> and <strong>grows downward</strong> as more data is pushed onto it. Conversely, in systems with an upward-growing stack, such as some embedded architectures, the stack starts at the lowest memory address and grows upward.</p><br/>
 <p>Regardless of the direction, the bottom of the stack is where new data is pushed, while the top of the stack is where data is popped off. This arrangement allows the stack to efficiently manage function calls, local variables, and other temporary data within a program.</p><br/>
 <p>Let's visualize a graphic representation of what the stack looks like:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/3.png"/></p><br/>
+<p><img width="396" height="550" loading="lazy" decoding="async" alt="" src="/articles/3/img/3.png"/></p><br/>
 <p>As you can see, at the top are our previous instructions. However, as mentioned earlier, the stack is located at the bottom of our program.</p><br/>
 <h3>Assembly instructions</h3><br/>
 <p>Before continuing to talk about the stack and other related topics, you should learn some concepts about <a href="https://elswix.github.io/articles/2/assembly-instructions-intel-x86.html">assembly instructions</a>.</p><br/>
@@ -126,70 +130,70 @@
 <p>As explained earlier, the <strong>instruction pointer (IP)</strong> contains the memory address of the next instruction. Now, let's create a graphic representation of how the instruction pointer works.</p><br/>
 <p><strong>Note:</strong></p><br/>
 <p>Memory addresses will be represented as decimal values from 1 to 14. Of course, it doesn't work like this, but this makes it easier to explain.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/33.png"/></p><br/>
+<p><img width="429" height="441" loading="lazy" decoding="async" alt="" src="/articles/3/img/33.png"/></p><br/>
 <p>In this example, the <strong>Instruction Pointer (EIP)</strong> points to the 9th instruction. This means that the next instruction will be a <code>mov eax, 0x10</code>, which essentially means that we'll copy the value <code>0x10</code> into <code>eax</code>.</p><br/>
 <p>After executing the 9th instruction, <code>eax</code> will be equal to <code>0x10</code>, and <code>EIP</code> will point to the next address, indicating the start of the 10th instruction:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/5.png"/></p><br/>
+<p><img width="556" height="453" loading="lazy" decoding="async" alt="" src="/articles/3/img/5.png"/></p><br/>
 <p>As you can see, the EIP has been incremented by one and now points to the 10th instruction. This instruction will move the value <code>0x1</code> into <code>ebx</code>.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/6.png"/></p><br/>
+<p><img width="532" height="446" loading="lazy" decoding="async" alt="" src="/articles/3/img/6.png"/></p><br/>
 <p>In the 11th instruction, there is a <code>sub eax, ebx</code> operation, indicating that the value stored in <code>ebx</code> will be subtracted from the value stored in <code>eax</code> (eax - ebx). As a result, the value stored in <code>eax</code> will become <code>0xf</code>:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/7.png"/></p><br/>
+<p><img width="557" height="453" loading="lazy" decoding="async" alt="" src="/articles/3/img/7.png"/></p><br/>
 <p>The next and final instruction, located at memory address 12, performs an <code>add eax, 0x1</code> operation, which increments the value stored in <code>eax</code> by one unit (eax + 1).</p><br/>
 <h3>Stack Pointer</h3><br/>
 <p>The stack pointer is a register that holds the memory address of the top of the stack. It indicates the current position in the stack where data is pushed or popped during program execution.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/8.png"/></p><br/>
+<p><img width="609" height="502" loading="lazy" decoding="async" alt="" src="/articles/3/img/8.png"/></p><br/>
 <p>Each section of the stack occupies 4 bytes, so to keep the stack pointer aligned, it should be incremented or decremented by 4 bytes.</p><br/>
 <p>The numbers highlighted in orange represent memory addresses corresponding to positions within the stack. This accounts for the 4-byte difference between them. The stack pointer doesn't indicate the values stored within these sections but rather their addresses. </p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/9.png"/></p><br/>
+<p><img width="538" height="470" loading="lazy" decoding="async" alt="" src="/articles/3/img/9.png"/></p><br/>
 <p>In this example, the ESP (Stack Pointer) points to the address <code>0x14</code> within the stack. This section holds the value <code>0x45454545</code>, representing the string "EEEE". So instead of referring to the stack pointer as <code>0x45454545</code>, it is represented as the address <code>0x14</code>, which points to the value <code>0x45454545</code>.</p><br/>
 <p><strong>ESP -&gt; 0x14 -&gt; 0x45454545</strong></p><br/>
 <p>I explain this because it might be confusing when explaining the stack frame to see that the stack pointer points directly to the stack section without including the address. This might lead you to believe that ESP is equal to the value stored in that section. However, this is not the case. ESP never stores a stack value; it is a pointer (meaning a memory address) that references a stack value.</p><br/>
 <h3>Playing with The Stack</h3><br/>
 <p>We've already discussed what the stack is and how it operates. Now, let's visualize how it works with a graphic representation:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/10.png"/></p><br/>
+<p><img width="687" height="489" loading="lazy" decoding="async" alt="" src="/articles/3/img/10.png"/></p><br/>
 <p>As you can observe, the Stack Pointer (ESP) currently points to the
 memory address 48 (the highest address). The subsequent instruction will be <code>mov eax, 0x1234</code>, which initializes the register eax with the hexadecimal value <code>0x1234</code>.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/12.png"/></p><br/>
+<p><img width="698" height="500" loading="lazy" decoding="async" alt="" src="/articles/3/img/12.png"/></p><br/>
 <p>At this point, the stack becomes involved. The subsequent instruction is a <code>push eax</code>, indicating that the value stored in <code>eax</code> will be pushed onto the stack. As a reminder, the <code>push</code> instruction decrements the stack pointer (considering the stack grows downward) and places the value of the specified register (in this case, eax) at that location.</p><br/>
 <p>The instruction <code>push eax</code> can be translated into two separate instructions: <code>sub esp, 0x4</code>, which decrements the stack pointer by 4 bytes, and <code>mov [esp], eax</code>, which moves the value of eax onto the stack at the location pointed to by ESP.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/13.png"/></p><br/>
+<p><img width="729" height="501" loading="lazy" decoding="async" alt="" src="/articles/3/img/13.png"/></p><br/>
 <p>As depicted in the image, the Stack Pointer has decreased and now points to the value pushed from <code>eax</code>.</p><br/>
 <p>The next instruction performs a <code>pop ebx</code>, which removes the value pointed to by ESP from the stack and stores it in <code>ebx</code>. After moving this value to <code>ebx</code>, the ESP decreases by one, causing it to point to memory address 16.</p><br/>
 <p>The <code>pop</code> instruction can be translated into two separate instructions: <code>mov ebx, [esp]</code>, which moves the value from the memory location pointed to by ESP into <code>ebx</code>, and <code>add esp, 0x4</code>, which increments the stack pointer by 4 bytes.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/14.png"/></p><br/>
+<p><img width="747" height="486" loading="lazy" decoding="async" alt="" src="/articles/3/img/14.png"/></p><br/>
 <h3>Control Flow - GOTOs - Jumps/Branches/Calls</h3><br/>
 <p>To manipulate the program flow, assembly language provides jump instructions, commonly known as GOTOs. These instructions work by modifying the instruction pointer (IP or EIP) when executed. There are two main types of jump instructions: <strong>unconditional</strong> jumps and <strong>conditional</strong> jumps.</p><br/>
 <p><strong>Unconditional</strong></p><br/>
 <p>An unconditional jump, often referred to simply as a <strong>"jump"</strong>, modifies the instruction pointer to point directly to the specified address. When executed, the flow of control transfers to the address specified without any condition.</p><br/>
 <div class="highlight"><pre><span></span><span class="nf">jmp</span><span class="w"> </span><span class="mi">0x040800</span><span class="w"></span>
 </pre></div>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/15.png"/></p><br/>
+<p><img width="473" height="341" loading="lazy" decoding="async" alt="" src="/articles/3/img/15.png"/></p><br/>
 <p>In this example, the next instruction pointed by the EIP is in memory address 8. This instruction performs a jump to the memory address 3. As it is a <code>jmp</code> instruction, it is an unconditional jump, therefore, once this instruction is executed, the instruction pointer will jump to memory address 3:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/11.png"/></p><br/>
+<p><img width="466" height="329" loading="lazy" decoding="async" alt="" src="/articles/3/img/11.png"/></p><br/>
 <p><strong>Conditional</strong></p><br/>
 <p>A conditional jump or branch modifies the instruction pointer to point directly to the specified address based on the state of certain flags. For example, the <code>jne</code> (jump if not equal) instruction jumps to the specified address only if the <strong>ZeroFlag (ZF)</strong> is 0, indicating that the previous arithmetic operation did not result in zero.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/16.png"/></p><br/>
+<p><img width="611" height="331" loading="lazy" decoding="async" alt="" src="/articles/3/img/16.png"/></p><br/>
 <p>In this example, we first set <code>eax</code> to 10 and <code>ebx</code> to 5. Next, we compare these registers. Since they're not equal, the <code>jne</code> instruction will be executed, and the program flow will continue from address 3.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/34.png"/></p><br/>
+<p><img width="627" height="350" loading="lazy" decoding="async" alt="" src="/articles/3/img/34.png"/></p><br/>
 <p>If the condition specified by the <code>jne</code> instruction is not met, meaning that the two registers being compared are equal, then the program flow will not jump to the target address specified by the <code>jne</code> instruction. Instead, the instruction pointer will simply proceed to the next instruction in sequence. In our example, if the <code>jne</code> instruction is located at line 8 and the condition is not met, the instruction pointer will move to line 9, effectively treating the <code>jne</code> instruction as a <strong>"no operation"</strong> (NOP).</p><br/>
 <h3>CALL instruction</h3><br/>
 <p>The <code>call</code> instruction is used for making a subroutine call. It pushes the address of the theoretically next instruction onto the stack and transfers control to the specified subroutine.</p><br/>
 <p>The <code>ret</code> instruction, on the other hand, is used to return from a subroutine. It pops the return address from the stack and transfers control back to the instruction following the original <code>call</code> instruction.</p><br/>
 <p>Together, <code>call</code> and <code>ret</code> instructions work in conjunction to allow for the execution of subroutines. The <code>call</code> instruction transfers control to the subroutine and saves the theoretically next return address, while the <code>ret</code> instruction retrieves the return address from the stack and resumes execution at that point.</p><br/>
 <p>Let's see an example:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/17.png"/></p><br/>
+<p><img width="588" height="462" loading="lazy" decoding="async" alt="" src="/articles/3/img/17.png"/></p><br/>
 <p>In this case, the next instruction to execute is the call instruction, which should jump to the <code>exampleFn</code> function and push the theoretically next instruction onto the stack. By 'theoretically next instruction,' I mean the next value the EIP should be after the <code>call</code> instruction. In this case, the 'theoretically' next instruction is at address number <code>4</code>.</p><br/>
 <p>Before executing the function, as you can see, the ESP points to some arbitrary data. Let's see what happens when the instruction gets executed.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/18.png"/></p><br/>
+<p><img width="716" height="437" loading="lazy" decoding="async" alt="" src="/articles/3/img/18.png"/></p><br/>
 <p>The ESP decremented by 4 bytes (as it grows downwards) and now points to the saved EIP value in the stack, which is theoretically the next instruction of EIP in the main function, i.e., the next instruction after the <code>call</code>.</p><br/>
 <p>We could translate the <code>call</code> instruction as:</p><br/>
 <div class="highlight"><pre><span></span><span class="nf">push</span><span class="w"> </span><span class="no">nextInstruction</span><span class="w"> </span><span class="c1">; Push the address of the next instruction onto the stack </span>
 <span class="nf">jmp</span><span class="w"> </span><span class="no">exampleFn</span><span class="w">    </span><span class="c1">; Jump to the target function</span>
 </pre></div>
 <p>After a few <code>NOP</code> instructions, we reach the <code>ret</code> instruction:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/19.png"/></p><br/>
+<p><img width="737" height="487" loading="lazy" decoding="async" alt="" src="/articles/3/img/19.png"/></p><br/>
 <p>As explained above, the <code>ret</code> instruction pops the saved return address from the stack and restores it into the EIP, so the program returns to its original routine, in this case, the main function.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/20.png"/></p><br/>
+<p><img width="619" height="475" loading="lazy" decoding="async" alt="" src="/articles/3/img/20.png"/></p><br/>
 <p>As you can see, the program flow returned to the main function from address 4. The ESP incremented by 4 bytes after the pop, so it now points to its previous address.</p><br/>
 <h3>Stack Frame</h3><br/>
 <p>A stack frame is a data structure within the call stack that stores information about a function's execution. It typically includes the function's <strong>parameters, local variables, and the return address</strong>. When a function is called, a new stack frame is created to store this information, and when the function returns, its stack frame is removed. This organization allows for nested function calls and facilitates the management of program flow and data.</p><br/>
@@ -209,32 +213,32 @@ memory address 48 (the highest address). The subsequent instruction will be <cod
 <p><strong>Stack Pointer</strong></p><br/>
 <p><strong>ESP</strong> marks <strong>the top of the stack</strong>, <strong>defining its current limit</strong>. During function execution, ESP <strong>adjusts as data is added or removed</strong> from the stack. For instance, when local variables or parameters are added, ESP <strong>moves down</strong> to <strong>accommodate them</strong>. ESP is also responsible for managing the stack during function calls, adjusting to allocate space for return addresses, parameters, and local variables of new stack frames. Once a function completes, ESP readjusts to remove its stack frame. Similar to EBP, ESP may require <strong>restoration to its original value</strong> before function return to <strong>maintain stack integrity</strong> for the caller.</p><br/>
 <p>Let's see how the stack frame works graphically. Firstly, let's create an scenario where the <code>main</code> function calls the <code>exampleFn</code> function:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/100.png"/></p><br/>
+<p><img width="786" height="462" loading="lazy" decoding="async" alt="" src="/articles/3/img/100.png"/></p><br/>
 <p>Here we're at the main function. The next address is a call to the <code>exampleFn</code> function. Remembering what the <code>call</code> instruction does, it will push the next address after the call (for returning purposes), and then jump to the beginning of the <code>exampleFn</code> function. </p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/35.png"/></p><br/>
+<p><img width="748" height="489" loading="lazy" decoding="async" alt="" src="/articles/3/img/35.png"/></p><br/>
 <p>This is the <code>exampleFn</code> function. Following the <code>call</code> instruction, the address of the subsequent instruction, <code>0x80401</code>, was pushed onto the stack. Currently, ESP points to the location where this address is stored. It's crucial to understand that ESP is a pointer, storing a memory address referencing the value on the stack, not the value itself.</p><br/>
 <p>The first instruction is a <code>push ebp</code>, which places the value of <code>ebp</code> onto the stack.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/22.png"/></p><br/>
+<p><img width="787" height="494" loading="lazy" decoding="async" alt="" src="/articles/3/img/22.png"/></p><br/>
 <p>As you can see, the <code>push ebp</code> instruction pushed the <code>ebp</code> value onto the stack. In this case, the <code>ebp</code> was <code>0xffffa</code> (it could be any address; this is only an example), so now the Stack Pointer points to the address of the saved EBP.</p><br/>
 <p>The following instruction is a <code>mov ebp, esp</code>, which effectively copies the Stack Pointer (ESP) address to the Base Pointer register (EBP). This instruction serves as a means to preserve the ESP for the <code>leave</code> instruction when returning to the original routine.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/23.png"/></p><br/>
+<p><img width="805" height="487" loading="lazy" decoding="async" alt="" src="/articles/3/img/23.png"/></p><br/>
 <p>As you can see, both EBP and ESP point to the same address, which is indeed the saved value of EBP.</p><br/>
 <p>Then, there is a <code>sub esp, 0x10</code> instruction, which decrements the stack pointer by 0x10 (16 in hex) bytes. This is the last instruction to set up the stack pointer for the <code>exampleFn</code> function.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/24.png"/></p><br/>
+<p><img width="738" height="484" loading="lazy" decoding="async" alt="" src="/articles/3/img/24.png"/></p><br/>
 <p>The stack pointer was decremented by 0x10 bytes, and finally, the stack frame is created. The next instruction seems to start using it since it refers to <code>[ebp-0x4]</code>, which is an address that belongs to the current stack frame. This instruction is probably creating a local variable in the <code>exampleFn</code>. In C, the code should look like this:</p><br/>
 <div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">variable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"></span>
 </pre></div>
 <p>So, this instruction creates a local variable in <code>exampleFn</code> and saves its value onto the new stack frame, which belongs to the <code>exampleFn</code> function:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/25.png"/></p><br/>
+<p><img width="869" height="509" loading="lazy" decoding="async" alt="" src="/articles/3/img/25.png"/></p><br/>
 <p>Now there's a <code>push 0x3</code> instruction, so it will push <code>0x3</code> onto the stack. Remember that the <code>push</code> instruction decrements the ESP by 4 and then places its operand into the contents of the 32-bit location at the address ESP.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/26.png"/></p><br/>
+<p><img width="857" height="485" loading="lazy" decoding="async" alt="" src="/articles/3/img/26.png"/></p><br/>
 <p>Then there's a <code>pop eax</code> instruction, which will move the value from the top of the stack into the <code>eax</code> register.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/36.png"/></p><br/>
+<p><img width="895" height="488" loading="lazy" decoding="async" alt="" src="/articles/3/img/36.png"/></p><br/>
 <p>So now, the value of <code>EAX</code> is <code>0x3</code> (the value that was at the top of the stack), and the stack has been incremented by 4 bytes.</p><br/>
 <p>After a few <code>nop</code> instructions, we reach a <code>mov eax, 0x0</code> instruction:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/28.png"/></p><br/>
+<p><img width="854" height="479" loading="lazy" decoding="async" alt="" src="/articles/3/img/28.png"/></p><br/>
 <p>This instruction, when executed, will set the value of <code>eax</code> to <code>0x0</code>. In many calling conventions, the <code>eax</code> register is used to hold the return value of a function. Setting it to 0 ensures that the function returns a known value, especially when the function doesn't explicitly return a value.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/29.png"/></p><br/>
+<p><img width="857" height="502" loading="lazy" decoding="async" alt="" src="/articles/3/img/29.png"/></p><br/>
 <p>As you can see, the next instruction is the <code>leave</code> instruction, which, as explained in the article on assembly instructions, transfers the frame pointer stored in the <code>EBP</code> register to the stack pointer register (<code>ESP</code>), freeing up the allocated stack space for the current stack frame. Next, it retrieves the old frame pointer (which was saved by the <code>ENTER</code> command) from the stack and places it back into the <code>EBP</code> register, thus restoring the stack frame of the calling procedure.</p><br/>
 <p>The <code>leave</code> instruction could be translated to this:</p><br/>
 <div class="highlight"><pre><span></span><span class="nf">mov</span><span class="w"> </span><span class="no">esp</span><span class="p">,</span><span class="w"> </span><span class="no">ebp</span><span class="w">   </span><span class="c1">; Copies the value from ebp to esp</span>
@@ -242,11 +246,11 @@ memory address 48 (the highest address). The subsequent instruction will be <cod
 </pre></div>
 <p>Put simply, when executing the <code>leave</code> instruction, it adjusts the stack pointer (<code>ESP</code>) to match the base pointer (<code>EBP</code>). This action makes <code>ESP</code> point to the saved value of <code>EBP</code>, allowing <code>EBP</code> to then point to its previous address when popping values from the stack.</p><br/>
 <p>Let's visualize this process step by step with a graphical representation:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/30.png"/></p><br/>
+<p><img width="715" height="462" loading="lazy" decoding="async" alt="" src="/articles/3/img/30.png"/></p><br/>
 <p>Initially, after executing <code>mov esp, ebp</code>, the stack pointer (<code>ESP</code>) points to the saved <code>EBP</code> value. Consequently, the top of the stack holds the address of the saved <code>EBP</code>. Therefore, when the <code>leave</code> instruction pops <code>EBP</code>, it sets <code>EBP</code> to the address pointed to by <code>ESP</code>, which in this case is the address of the saved <code>EBP</code>. Therefore, after the <code>leave</code> instruction, the graphic representation should resemble this:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/31.png"/></p><br/>
+<p><img width="670" height="455" loading="lazy" decoding="async" alt="" src="/articles/3/img/31.png"/></p><br/>
 <p>As observed, the base pointer (<code>EBP</code>) holds the value <code>0xffffa</code>, which was its value prior to the <code>enter</code> instruction. At present, the stack pointer (<code>ESP</code>) points to the saved instruction pointer (<code>EIP</code>). Consequently, when executing the <code>ret</code> instruction, the instruction pointer (<code>EIP</code>) will return to its original routine, retrieving its value from the saved <code>EIP</code> (as <code>ret</code> effectively behaves like a <code>pop eip</code> instruction).</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/3/img/32.png"/></p><br/>
+<p><img width="733" height="439" loading="lazy" decoding="async" alt="" src="/articles/3/img/32.png"/></p><br/>
 <p>After the execution of the <code>ret</code> instruction, the program flow resumes from the subsequent instruction following the call to <code>exampleFn</code>. EBP has been restored, now pointing to the beginning of the stack frame of the main function. Notably, it points to another saved EBP address, which will also be restored upon the main function's return.</p><br/>
 <h3>Conclusion</h3><br/>
 <p>I understand that these concepts can be difficult to grasp; however, they are fundamental for diving into binary exploitation. While there are additional concepts I haven't covered and I've simplified quite a bit, I believe this serves as a solid starting point. In future articles, we'll delve into more essential concepts for binary exploitation; for now, consider this the beginning.</p><br/>

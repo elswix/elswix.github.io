@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Authority - HTB</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/writeups/htb/medium/authority/img/authority.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/writeups/htb/medium/authority/img/authority.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Authority - HTB</h2>
                     <p>walkthrough by elswixHackTheBox</p>
                 </section>
@@ -518,13 +522,13 @@ Since it is an HTTPS service, we can inspect its certificate using <code>openssl
 
 While there doesn't seem to be anything particularly interesting in the certificate, it's worth checking, as sometimes user details can be leaked.<br/><br/>
 Upon accessing the website through our browser, we are redirected to the <code>/pwm/private/login</code> section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/authority/img/3.png"><br/><br/>
+<img width="1356" height="580" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/authority/img/3.png"><br/><br/>
 The <a href="https://github.com/pwm-project/pwm">"PWM Project"</a> refers to an open-source software project that provides a web-based interface for end-users to manage their own passwords, as well as administrators to configure and manage password policies. PWM stands for "Password Policy Management." This project is designed to work with LDAP directories, including those used in conjunction with Active Directory. It aims to enhance password security and simplify the process of password management within organizations. Users can change their passwords and perform other related tasks through a user-friendly web interface provided by PWM.<br/><br/>
 Upon entering some random credentials, it returned the following error:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/authority/img/2.png"><br/><br/>
+<img width="515" height="243" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/authority/img/2.png"><br/><br/>
 It appears that a domain user, <code>svc_ldap</code>, is being leaked. While we may not be able to do much without its credentials, I've saved this information into a file.<br/><br/>
 Clicking on <code>Configuration Manager</code> prompts us for a password:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/authority/img/4.png"/><br/><br/>
+<img width="774" height="495" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/authority/img/4.png"/><br/><br/>
 Returning to the resources we found in the <code>SMB Share</code>, let's examine its files. Firstly, I used the <code>grep</code> command to filter by the <code>passw</code> string (in case there are passwords stored in these files):<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">grep</span> <span class="o">-</span><span class="n">r</span> <span class="o">-</span><span class="n">i</span> <span class="n">passw</span>
 <span class="n">Ansible</span><span class="o">/</span><span class="n">ADCS</span><span class="o">/</span><span class="n">templates</span><span class="o">/</span><span class="n">openssl</span><span class="o">.</span><span class="n">cnf</span><span class="o">.</span><span class="n">j2</span><span class="p">:</span> <span class="n">Passwords</span> <span class="k">for</span> <span class="n">private</span> <span class="n">keys</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">present</span> <span class="n">they</span> <span class="n">will</span> <span class="n">be</span> <span class="n">prompted</span> <span class="k">for</span>
@@ -692,16 +696,16 @@ The other two vaults are known to store passwords:<br/><br/>
 </pre></div>
 <h3><br/>Shell as svc_ldap</h3><br/>
 Using these passwords to authenticate to PWM, the password <code>pWm_@dm!N_!23</code> is valid and allowed me to access the <code>Configuration Manager</code>:<br><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/authority/img/5.png"/><br/><br/>
+<img width="687" height="503" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/authority/img/5.png"/><br/><br/>
 Since I wasn't familiar with how PWM works, I searched for information on the internet.<br/><br/>
 Firstly, I clicked on <code>Configuration Editor</code>:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/authority/img/6.png"/><br/><br/>
+<img width="414" height="285" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/authority/img/6.png"/><br/><br/>
 After clicking on <code>Configuration Editor</code>, I was redirected to the following page:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/authority/img/7.png"/><br/><br/>
+<img width="1346" height="467" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/authority/img/7.png"/><br/><br/>
 Upon exploring the functionalities available in this panel, I identified a way to generate an LDAP request by clicking on <code>LDAP -&gt; LDAP Directories -&gt; default -&gt; Connection</code>:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/authority/img/8.png"/><br/><br/>
+<img width="1075" height="478" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/authority/img/8.png"/><br/><br/>
 In the <code>LDAP URLs</code> field, I can add a value (URL). Therefore, I attempted to add a URL to my LDAP server.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/authority/img/9.png"/><br/><br/>
+<img width="693" height="258" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/authority/img/9.png"/><br/><br/>
 Now, we need to click on <code>Test LDAP Profile</code> to make a request. However, before doing that, we have to set up our malicious LDAP server. For this purpose, I will use the <code>responder</code> tool:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">responder</span> <span class="o">-</span><span class="n">I</span> <span class="n">tun0</span> <span class="o">-</span><span class="n">v</span>
                                          <span class="n">__</span>
@@ -774,7 +778,7 @@ Now, we need to click on <code>Test LDAP Profile</code> to make a request. Howev
 </pre></div>
 
 Now, let's click on <code>Test LDAP Profile</code>:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/authority/img/11.png"/><br/><br/>
+<img width="616" height="208" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/authority/img/11.png"/><br/><br/>
 Finally, we captured the <code>LDAP Request</code>:<br/><br/>
 <div class="highlight"><pre><span></span><span class="p">[</span><span class="n">LDAP</span><span class="p">]</span> <span class="n">Attempting</span> <span class="n">to</span> <span class="n">parse</span> <span class="n">an</span> <span class="n">old</span> <span class="n">simple</span> <span class="n">Bind</span> <span class="n">request</span><span class="o">.</span>
 <span class="p">[</span><span class="n">LDAP</span><span class="p">]</span> <span class="n">Cleartext</span> <span class="n">Client</span>   <span class="p">:</span> <span class="mf">10.10.11.222</span>

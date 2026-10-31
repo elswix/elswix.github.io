@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AD - Certificate Services</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/img/articles/logo17.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/img/articles/logo17.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>AD - Certificate Services</h2>
                     <p>Understanding Active Directory Certificate Services</p>
                 </section>
@@ -158,7 +162,7 @@ Using <strong>Subordinate CAs</strong> allows organizations to keep the <strong>
 </ul>
 <p>One of the key attributes in a certificate template is <strong><code>pKIExtendedKeyUsage</code></strong>, which contains an array of <strong>Object Identifiers (OIDs)</strong> specifying the intended purposes of the certificate. These OIDs define whether the certificate can be used for <strong>Client Authentication, Code Signing, Secure Email, and more</strong>.</p><br/>
 <p>For attackers, <strong>EKUs that allow authentication in Active Directory</strong> are of particular interest. The <strong>SpecterOps</strong> team, in their research, identified several OIDs that enable this functionality:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/17/img/Cert-Services-1.png"/></p><br/>
+<p><img width="674" height="219" loading="lazy" decoding="async" alt="" src="/articles/17/img/Cert-Services-1.png"/></p><br/>
 <p>For example, if a <strong>certificate template</strong> includes any of these <strong>authentication-related OIDs</strong> in its <strong><code>pKIExtendedKeyUsage</code></strong> attribute, any <strong>certificate issued from this template</strong> can be used for authentication in Active Directory.</p><br/>
 <br/><h2>Active Directory Authentication with Certificates</h2><br/>
 <p>Now, let's explore how <strong>Kerberos authentication</strong> can be performed using <strong>certificates</strong>. Windows provides various tools for interacting with certificates, but for this article, we’ll use <strong>Certify</strong>, which we’ll also leverage later to exploit ADCS vulnerabilities.</p><br/>
@@ -441,7 +445,7 @@ Using <strong>Subordinate CAs</strong> allows organizations to keep the <strong>
 <p>I want to emphasize that <strong>this explanation is highly simplified</strong> for better understanding. Some technical details have been omitted to focus on the <strong>core concepts</strong> of the process.</p><br/>
 <h3>The Certificate Request Process</h3><br/>
 <p>The image below illustrates the process of requesting a certificate from the CA:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/17/img/Cert-Services-2.png"/></p><br/>
+<p><img width="1518" height="820" loading="lazy" decoding="async" alt="" src="/articles/17/img/Cert-Services-2.png"/></p><br/>
 <p>Now, let's describe what’s happening at each step.</p><br/>
 <br/><h3>Step 1: Generating the Certificate Signing Request (CSR)</h3><br/>
 <ul>
@@ -483,7 +487,7 @@ Using <strong>Subordinate CAs</strong> allows organizations to keep the <strong>
 <p>Now, let's break down how <strong>Kerberos authentication</strong> works when using <strong>certificates</strong>. The image below provides a <strong>simplified representation</strong> of how the <strong><code>KRB_AS_REQ</code></strong> message is structured in this process:</p><br/>
 <h3>Note</h3><br/>
 <p>To fully grasp this process, you should first understand <strong>how Kerberos authentication works</strong>. You can refer to my <strong>Kerberos authentication article</strong> for a deeper explanation.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/17/img/Cert-Services-3.png"/></p><br/>
+<p><img width="1412" height="695" loading="lazy" decoding="async" alt="" src="/articles/17/img/Cert-Services-3.png"/></p><br/>
 <p>While this request is <strong>similar</strong> to a traditional <strong><code>KRB_AS_REQ</code></strong>, there are some key differences that we’ll explore.</p><br/>
 <p><strong>Note:</strong> The image above is a <strong>simplified</strong> representation of the <code>KRB_AS_REQ</code> message. In reality, it contains additional fields, but this explanation covers the essential details needed to understand the process.</p><br/>
 <p>Unlike a <strong>regular Kerberos AS-REQ</strong>, this request <strong>includes a certificate</strong>—specifically, the one we obtained in the <strong>previous step</strong>.</p><br/>
@@ -536,7 +540,7 @@ Using <strong>Subordinate CAs</strong> allows organizations to keep the <strong>
 <p>This is the first <strong>ADCS misconfiguration</strong> that can lead to <strong>domain privilege escalation</strong>. When a certificate template is vulnerable to <strong>ESC1</strong>, it allows an attacker to supply an <strong>arbitrary Subject Alternative Name (SAN)</strong> when requesting a certificate.</p><br/>
 <p>By default, when a certificate is requested, the <strong>KDC automatically fills the SAN field with the UPN of the Subject</strong> specified in the Certificate Signing Request (<strong>CSR</strong>). However, certain templates are configured to allow the requester to <strong>explicitly define the SAN</strong>, meaning an attacker could <strong>set the SAN to the UPN of a privileged user, such as a Domain Admin</strong>, and obtain a valid authentication certificate for that identity.</p><br/>
 <p>This insecure configuration can be found in the <strong>Subject Name</strong> tab of the certificate template properties, where the option <strong>"Supply in the Request"</strong> is enabled:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/17/img/Cert-Services-4.png"/></p><br/>
+<p><img width="396" height="553" loading="lazy" decoding="async" alt="" src="/articles/17/img/Cert-Services-4.png"/></p><br/>
 <p>However, for <strong>ESC1 to be exploitable</strong>, this misconfiguration alone is <strong>not enough</strong>. Several other conditions must be met:</p><br/>
 <h3>Additional Requirements for ESC1 Exploitation</h3><br/>
 <br/><h3>The Enterprise CA Grants Low-Privileged Users Enrollment Rights</h3><br/>
@@ -1659,5 +1663,6 @@ Using <strong>Subordinate CAs</strong> allows organizations to keep the <strong>
             </main>
         </div>
     </div>
+    <script src="/js/sidebarToggle.js"></script>
 </body>
 </html>

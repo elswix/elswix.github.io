@@ -1,8 +1,4 @@
 /* Coming Soon Specific Styles */
-body {
-    overflow: hidden;
-}
-
 main {
     display: flex;
     align-items: center;
@@ -13,10 +9,9 @@ main {
 .coming-soon-container {
     text-align: center;
     padding: 3rem 2rem;
-    background: rgba(25, 25, 35, 0.4);
-    backdrop-filter: blur(20px);
+    background: linear-gradient(180deg, rgba(20, 20, 28, 0.92), rgba(12, 12, 17, 0.92));
     border: 1px solid var(--border-color);
-    border-radius: 24px;
+    border-radius: var(--radius);
     box-shadow: var(--shadow);
     position: relative;
     overflow: hidden;
@@ -31,7 +26,7 @@ main {
     left: -50%;
     width: 200%;
     height: 200%;
-    background: linear-gradient(45deg, transparent, rgba(0, 255, 136, 0.1), transparent);
+    background: linear-gradient(45deg, transparent, rgba(255, 46, 77, 0.1), transparent);
     animation: shimmer 3s infinite;
 }
 
@@ -41,28 +36,32 @@ main {
 }
 
 .coming-soon-icon {
+    display: block;
     width: 160px;
     height: 160px;
     margin: 0 auto 2rem;
-    filter: drop-shadow(0 0 30px rgba(0, 255, 136, 0.6));
+    filter: drop-shadow(0 0 30px rgba(255, 46, 77, 0.6));
     animation: float 3s ease-in-out infinite;
 }
 
 .coming-soon-title {
     font-size: 3rem;
-    font-weight: 700;
+    font-weight: 800;
+    letter-spacing: -0.03em;
     margin-bottom: 1rem;
-    background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+    background: linear-gradient(135deg, #ffffff 30%, var(--accent-red) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
 .coming-soon-subtitle {
-    font-size: 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     color: var(--text-secondary);
     margin-bottom: 2rem;
-    font-weight: 300;
 }
 
 .coming-soon-description {
@@ -99,10 +98,10 @@ main {
 
 .progress-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+    background: linear-gradient(90deg, var(--accent-red-dark), var(--accent-red));
     border-radius: 10px;
     width: 45%;
-    animation: progressGlow 2s ease-in-out infinite;
+    box-shadow: 0 0 14px rgba(255, 46, 77, 0.6);
     position: relative;
 }
 
@@ -115,11 +114,6 @@ main {
     bottom: 0;
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
     animation: progressShimmer 2s infinite;
-}
-
-@keyframes progressGlow {
-    0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
-    50% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.8); }
 }
 
 @keyframes progressShimmer {
@@ -140,17 +134,18 @@ main {
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 1.5rem 1rem;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
 }
 
 .feature-item:hover {
     transform: translateY(-3px);
-    border-color: var(--accent-green);
-    box-shadow: 0 10px 30px rgba(0, 255, 136, 0.2);
+    border-color: var(--accent-red);
+    box-shadow: 0 10px 30px rgba(255, 46, 77, 0.2);
 }
 
 .feature-icon {
-    font-size: 2rem;
+    color: var(--accent-red);
+    font-size: 1.6rem;
     margin-bottom: 0.5rem;
 }
 
@@ -171,17 +166,17 @@ main {
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
-    background: rgba(0, 255, 136, 0.1);
-    border: 1px solid var(--accent-green);
+    background: rgba(255, 46, 77, 0.1);
+    border: 1px solid var(--accent-red);
     border-radius: 50px;
-    color: var(--accent-green);
+    color: var(--accent-red);
     font-weight: 600;
     margin-top: 2rem;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
 }
 
 .notify-badge:hover {
-    background: rgba(0, 255, 136, 0.2);
+    background: rgba(255, 46, 77, 0.2);
     transform: scale(1.05);
 }
 
@@ -212,5 +207,9 @@ main {
 
     .features-grid {
         grid-template-columns: 1fr;
+    }
+
+    .coming-soon-container {
+        padding: 2.5rem 1.25rem;
     }
 }

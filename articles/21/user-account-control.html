@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Account Control</title>
     <meta name="description" content="test">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -67,7 +71,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/img/articles/logo21.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/img/articles/logo21.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>User Account Control</h2>
                     <p>bypassing UAC to get full privileges</p>
                 </section>
@@ -82,7 +86,7 @@
 <p>There are many articles out there describing this security feature and how to bypass it. In this article, I'll explain how it works and walk through some techniques to get around it. I’m not introducing any novel bypass techniques here, so full credit goes to the original authors of each technique shown.</p><br/>
 <h3>User Account Control</h3><br/>
 <p>I'm pretty sure that at some point you've come across this dialog when running something as administrator:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/21/img/21-1.png"/></p><br/>
+<p><img width="1366" height="768" loading="lazy" decoding="async" alt="" src="/articles/21/img/21-1.png"/></p><br/>
 <p>Well, that's the UAC consent prompt. Basically, it shows up when an application needs to perform a privileged action or when you run something as administrator. When you click "Yes", the application requesting those administrator privileges switches to a higher-privilege context, which allows it to perform more sensitive actions.</p><br/>
 <p>But why does this even exist?</p><br/>
 <p>User Account Control (UAC) is a built-in Windows security feature meant to help prevent unauthorized changes to the system. Whenever something tries to make changes that require administrator-level permissions, UAC steps in and asks the user to either approve or deny the action.</p><br/>
@@ -90,11 +94,11 @@
 <p>Unless UAC is turned off, it's also designed to make it harder for malware to tamper with its settings or disable it altogether. It's enabled by default on Windows systems, but it can be configured if you have administrative privileges.</p><br/>
 <h3>How it works</h3><br/>
 <p>Let's look at an example of UAC in action. I'll run <code>cmd.exe</code> (without using "Run as administrator") and check my user privileges:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/21/img/21-2.png"/></p><br/>
+<p><img width="641" height="758" loading="lazy" decoding="async" alt="" src="/articles/21/img/21-2.png"/></p><br/>
 <p>As shown in the output, my user is a local administrator (since it's a member of the Administrators group). However, when running <code>whoami /priv</code>, we can see that no special privileges are enabled, we're effectively in a limited context.</p><br/>
 <p>And that's exactly what's going on. UAC restricts the user access token to prevent every application from running with full privileges by default.</p><br/>
 <p>Now, let's see what happens when we run <code>cmd.exe</code> as administrator:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/21/img/21-3.png"/></p><br/>
+<p><img width="988" height="624" loading="lazy" decoding="async" alt="" src="/articles/21/img/21-3.png"/></p><br/>
 <p>This time, we have all the privileges of a local administrator. In other words, our token is no longer limited.</p><br/>
 <h3>Limited Access Token and Full Access Token</h3><br/>
 <p>Previously, I mentioned some important concepts like the “limited token”, but what does that actually mean?</p><br/>
@@ -117,7 +121,7 @@
 <h3>Standard user vs Local Administrator</h3><br/>
 <p>UAC also applies to standard users, but it behaves differently compared to local administrators. Standard users are those who are not members of the "Administrators" group, which means they don’t have sensitive privileges, even if they had a full token.</p><br/>
 <p>However, sometimes these users still need to perform sensitive actions, like installing a program. In those cases, another UAC prompt is shown to the user, but this time it’s a Credential Prompt:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/21/img/21-4.png"/></p><br/>
+<p><img width="1366" height="768" loading="lazy" decoding="async" alt="" src="/articles/21/img/21-4.png"/></p><br/>
 <p>This time, instead of just clicking Yes or No, users must provide local administrator credentials to run with elevated privileges, since they don’t have a full token with high privileges.</p><br/>
 <p>I make this distinction because a UAC bypass typically involves having local administrator access with a limited token, and then trying to obtain a full token without triggering a prompt for the user. </p><br/>
 <p>In this article, we’ll assume we’ve gained access as a local administrator, but without elevation (with a limited token), and we’ll try to bypass that restriction without triggering a UAC prompt for the user.</p><br/>
@@ -138,7 +142,7 @@
 <p>So far, that already sounds like a perfect candidate for a UAC bypass.</p><br/>
 <p>Now, here’s where things get interesting.</p><br/>
 <p>When the task runs, it launches <code>cleanmgr.exe</code> using a path that includes the <code>%windir%</code> environment variable (normally <code>C:\Windows</code>):</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/21/img/21-5.png"/></p><br/>
+<p><img width="485" height="516" loading="lazy" decoding="async" alt="" src="/articles/21/img/21-5.png"/></p><br/>
 <p>The problem is that this variable is <strong>not hardcoded</strong>, and can be influenced by the user through the <code>HKCU\Environment</code> registry key</p><br/>
 <p>This basically means:</p><br/>
 <ul>
@@ -154,7 +158,7 @@
 <span class="c"># run scheduled task</span>
 <span class="n">schtasks</span> <span class="p">/</span><span class="n">run</span> <span class="p">/</span><span class="n">tn</span> <span class="p">\</span><span class="n">Microsoft</span><span class="p">\</span><span class="n">Windows</span><span class="p">\</span><span class="n">DiskCleanup</span><span class="p">\</span><span class="n">SilentCleanup</span> <span class="p">/</span><span class="n">I</span>
 </pre></div>
-<p><img alt="" src="https://elswix.github.io/articles/21/img/21-6.png"/></p><br/>
+<p><img width="974" height="669" loading="lazy" decoding="async" alt="" src="/articles/21/img/21-6.png"/></p><br/>
 <p>As observed, it worked and and we ended up with a <code>cmd.exe</code> running with full privileges.</p><br/>
 <p>There are many other techniques that rely on abusing the shared environment between the limited token and the full access token. Of course, most of these techniques are now flagged by AV solutions, but with a bit of creativity, you can still experiment and try to bypass those restrictions.</p><br/>
 <p>So, how can this be patched? The core issue here is the shared environment between low-privileged and high-privileged tokens. This happens because both tokens belong to the same principal.</p><br/>
@@ -173,7 +177,7 @@
 <p>So even if we are impersonating the filtered token, when we authenticate to a local service that calls <code>AcquireCredentialsHandle</code> in network redirectors and passes the caller’s logon ID (this has to be a local service, since providing a logon ID directly requires kernel-level privileges), LSASS ends up referencing the first token created for that logon session, which is the elevated one.</p><br/>
 <p>In practice, this allows us to authenticate against local services (for example over <code>\\127.0.0.1</code>) and perform actions with elevated privileges, all without triggering a UAC prompt.</p><br/>
 <p>This combined with CreateSvcRpc it's possible to achieve command execution with system privileges. The <a href="https://github.com/antonioCoco/SspiUacBypass">exploit</a> was created by antonioCoco.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/21/img/21-7.png"/></p><br/>
+<p><img width="750" height="560" loading="lazy" decoding="async" alt="" src="/articles/21/img/21-7.png"/></p><br/>
 <p>As observed, we achieved command execution as system.</p><br/>
 <h3>Other techniques</h3><br/>
 <p>So far, we've looked at two different techniques to bypass UAC. However, there are many more that I won't cover here. That said, you can check out the <a href="https://github.com/hfiref0x/UACME">UACME</a> project, which contains a large collection of UAC bypass techniques implemented in a practical way. It's a great resource if you want to discover more techniques, since it not only shows different approaches, but also how they behave across Windows versions. It contains patched and unpatched techniques.</p><br/>
@@ -217,5 +221,6 @@
             </main>
         </div>
     </div>
+    <script src="/js/sidebarToggle.js"></script>
 </body>
 </html>

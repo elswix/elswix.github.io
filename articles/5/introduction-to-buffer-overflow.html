@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buffer Overflow</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/img/articles/logo5.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/img/articles/logo5.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Buffer Overflow</h2>
                     <p>Introduction to Buffer Overflow</p>
                 </section>
@@ -82,7 +86,7 @@
 <p>Before diving into this article, I recommend reading my <a href="https://elswix.github.io/articles/3/cpu-and-assembly-binexp-basics.html">Binary Exploitation Basics</a> article, as we'll be discussing concepts explained there.</p><br/>
 <h2>What is a Buffer Overflow?</h2><br/>
 <p>A buffer overflow vulnerability occurs when a program or process attempts to store more data in a buffer (temporary storage area) than it was designed to handle. Imagine you have a glass of water, and it has a limited capacity, let's say it can hold up to 10 ounces of water. Now, let's pretend you have a pitcher of water and you want to pour it into the glass. If you pour just the right amount of water, say 8 ounces, everything is fine, and the glass holds the water without any spillage. However, if you try to pour more than the glass can hold, say 12 ounces, the excess water overflows, spilling onto the table.</p><br/>
-<p><img alt="" src="img/1.png"/></p><br/>
+<p><img width="479" height="355" loading="lazy" decoding="async" alt="" src="img/1.png"/></p><br/>
 <p>Similarly, in computer programming, if a program receives more data than it expects and doesn't have sufficient safeguards in place, this extra data can overflow beyond the allocated memory space for the buffer. As a result, it can overwrite adjacent memory locations, leading to unexpected behavior and potentially exploitable security vulnerabilities.</p><br/>
 <p>In essence, a buffer overflow vulnerability arises when a program fails to properly validate the size of input data it receives, allowing an attacker to send more data than the program can handle, leading to memory corruption and potential security breaches. This can be exploited by attackers to gain unauthorized access, execute malicious code, or disrupt the normal operation of the program or system.</p><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="o">./</span><span class="n">program</span>
@@ -145,17 +149,17 @@ been used to break computer security. Use fgets() instead.
 <p>In stack-based buffer overflows, the attacker aims to overwrite the return address to control the instruction pointer and consequently alter the program flow. If you've read my article on <a href="https://elswix.github.io/articles/3/cpu-and-assembly-binexp-basics.html">Binary Exploitation Basics</a>, you may already know that when a function is called, the memory address of the next instruction after the <code>call</code> instruction is pushed onto the stack. This allows the program to know where to return.</p><br/>
 <p>The attacker <strong>exploits this value</strong> on the stack by <strong>overwriting</strong> it with a <strong>malicious memory address</strong>. Consequently, when <strong>the function returns</strong>, the program flow is <strong>redirected to an unexpected</strong> function or program section.</p><br/>
 <p>Let's visualize this concept with a graphic:</p><br/>
-<p><img alt="" src="img/2.png"/></p><br/>
+<p><img width="580" height="493" loading="lazy" decoding="async" alt="" src="img/2.png"/></p><br/>
 <p>This is the stack. In this image, we can highlight the user input, the saved <code>EBP</code> value (saved base pointer), and the saved <code>EIP</code> value (the return address). In the user input, there is a string with the value <code>elswix</code>.</p><br/>
 <p>When a buffer overflow occurs, the stack may look like this:</p><br/>
-<p><img alt="" src="img/3.png"/></p><br/>
+<p><img width="547" height="477" loading="lazy" decoding="async" alt="" src="img/3.png"/></p><br/>
 <p>As you can see, the saved EBP and EIP values were overwritten. Therefore, when the function returns, the <code>ret</code> instruction will attempt to pop the <strong>saved EIP (return address)</strong> from the stack into the EIP register. However, since it has been overwritten with the string <code>AAAA</code>, the program will crash. Remember that the <code>ret</code> instruction is responsible for transferring control back to the calling function by popping the return address from the stack into the EIP register.</p><br/>
 <p>When the attacker observes that the program has crashed due to a buffer overflow, they can proceed to analyze the crash to determine the offset needed to overwrite the return address.</p><br/>
 <p>The offset refers to the distance between the beginning of the buffer and the location of the return address on the stack. By determining this offset, the attacker can precisely control where their malicious payload, typically shellcode, will be placed in memory.</p><br/>
 <p>To find the offset, the attacker often employs techniques such as sending input strings of varying lengths and observing how the program behaves. When the input length exceeds the buffer size, it overflows and starts corrupting adjacent memory locations, eventually overwriting the return address. By identifying the point at which the return address is overwritten and comparing it to the length of the input string, the attacker can calculate the offset.</p><br/>
-<p><img alt="" src="img/4.png"/></p><br/>
+<p><img width="736" height="486" loading="lazy" decoding="async" alt="" src="img/4.png"/></p><br/>
 <p>Once the attacker has found the offset, they take control of the return pointer, thereby controlling the program flow by placing memory addresses to redirect the program to malicious instructions.</p><br/>
-<p><img alt="" src="img/8.png"/></p><br/>
+<p><img width="768" height="520" loading="lazy" decoding="async" alt="" src="img/8.png"/></p><br/>
 <h2>Exploitation</h2><br/>
 <p>Let's start with Buffer Overflow exploitation. In this case, we'll exploit a stack-based buffer overflow, as it's the simplest and most common scenario. Firstly, we'll exploit a simple program to redirect the program flow to another function. This function is never called, so it's inaccessible without exploiting the buffer overflow vulnerability.</p><br/>
 <p><strong>C Program:</strong></p><br/>
@@ -221,7 +225,7 @@ been used to break computer security. Use fgets() instead.
 <span class="n">Please</span><span class="p">,</span> <span class="n">enter</span> <span class="n">your</span> <span class="n">username</span><span class="p">:</span> <span class="n">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</span>
 <span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
 </pre></div>
-<p><img alt="" src="img/5.png"/></p><br/>
+<p><img width="612" height="319" loading="lazy" decoding="async" alt="" src="img/5.png"/></p><br/>
 <p>As you can see, the Instruction Pointer (EIP) has been successfully overwritten. </p><br/>
 <p>Once we've confirmed that we can trigger a buffer overflow, the next step is to find the offset needed to overwrite the return address on the stack. We can achieve this by creating a string with a repeating pattern. When we enter this string and the program crashes, we can examine the memory to determine where the return address was overwritten.</p><br/>
 <p>If you use the <a href="https://github.com/hugsy/gef">gef</a> extension of GDB, you can use the <code>pattern create</code> command to generate a pattern string:</p><br/>
@@ -240,7 +244,7 @@ been used to break computer security. Use fgets() instead.
 <span class="o">...</span><span class="p">[</span><span class="n">snip</span><span class="p">]</span><span class="o">...</span>
 <span class="nd">gef$</span>
 </pre></div>
-<p><img alt="" src="img/6.png"/></p><br/>
+<p><img width="372" height="215" loading="lazy" decoding="async" alt="" src="img/6.png"/></p><br/>
 <p>As you can see, the instruction pointer was overwritten with the string <code>iaaa</code>. To find the return address offset, we can use the <code>pattern offset</code> command and specify the <code>EIP</code> register:</p><br/>
 <div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">pattern</span> <span class="n">offset</span> <span class="err">$</span><span class="n">eip</span>
 <span class="p">[</span><span class="o">+</span><span class="p">]</span> <span class="n">Searching</span> <span class="k">for</span> <span class="s1">'69616161'</span><span class="o">/</span><span class="s1">'61616169'</span> <span class="k">with</span> <span class="n">period</span><span class="o">=</span><span class="mi">4</span>
@@ -261,7 +265,7 @@ been used to break computer security. Use fgets() instead.
 <span class="nd">gef$</span>
 </pre></div>
 <p>As observed, it attempted to return to the address <code>0x42424242</code>, which is the hexadecimal representation of the string <code>BBBB</code>:</p><br/>
-<p><img alt="" src="img/7.png"/></p><br/>
+<p><img width="592" height="240" loading="lazy" decoding="async" alt="" src="img/7.png"/></p><br/>
 <p>We need to redirect program execution to the <code>targetFunction</code> to solve this challenge. Since we disabled the PIE protection when compiling the program, the addresses within the binary won't change every time you execute the program. So, we simply need to find the address of the <code>targetFunction</code> and place it in the return address.</p><br/>
 <p>To obtain the <code>targetFunction</code> address, we can use gdb:</p><br/>
 <div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">x</span> <span class="n">targetFunction</span> 

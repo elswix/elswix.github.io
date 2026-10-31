@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Topology - HTB</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/writeups/htb/easy/topology/img/topology.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/writeups/htb/easy/topology/img/topology.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Topology - HTB</h2>
                     <p>walkthrough by elswixHackTheBox</p>
                 </section>
@@ -140,7 +144,7 @@ I will append this domain to my <code>/etc/hosts</code> file:<br/><br/>
 </pre></div>
 
 When we access the web, we will encounter the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/1.png"><br/><br/>
+<img width="1211" height="575" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/topology/img/1.png"><br/><br/>
 <h3><br/>Subdomain Enumeration</h3><br/>
 As we have a domain, we can attempt to discover subdomains. To do this, we'll utilize the <a href="https://github.com/ffuf/ffuf">ffuf</a> tool.<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">ffuf</span> <span class="o">-</span><span class="n">c</span> <span class="o">-</span><span class="n">t</span> <span class="mi">100</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">seclists</span><span class="o">/</span><span class="n">Discovery</span><span class="o">/</span><span class="n">DNS</span><span class="o">/</span><span class="n">subdomains</span><span class="o">-</span><span class="n">top1million</span><span class="o">-</span><span class="mf">5000.</span><span class="n">txt</span> <span class="o">-</span><span class="n">u</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">topology</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span> <span class="o">-</span><span class="n">H</span> <span class="s2">"Host: FUZZ.topology.htb"</span>
@@ -226,9 +230,9 @@ It uncovered two subdomains, but I'm only able to access <code>stats.topology.ht
 </pre></div>
 
 While inspecting the main web page, I noticed a hyperlink leading to a new subdomain: <code>latex.topology.htb</code>.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/2.png"><br/><br/>
+<img width="609" height="196" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/topology/img/2.png"><br/><br/>
 When attempting to access it, my browser cannot resolve that domain.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/3.png"/><br/><br/>
+<img width="1064" height="499" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/topology/img/3.png"/><br/><br/>
 This is due to the need to add it to our <code>/etc/hosts</code> file, directing it to the IP address of the victim machine.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
 <span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
@@ -244,55 +248,55 @@ This is due to the need to add it to our <code>/etc/hosts</code> file, directing
 </pre></div>
 <h3><br/>latex.topology.htb</h3><br/>
 Upon accessing <code>latex.topology.htb</code>, we will encounter the following page:<br><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/4.png"/><br/><br/>
+<img width="1329" height="504" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/topology/img/4.png"/><br/><br/>
 Given the absence of an index.html file, we can perform directory listing on the root directory of <code>latex.topology.htb</code>.<br/><br/>
 Upon clicking <code>equation.php</code>, it redirects us to the following page:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/5.png"/><br/><br/>
+<img width="925" height="480" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/topology/img/5.png"/><br/><br/>
 LaTeX is a typesetting system used to create high-quality documents, particularly in academic and scientific fields. It employs a markup language to format text and features powerful tools for creating mathematical formulas, tables, figures, and cross-references.<br/><br/>
 At this point, we can input LaTeX code and convert the output to a PNG file.<br/><br/>
 There are examples available on how to use it:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/6.png"/><br/><br/>
+<img width="744" height="358" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/topology/img/6.png"/><br/><br/>
 Let's proceed with the first example: <code>Fractions</code>.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/7.png"/><br/><br/>
+<img width="705" height="199" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/topology/img/7.png"/><br/><br/>
 The input provided was interpreted using LaTeX and then converted into a PNG file:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/8.png"/><br/><br/>
+<img width="534" height="338" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/topology/img/8.png"/><br/><br/>
 There are various techniques that we can leverage. While researching information online, I came across <a href="https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/LaTeX%20Injection">LaTeX Injection</a>.<br/><br/>
 One of the payloads available involves reading system files:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/9.png"/><br/><br/>
+<img width="731" height="412" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/topology/img/9.png"/><br/><br/>
 Upon clicking <code>Generate</code>, it displays the following message:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/10.png"/><br/><br/>
+<img width="703" height="172" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/topology/img/10.png"/><br/><br/>
 It appears to have security measures in place to filter out various malicious payloads. After testing numerous payloads for command execution and file reading, I've identified one that functions correctly:<br/><br/>
 <div class="highlight"><pre><span></span><span class="k">\newread\file</span> <span class="k">\openin\file</span>=/etc/passwd <span class="k">\read\file</span> to<span class="k">\line</span> <span class="k">\text</span><span class="nb">{</span><span class="k">\line</span><span class="nb">}</span> <span class="k">\closein\file</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/11.png"/><br/><br/>
+<img width="737" height="257" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/topology/img/11.png"/><br/><br/>
 It's functioning as expected, returning the content of system files. However, the issue lies in its limitation to read only the first line of each file we want to access. To address this, I sought alternative methods that allow reading multiple lines in files.<br/><br/>
 Upon filtering for options that enable the reading of multiple lines in files, I discovered the following payload:<br/><br/>
 <div class="highlight"><pre><span></span><span class="k">\lstinputlisting</span><span class="nb">{</span>/etc/passwd<span class="nb">}</span>
 </pre></div>
 
 Let's proceed with testing this payload.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/12.png"/><br/><br/>
+<img width="1291" height="272" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/topology/img/12.png"/><br/><br/>
 It seems like the error is due to the generated file not being a valid PNG, hence not visible. The absence of the <code>Illegal command detected. Sorry.</code> message suggests the command was executed. However, the content retrieved from the <code>/etc/passwd</code> file contains characters that might conflict with LaTeX interpretation.<br/><br/>
 To resolve this, an alternative is to format the command's output as a mathematical formula in LaTeX. This method employs the <code>$</code> symbol to encapsulate the content, ensuring it is treated as a mathematical formula and avoiding conflict during interpretation.<br/><br/>
 <div class="highlight"><pre><span></span><span class="s">$</span><span class="nv">\lstinputlisting</span><span class="nb">{</span><span class="o">/</span><span class="nb">etc</span><span class="o">/</span><span class="nb">passwd}</span><span class="s">$</span>
 </pre></div>
 
 Upon entering this payload, we receive the following response:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/13.png"/><br/><br/>
+<img width="576" height="510" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/topology/img/13.png"/><br/><br/>
 We've successfully retrieved content from system-local files. While examining the <code>/etc/passwd</code> file, we identified a system user named <code>vdaisley</code>. To attempt access using this user, we can try retrieving their private SSH key (<code>id_rsa</code>).<br/><br/>
 <div class="highlight"><pre><span></span><span class="s">$</span><span class="nv">\lstinputlisting</span><span class="nb">{</span><span class="o">/</span><span class="nb">home</span><span class="o">/</span><span class="nb">vdaisley</span><span class="o">/</span><span class="nb">.ssh</span><span class="o">/</span><span class="nb">id_rsa}</span><span class="s">$</span>
 </pre></div>
 
 Based on the response, it appears that either the file does not exist or we lack access to it.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/14.png"/><br/><br/>
+<img width="1338" height="120" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/topology/img/14.png"/><br/><br/>
 <h3><br/>Shell as vdaisley</h3><br/>
 Recalling the Subdomain Enumeration, we discovered the subdomain <code>dev.topology.htb</code>, which we don't currently have access to as it requests credentials for entry. One method to obtain these credentials involves reading the <code>.htpasswd</code> file. However, we first need to identify the root directory of the subdomain's web service (this file may not necessarily be located in that directory).<br><br/>
 To determine the location of the subdomain's web service, we can inspect Apache configuration files, such as the <code>/etc/apache2/sites-available/000-default.conf</code> file.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/15.png"/><br/><br/>
+<img width="1016" height="499" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/topology/img/15.png"/><br/><br/>
 Now that we have access to this file, let's proceed with a careful examination of its contents.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/16.png"/><br/><br/>
+<img width="1007" height="439" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/topology/img/16.png"/><br/><br/>
 Here, we've identified the <code>dev.topology.htb</code> directory. Next, let's attempt to read the <code>/var/www/dev/.htpasswd</code> file.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/17.png"/><br/><br/>
+<img width="1202" height="228" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/topology/img/17.png"/><br/><br/>
 We've successfully accessed the file and obtained some credentials. However, the password is in hashed format, but we can attempt to crack it. I'll proceed by copying the file's content to my attacker machine.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">creds</span><span class="o">.</span><span class="n">txt</span>
 <span class="n">vdaisley</span><span class="p">:</span><span class="err">$</span><span class="n">apr1</span><span class="err">$</span><span class="mi">1</span><span class="n">ONUB</span><span class="o">/</span><span class="n">S2</span><span class="err">$</span><span class="mi">58</span><span class="n">eeNVirnRDB5zAIbIxTY0</span>
@@ -380,7 +384,7 @@ Upon searching for SUID files, we didn't discover any that seem particularly int
 </pre></div>
 
 At this stage, I'll download <a href="https://github.com/DominicBreuker/pspy">pspy</a> onto the victim machine to monitor the processes and commands running on the system. After running <code>pspy</code> for about a minute, it detected the execution of a cron job.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/topology/img/18.png"/><br/><br/>
+<img width="1055" height="269" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/topology/img/18.png"/><br/><br/>
 The cron job appears to be searching for <code>.plt</code> files within <code>/opt/gnuplot</code>, and these files are being interpreted using <code>gnuplot</code>.<br/><br/>
 Upon inspecting the privileges for <code>/opt/gnuplot</code>, it's evident that we have the capability to write files in this directory.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">vdaisley@topology</span><span class="p">:</span><span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span><span class="err">$</span> <span class="n">ls</span> <span class="o">-</span><span class="n">l</span> <span class="o">/</span><span class="n">opt</span><span class="o">/</span>

@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ret2libc - Part 2</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/img/articles/logo11.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/img/articles/logo11.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Ret2libc - Part 2</h2>
                     <p>leveraginglibcto exploit a buffer overflow</p>
                 </section>
@@ -231,16 +235,16 @@
 <p>To accomplish this, we'll use a ROP gadget. Since we control the stack's contents, we can utilize a <code>pop rdi; ret</code> gadget.</p><br/>
 <p>This means we need to place the address of the <code>pop rdi; ret</code> gadget in the return address slot on the stack, followed by the GOT address of <code>puts()</code>, and then the address of the PLT entry for <code>puts()</code>. When the function returns, it will return to the <code>pop rdi</code> instruction, moving the Stack Pointer (RSP) to the next value (the GOT address). When <code>pop rdi</code> executes, it will pop the GOT address off the stack and load it into <code>rdi</code>. Then, upon reaching the <code>ret</code> instruction after <code>pop rdi</code>, the stack will pop the PLT entry address of <code>puts()</code> and load it into the Instruction Pointer, redirecting the program flow to <code>puts()</code>. Since we populated <code>rdi</code>, <code>puts()</code> will use that value as its parameter (which is the GOT entry) and print the referenced address (the actual libc address).</p><br/>
 <p>Let's visualize a graphical representation of how the stack and program flow will appear:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/11/img/1.png"/></p><br/>
+<p><img width="818" height="517" loading="lazy" decoding="async" alt="" src="/articles/11/img/1.png"/></p><br/>
 <p>This is how the program would look before reaching the <code>ret</code> instruction if no buffer overflow is triggered. As observed, <code>RIP</code> points to the <code>ret</code> instruction, and <code>RSP</code> points to the return address. This means that once the <code>ret</code> instruction is executed, the value pointed to by <code>RSP</code> (<code>0x80401</code>) will be loaded into <code>RIP</code>, and <code>RSP</code> will move up (since the stack grows downward).</p><br/>
 <p>Now, let’s see how the program would look when triggering the buffer overflow by placing the values on the stack:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/11/img/2.png"/></p><br/>
+<p><img width="947" height="516" loading="lazy" decoding="async" alt="" src="/articles/11/img/2.png"/></p><br/>
 <p>As observed, the buffer overflow was triggered, and we populated the stack with our desired values. As you can see, in the return address slot, we placed the address of the <code>pop rdi; ret</code> gadget (since we don't know the exact address of the ROP gadget yet, I selected a placeholder address just for the example). This means that once the function returns, the program flow will transfer to the ROP gadget.</p><br/>
 <p>Let's illustrate this process graphically:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/11/img/3.png"/></p><br/>
+<p><img width="800" height="483" loading="lazy" decoding="async" alt="" src="/articles/11/img/3.png"/></p><br/>
 <p>As you can see, the RIP now points to address 48, where the <code>pop rdi</code> instruction is located. Following that instruction is the <code>ret</code> instruction, thus completing the ROP gadget. Additionally, the RSP has moved 8 bytes forward due to the <code>ret</code> instruction. This means that when executing the <code>pop rdi</code>, the value pointed to by the RSP will be loaded into <code>rdi</code>—in this case, <code>0x404018</code>, which corresponds to the GOT entry address of <code>puts()</code>.</p><br/>
 <p>Let's execute the <code>pop rdi</code> instruction:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/11/img/4.png"/></p><br/>
+<p><img width="836" height="496" loading="lazy" decoding="async" alt="" src="/articles/11/img/4.png"/></p><br/>
 <p>Once the <code>pop rdi</code> instruction is executed, the value pointed to by <code>RSP</code> is loaded into <code>rdi</code>. As a result, <code>RDI</code> now holds the value <code>0x404018</code>, which is the GOT entry address of <code>puts()</code>. This means we can now call the <code>puts()</code> function, as we've successfully populated the <code>rdi</code> register (the first parameter according to the calling conventions) with the correct value. The <code>RSP</code> now points to the address of the PLT entry for <code>puts()</code>. Therefore, when the <code>ret</code> instruction is executed after <code>pop rdi</code>, this address will be loaded into the <code>RIP</code>, effectively redirecting the program to the <code>puts()</code> function.</p><br/>
 <br/><h3 class="note">Note</h3><br/>
 <p>Calling a function via its PLT entry is practically the same as calling it through its actual address.</p><br/><br/>
@@ -462,7 +466,7 @@
 </pre></div>
 <p>It didn't work; the program simply closes after receiving some input. This is likely due to the stack not being correctly aligned. </p><br/>
 <p>After analysing the program behaviour in GDB, I noticed that it fails when executing the following <code>movaps</code> instruction:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/11/img/5.png"/></p><br/>
+<p><img width="1069" height="182" loading="lazy" decoding="async" alt="" src="/articles/11/img/5.png"/></p><br/>
 <p>As per the <a href="https://www.felixcloutier.com/x86/movaps">documentation</a> for the <code>movaps</code> instruction:</p><br/>
 <p><em>"When the source or destination operand is a memory operand, the operand must be aligned on a 16-byte (128-bit version), 32-byte (VEX.256 encoded version), or 64-byte (EVEX.512 encoded version) boundary, or a general-protection exception (#GP) will be generated."</em></p><br/>
 <p>Essentially, the crash occurs because the <a href="https://www.felixcloutier.com/x86/movaps">movaps</a> instruction requires that the destination operand be 16-byte aligned. This means that the memory address of the destination operand (in this case, the stack pointer) must be a multiple of 16. However, in this case, the stack pointer is not 16-byte aligned:</p><br/>

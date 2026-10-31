@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sau - HTB</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/writeups/htb/easy/sau/img/sau.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/writeups/htb/easy/sau/img/sau.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Sau - HTB</h2>
                     <p>walkthrough by elswixHackTheBox</p>
                 </section>
@@ -149,33 +153,33 @@ Since we lack valid credentials to connect to the SSH service, our next step is 
 
 It didn't report any useful information.<br/><br/>
 When accessing the website through our browser, we will encounter the following content:<br/><br/>
-<img alt="" src="http://localhost/writeups/htb/easy/sau/img/1.png"><br/><br/>
+<img width="1352" height="513" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/sau/img/1.png"><br/><br/>
 The website appears to be utilizing <a href="https://github.com/darklynx/request-baskets">request-baskets</a>, as indicated in the footer, specifically <code>requests-baskets</code> version <code>1.2.1</code>. Upon conducting further research on the internet, I discovered vulnerabilities associated with this particular version of <code>requests-baskets</code>.<br/><br/>
-<img alt="" src="http://localhost/writeups/htb/easy/sau/img/2.png"><br/><br/>
+<img width="909" height="465" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/sau/img/2.png"><br/><br/>
 There is an SSRF vulnerability in this version. SSRF (Server-Side Request Forgery) is a security vulnerability wherein an attacker can make the server perform requests to other web addresses on behalf of the server, potentially accessing sensitive information or executing unauthorized actions.<br/><br/>
 By exploiting this vulnerability, we could gain access to internal machine services that are not externally exposed. For instance, this machine might have an internal HTTP service hosted on port 80 that is not accessible externally.<br/><br/>
 While analyzing this <a href="https://github.com/entr0pie/CVE-2023-27163">POC</a>, I noticed that this vulnerability stems from insecure validation of an input field, allowing us to point to the IP of the local machine (127.0.0.1).<br/><br/>
 To exploit this, I will click on "Create":<br/><br/>
-<img alt="" src="http://localhost/writeups/htb/easy/sau/img/3.png"/><br/><br/>
+<img width="762" height="278" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/sau/img/3.png"/><br/><br/>
 Now, click on "Open Basket":<br/><br/>
-<img alt="" src="http://localhost/writeups/htb/easy/sau/img/4.png"/><br/><br/>
+<img width="602" height="214" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/sau/img/4.png"/><br/><br/>
 After clicking on <code>Configuration Settings</code>, we need to fill in the fields with the specific information:<br/><br/>
-<img alt="" src="http://localhost/writeups/htb/easy/sau/img/5.png"/><br/><br/>
+<img width="603" height="390" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/sau/img/5.png"/><br/><br/>
 In my case, I will input <code>http://127.0.0.1</code> into the <code>Forward URL</code> field and check the <code>Proxy Response</code> checkbox.<br/><br/>
-<img alt="" src="http://localhost/writeups/htb/easy/sau/img/6.png"/><br/><br/>
+<img width="598" height="386" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/sau/img/6.png"/><br/><br/>
 Finally, the basket is configured correctly to exploit this vulnerability.<br/><br/>
-<img alt="" src="http://localhost/writeups/htb/easy/sau/img/7.png"/><br/><br/>
+<img width="1179" height="404" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/sau/img/7.png"/><br/><br/>
 Let's see what happens when we access <code>http://10.10.11.224:55555/92abysd</code>:<br/><br/>
-<img alt="" src="http://localhost/writeups/htb/easy/sau/img/8.png"/><br/><br/>
+<img width="1360" height="566" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/sau/img/8.png"/><br/><br/>
 It seems that we have successfully exploited the vulnerability, gaining access to an internal service.<br/><br/>
 The internal HTTP service is running <code>Maltrail</code>, specifically version <code>0.53</code>. Let's once again search for information about possible vulnerabilities associated with this version of <code>Maltrail</code>.<br/><br/>
-<img alt="" src="http://localhost/writeups/htb/easy/sau/img/9.png"/><br/><br/>
+<img width="1017" height="460" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/sau/img/9.png"/><br/><br/>
 There is an RCE (Remote Code Execution) vulnerability. This type of vulnerability could allow us to execute commands on the victim machine and subsequently gain access to the system.<br/><br/>
 This <a href="https://huntr.com/bounties/be3c5204-fbd9-448d-b97c-96a8d2941e87/">page</a> explains the vulnerability and provides a POC to exploit it:<br/><br/>
 <em>"The <code>subprocess.check_output</code> function in mailtrail/core/http.py contains a command injection vulnerability in the <code>params.get("username")</code>parameter.</em><br/><br/>
 <em>An attacker can exploit this vulnerability by injecting arbitrary OS commands into the username parameter. The injected commands will be executed with the privileges of the running process. This vulnerability can be exploited remotely without authentication."</em><br/><br/>
 Since this vulnerability is in the <code>/login</code> section, we need to create a new basket pointing to the <code>http://127.0.0.1/login</code> URL.<br/><br/>
-<img alt="" src="http://localhost/writeups/htb/easy/sau/img/10.png"/><br/><br/>
+<img width="603" height="389" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/sau/img/10.png"/><br/><br/>
 The new URL is <code>http://10.10.11.224:55555/pwq96wy</code>, so now we have to send the malicious payload. I will use <code>curl</code> to make the requests.<br/><br/>
 To confirm that I'm executing commands on the victim machine, I will use <code>tcpdump</code> to listen for ICMP traces.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">sudo</span> <span class="n">tcpdump</span> <span class="o">-</span><span class="n">i</span> <span class="n">tun0</span> <span class="n">icmp</span> <span class="o">-</span><span class="n">n</span>

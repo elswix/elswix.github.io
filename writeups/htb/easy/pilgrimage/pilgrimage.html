@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pilgrimage - HTB</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/writeups/htb/easy/pilgrimage/img/pilgrimage.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/writeups/htb/easy/pilgrimage/img/pilgrimage.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Pilgrimage - HTB</h2>
                     <p>walkthrough by elswixHackTheBox</p>
                 </section>
@@ -156,30 +160,30 @@ Prior to accessing the website through our browser, I will conduct a scan to ide
 
 There is no interesting information in this output. However, it never hurts to try.<br/><br/>
 Upon accessing the website through our browser, we observe the following content:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pilgrimage/img/2.png"><br/><br/>
+<img width="1353" height="629" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pilgrimage/img/2.png"><br/><br/>
 Pilgrimage offers a free online "image shrinker". An "image shrinker" is a tool that makes images smaller. It helps reduce the storage space images take up and makes them load faster on websites or other applications.<br/><br/>
 I think we're able to upload some images and make them smaller, but first, let's take a look at the page. <br/><br/>
 <h4>Login Section</h4>
 In the main page, it says that we can save our images using an account. Before going to the <code>register</code> section, let's try to guess credentials on the <code>login</code> section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pilgrimage/img/3.png"><br/><br/>
+<img width="1147" height="484" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pilgrimage/img/3.png"><br/><br/>
 There are two fields to fill in, let's try common credentials like <code>admin/admin</code>, <code>guest/guest</code>, etc.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pilgrimage/img/4.png"/><br/><br/>
+<img width="1117" height="486" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pilgrimage/img/4.png"/><br/><br/>
 Upon attempting to use these credentials, we are unable to access these accounts. Since the error message is not descriptive, it is unclear whether these users exist.<br/><br/>
 Let's try some SQL Injection queries to test if we're able to bypass this authentication panel:<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">test</span><span class="s1">' or 1=1--</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pilgrimage/img/5.png"/><br/><br/>
+<img width="1131" height="477" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pilgrimage/img/5.png"/><br/><br/>
 It didn't work. I've tried some other injections, but I was unable to elicit a different response.<br/><br/>
 Let's create a new account in the <code>register</code> section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pilgrimage/img/6.png"/><br/><br/>
+<img width="1348" height="585" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pilgrimage/img/6.png"/><br/><br/>
 Once we create a new account, we get access to a dashboard where uploaded images will be listed:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pilgrimage/img/7.png"/><br/><br/>
+<img width="1323" height="450" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pilgrimage/img/7.png"/><br/><br/>
 Next, we will upload an example image:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pilgrimage/img/8.png"/><br/><br/>
+<img width="1205" height="512" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pilgrimage/img/8.png"/><br/><br/>
 Once I click <code>shrink</code> bottom I got a successful response:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pilgrimage/img/9.png"/><br/><br/>
+<img width="1195" height="498" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pilgrimage/img/9.png"/><br/><br/>
 It displays an URL to the <code>shrunk</code> directory where the shrunked image is stored:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pilgrimage/img/10.png"/><br/><br/>
+<img width="1340" height="551" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pilgrimage/img/10.png"/><br/><br/>
 I downloaded this image and compared the <code>md5</code> hashes to verify whether the files are different, indicating any changes or manipulation to the image.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">md5sum</span> <span class="mi">6565</span><span class="n">d789cd6f9</span><span class="o">.</span><span class="n">png</span> <span class="n">example</span><span class="o">.</span><span class="n">png</span>
 <span class="mi">465784178831519</span><span class="n">a6c1c549ee6a54cd8</span>  <span class="mi">6565</span><span class="n">d789cd6f9</span><span class="o">.</span><span class="n">png</span>
@@ -450,7 +454,7 @@ Let's take a loot at the binary:<br><br/>
 It is an ImageMagick binary, specifically ImageMagick version 7.1.0-49.<br/><br/>
 ImageMagick is an open-source software suite designed for the creation, editing, conversion, and manipulation of images. It supports a wide range of image formats and provides a versatile set of tools and utilities for tasks such as resizing, cropping, rotating, and applying various effects to images.<br/><br/>
 Let's search on the internet vulnerabilities associated to this ImageMagick version.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pilgrimage/img/11.png"/><br/><br/>
+<img width="1049" height="450" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pilgrimage/img/11.png"/><br/><br/>
 ImageMagick 7.1.0-49 is susceptible to an Information Disclosure vulnerability. When ImageMagick processes a PNG image, such as during a resize operation, the resulting image might contain the content of any arbitrary file. This occurs if the <code>magick</code> binary has the necessary permissions to read the arbitrary file.<br/><br/>
 I found lots of LFI PoC to exploit this version of ImageMagick. I cloned this <a href="https://github.com/kljunowsky/CVE-2022-44268">repository</a> and tried to exploit this vulnerability. <br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="o">-</span><span class="n">h</span>
@@ -481,7 +485,7 @@ For this, I downloaded a random PNG image from the internet and created the mali
 </pre></div>
 
 Now, we have to upload the <code>malicious.png</code> file to the website to exploit the vulnerability.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pilgrimage/img/12.png"/><br/><br/>
+<img width="1148" height="337" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pilgrimage/img/12.png"/><br/><br/>
 Once uploaded, we can use the <code>--url</code> parameter to specify the URL where the converted image is saved and read the file content:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2022</span><span class="o">-</span><span class="mf">44268.</span><span class="n">py</span> <span class="o">--</span><span class="n">url</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">pilgrimage</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">shrunk</span><span class="o">/</span><span class="mi">656621</span><span class="n">fa207ff</span><span class="o">.</span><span class="n">png</span>
 <span class="n">root</span><span class="p">:</span><span class="n">x</span><span class="p">:</span><span class="mi">0</span><span class="p">:</span><span class="mi">0</span><span class="p">:</span><span class="n">root</span><span class="p">:</span><span class="o">/</span><span class="n">root</span><span class="p">:</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">bash</span>
@@ -796,7 +800,7 @@ Let's list the version of the <code>binwalk</code> binary:<br><br/>
 </pre></div>
 
 This script is using version <code>2.3.2</code> of <code>binwalk</code>. Let's search for information about vulnerabilities associated with this version.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pilgrimage/img/13.png"/><br/><br/>
+<img width="1023" height="444" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pilgrimage/img/13.png"/><br/><br/>
 This version appears to be vulnerable to Remote Code Execution (RCE). I copied the CVE ID (<code>CVE-2022-4510</code>) and conducted research on this vulnerability.<br/><br/>
 Here is an <a href="https://nvd.nist.gov/vuln/detail/CVE-2022-4510">article</a> from the NVD about this vulnerability:<br/><br/>
 <em>A path traversal vulnerability was identified in ReFirm Labs binwalk from version 2.1.2b through 2.3.3 included. By crafting a malicious PFS filesystem file, an attacker can get binwalk's PFS extractor to extract files at arbitrary locations when binwalk is run in extraction mode (-e option). Remote code execution can be achieved by building a PFS filesystem that, upon extraction, would extract a malicious binwalk module into the folder .config/binwalk/plugins. This vulnerability is associated with program files src/binwalk/plugins/unpfs.py. This issue affects binwalk from 2.1.2b through 2.3.3 included.</em><br/><br/>

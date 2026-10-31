@@ -5,57 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>elswix - WriteUps</title>
     <meta name="description" content="WriteUps de HackTheBox, VulnLab y otras plataformas de hacking ético">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles_index.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link active">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -67,16 +71,21 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/img/hackthebox-2.png" alt="WriteUps" onerror="this.src='https://via.placeholder.com/140/00ff88/ffffff?text=💻'">
+                    <img width="280" height="280" src="/img/hackthebox-2.png" alt="WriteUps" onerror="this.src='https://via.placeholder.com/140/00ff88/ffffff?text=elswix'">
                     <h2>WriteUps</h2>
-                    <p>Solutions and walkthroughs for CTF challenges</p>
+                    <p>Walkthroughs of HackTheBox machines and VulnLab chains</p>
                 </section>
 
+                <div class="search-box">
+                    <label class="search-prompt" for="searchInput">$ grep -i <span>./writeups</span></label>
+                    <input type="text" id="searchInput" placeholder="machine, platform, difficulty, technique..." autocomplete="off" spellcheck="false">
+                    <span class="search-count" id="searchCount"></span>
+                </div>
                 <section>
-                    <!-- VulnLab Section -->
+                    <div class="list-divider">VulnLab</div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Kaiju" class="rounded-circle me-3" src="/writeups/vl/hard/kaiju/img/kaiju.png" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=VL'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Kaiju" class="rounded-circle me-3" src="/writeups/vl/hard/kaiju/img/kaiju.png" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=VL'">
                             <div>
                                 <h3 class="mb-1 text-light">Kaiju - VulnLab</h3>
                                 <p class="mb-2 text-secondary">Today, we'll walk through Kaiju, a hard-difficulty chain from VulnLab. This lab simulates a multi-host Active Directory environment where initial access is obtained through misconfigurations in exposed services....</p>
@@ -85,10 +94,10 @@
                         </div>
                     </div>
 
-                    <!-- HackTheBox - Insane -->
+                    <div class="list-divider">HackTheBox · Insane</div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Rebound" class="rounded-circle me-3" src="/writeups/htb/insane/rebound/img/rebound.png" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=HTB'">
+                            <img width="300" height="300" loading="lazy" decoding="async" alt="Rebound" class="rounded-circle me-3" src="/writeups/htb/insane/rebound/img/rebound.png" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Rebound - HackTheBox [Insane]</h3>
                                 <p class="mb-2 text-secondary">Rebound is an insane difficulty machine on HackTheBox. Initially, we'll exploit RID brute force to obtain a list of valid users on the Domain Controller. One of these users is vulnerable to...</p>
@@ -97,10 +106,10 @@
                         </div>
                     </div>
 
-                    <!-- HackTheBox - Hard -->
+                    <div class="list-divider">HackTheBox · Hard</div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Drive" class="rounded-circle me-3" src="/writeups/htb/hard/drive/img/drive.png" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Drive" class="rounded-circle me-3" src="/writeups/htb/hard/drive/img/drive.png" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Drive - HackTheBox [Hard]</h3>
                                 <p class="mb-2 text-secondary">Drive is a hard-difficulty machine on HackTheBox. Initially, we exploit an IDOR (Insecure Direct Object Reference) vulnerability to access private messages, revealing...</p>
@@ -111,7 +120,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Gofer" class="rounded-circle me-3" src="/writeups/htb/hard/gofer/img/gofer.png" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Gofer" class="rounded-circle me-3" src="/writeups/htb/hard/gofer/img/gofer.png" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Gofer - HackTheBox [Hard]</h3>
                                 <p class="mb-2 text-secondary">Gofer is a hard-level machine on the HackTheBox platform. Initially, we encounter a network-level shared resource via SMB that leaks a file containing pertinent information for...</p>
@@ -122,7 +131,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Download" class="rounded-circle me-3" src="/writeups/htb/hard/download/img/download.png" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Download" class="rounded-circle me-3" src="/writeups/htb/hard/download/img/download.png" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Download - HackTheBox [Hard]</h3>
                                 <p class="mb-2 text-secondary">Download is a hard difficulty machine on HackTheBox. The machine features a web service that allows file uploads. While attempting to download the files, we discover a...</p>
@@ -133,7 +142,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Intentions" class="rounded-circle me-3" src="/writeups/htb/hard/intentions/img/intentions.png" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Intentions" class="rounded-circle me-3" src="/writeups/htb/hard/intentions/img/intentions.png" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Intentions - HackTheBox [Hard]</h3>
                                 <p class="mb-2 text-secondary">Intentions is a hard-level machine from the HackTheBox platform. Initially, we discovered a SQL injection vulnerability that allowed us to obtain...</p>
@@ -144,7 +153,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Snoopy" class="rounded-circle me-3" src="/writeups/htb/hard/snoopy/img/snoopy.png" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Snoopy" class="rounded-circle me-3" src="/writeups/htb/hard/snoopy/img/snoopy.png" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Snoopy - HackTheBox [Hard]</h3>
                                 <p class="mb-2 text-secondary">Snoopy is a hard level machine featured on the HackTheBox platform. Initially, our objective entails exploiting a Local File Inclusion vulnerability to extract...</p>
@@ -155,7 +164,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Blackfield" class="rounded-circle me-3" src="/writeups/htb/hard/blackfield/img/blackfield.png" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Blackfield" class="rounded-circle me-3" src="/writeups/htb/hard/blackfield/img/blackfield.png" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Blackfield - HackTheBox [Hard]</h3>
                                 <p class="mb-2 text-secondary">Blackfield is a hard level machine on the HackTheBox platform. It is an Active Directory-based environment, where our initial reconnaissance involved analyzing a network-level shared resource exposed through...</p>
@@ -164,10 +173,10 @@
                         </div>
                     </div>
 
-                    <!-- HackTheBox - Medium -->
+                    <div class="list-divider">HackTheBox · Medium</div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Manager" class="rounded-circle me-3" src="/writeups/htb/medium/manager/img/manager.png" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=HTB'">
+                            <img width="300" height="300" loading="lazy" decoding="async" alt="Manager" class="rounded-circle me-3" src="/writeups/htb/medium/manager/img/manager.png" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Manager - HackTheBox [Medium]</h3>
                                 <p class="mb-2 text-secondary">Manager is a medium-difficulty machine on HackTheBox. Initially, we'll abuse the guest session to perform a RID Bruteforce attack to identify...</p>
@@ -178,7 +187,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Visual" class="rounded-circle me-3" src="/writeups/htb/medium/visual/img/visual.png" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Visual" class="rounded-circle me-3" src="/writeups/htb/medium/visual/img/visual.png" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Visual - HackTheBox [Medium]</h3>
                                 <p class="mb-2 text-secondary">Visual is a medium-difficulty machine on HackTheBox. Initially, we will exploit a website that builds our custom Visual Studio projects by abusing...</p>
@@ -189,7 +198,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Clicker" class="rounded-circle me-3" src="/writeups/htb/medium/clicker/img/clicker.png" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Clicker" class="rounded-circle me-3" src="/writeups/htb/medium/clicker/img/clicker.png" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Clicker - HackTheBox [Medium]</h3>
                                 <p class="mb-2 text-secondary">Clicker is a medium-difficulty machine on HackTheBox. Firstly, we will exploit an NFS share to obtain the source code of a website. After reading the source code...</p>
@@ -200,7 +209,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Zipping" class="rounded-circle me-3" src="/writeups/htb/medium/zipping/img/zipping.png" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Zipping" class="rounded-circle me-3" src="/writeups/htb/medium/zipping/img/zipping.png" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Zipping - HackTheBox [Medium]</h3>
                                 <p class="mb-2 text-secondary">Zipping is a medium-difficulty machine on HackTheBox. Initially, we will exploit a Local File Inclusion (LFI) vulnerability to gain access to...</p>
@@ -211,7 +220,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Authority" class="rounded-circle me-3" src="/writeups/htb/medium/authority/img/authority.png" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Authority" class="rounded-circle me-3" src="/writeups/htb/medium/authority/img/authority.png" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Authority - HackTheBox [Medium]</h3>
                                 <p class="mb-2 text-secondary">Authority is a medium-difficulty machine on HackTheBox. Initially, we will decrypt Ansible vaults using the ansible2john tool to extract...</p>
@@ -222,7 +231,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Sandworm" class="rounded-circle me-3" src="/writeups/htb/medium/sandworm/img/sandworm.png" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Sandworm" class="rounded-circle me-3" src="/writeups/htb/medium/sandworm/img/sandworm.png" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Sandworm - HackTheBox [Medium]</h3>
                                 <p class="mb-2 text-secondary">Sandworm is a medium difficulty machine on HackTheBox. Firstly, we will exploit an SSTI vulnerability by abusing reflection...</p>
@@ -233,7 +242,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Jupiter" class="rounded-circle me-3" src="/writeups/htb/medium/jupiter/img/jupiter.png" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Jupiter" class="rounded-circle me-3" src="/writeups/htb/medium/jupiter/img/jupiter.png" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Jupiter - HackTheBox [Medium]</h3>
                                 <p class="mb-2 text-secondary">Jupiter is a medium-difficulty machine on the HackTheBox platform. To start, we encounter a web service running...</p>
@@ -244,7 +253,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Format" class="rounded-circle me-3" src="/writeups/htb/medium/format/img/format.png" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Format" class="rounded-circle me-3" src="/writeups/htb/medium/format/img/format.png" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Format - HackTheBox [Medium]</h3>
                                 <p class="mb-2 text-secondary">Format is a medium-difficulty machine in which we need to exploit a web service to read system files. We achieve this by inspecting the page's source code hosted on port 3000 in a...</p>
@@ -255,7 +264,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Escape" class="rounded-circle me-3" src="/writeups/htb/medium/escape/img/escape.png" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=HTB'">
+                            <img width="300" height="300" loading="lazy" decoding="async" alt="Escape" class="rounded-circle me-3" src="/writeups/htb/medium/escape/img/escape.png" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Escape - HackTheBox [Medium]</h3>
                                 <p class="mb-2 text-secondary">Escape is a medium difficulty machine on the HackTheBox platform. It is a machine that hosts an Active Directory service. Initially, we acquire credentials through a PDF exposed via...</p>
@@ -266,7 +275,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="OnlyForYou" class="rounded-circle me-3" src="/writeups/htb/medium/only4you/img/only4you.png" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="OnlyForYou" class="rounded-circle me-3" src="/writeups/htb/medium/only4you/img/only4you.png" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">OnlyForYou - HackTheBox [Medium]</h3>
                                 <p class="mb-2 text-secondary">OnlyForYou is a medium-level machine in which we exploit Python and Neo4j (Cypher Injection)...</p>
@@ -275,10 +284,10 @@
                         </div>
                     </div>
 
-                    <!-- HackTheBox - Easy -->
+                    <div class="list-divider">HackTheBox · Easy</div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Analytics" class="rounded-circle me-3" src="/writeups/htb/easy/analytics/img/analytics.png" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Analytics" class="rounded-circle me-3" src="/writeups/htb/easy/analytics/img/analytics.png" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Analytics - HackTheBox [Easy]</h3>
                                 <p class="mb-2 text-secondary">Analytics is an easy machine on HackTheBox. Firstly, we'll exploit a vulnerable version of Metabase to achieve command execution on the victim machine...</p>
@@ -289,7 +298,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Sau" class="rounded-circle me-3" src="/writeups/htb/easy/sau/img/sau.png" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Sau" class="rounded-circle me-3" src="/writeups/htb/easy/sau/img/sau.png" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Sau - HackTheBox [Easy]</h3>
                                 <p class="mb-2 text-secondary">Sau is an easy difficulty machine on the HackTheBox platform. Firstly, we will exploit an SSRF vulnerability in `request-baskets` to gain access to...</p>
@@ -300,7 +309,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Pilgrimage" class="rounded-circle me-3" src="/writeups/htb/easy/pilgrimage/img/pilgrimage.png" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Pilgrimage" class="rounded-circle me-3" src="/writeups/htb/easy/pilgrimage/img/pilgrimage.png" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Pilgrimage - HackTheBox [Easy]</h3>
                                 <p class="mb-2 text-secondary">Pilgrimage is an easy difficulty machine on HackTheBox, exposing an HTTP service on port 80. Our initial step involves dumping a `.git` directory to retrieve...</p>
@@ -311,7 +320,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Topology" class="rounded-circle me-3" src="/writeups/htb/easy/topology/img/topology.png" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Topology" class="rounded-circle me-3" src="/writeups/htb/easy/topology/img/topology.png" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Topology - HackTheBox [Easy]</h3>
                                 <p class="mb-2 text-secondary">Topology is an easy-level machine on HackTheBox. Initially, we need to exploit a LaTeX Injection to gain access to...</p>
@@ -322,7 +331,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="PC" class="rounded-circle me-3" src="/writeups/htb/easy/pc/img/pc.png" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=HTB'">
+                            <img width="300" height="300" loading="lazy" decoding="async" alt="PC" class="rounded-circle me-3" src="/writeups/htb/easy/pc/img/pc.png" onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">PC - HackTheBox [Easy]</h3>
                                 <p class="mb-2 text-secondary">PC is an easy-level machine from HackTheBox. Firstly, we discover the gRPC service running on port "50051". Using the "grpcgui" tool, we set up a service to access it through...</p>
@@ -333,7 +342,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Inject" class="rounded-circle me-3" src="/writeups/htb/easy/inject/img/inject.png" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Inject" class="rounded-circle me-3" src="/writeups/htb/easy/inject/img/inject.png" onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Inject - HackTheBox [Easy]</h3>
                                 <p class="mb-2 text-secondary">This is an easy-level machine in which we exploit a file upload vulnerability to make the page show us how we can access them. The page utilizes a parameter in the GET method to access system files, allowing us to exploit...</p>
@@ -344,7 +353,7 @@
 
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Busqueda" class="rounded-circle me-3" src="/writeups/htb/easy/busqueda/img/busqueda.png" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HTB'">
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Busqueda" class="rounded-circle me-3" src="/writeups/htb/easy/busqueda/img/busqueda.png" onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HTB'">
                             <div>
                                 <h3 class="mb-1 text-light">Busqueda - HackTheBox [Easy]</h3>
                                 <p class="mb-2 text-secondary">Busqueda is a platform that provides a website offering links to various web pages based on user input. Behind the scenes, it utilizes the Python...</p>
@@ -357,6 +366,7 @@
         </div>
     </div>
 
+    <script src="/js/search.js"></script>
     <script>
         // Sidebar Toggle
         const sidebarToggle = document.getElementById('sidebarToggle');

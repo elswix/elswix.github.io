@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Analytics - HTB</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/writeups/htb/easy/analytics/img/analytics.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/writeups/htb/easy/analytics/img/analytics.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Analytics - HTB</h2>
                     <p>walkthrough by elswixHackTheBox</p>
                 </section>
@@ -159,9 +163,9 @@
 <span class="nd">elswix@ubuntu$</span>
 </pre></div>
 <p>When accessing the website through our browser, we'll encounter the following:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/easy/analytics/img/1.png"/></p><br/>
+<p><img width="1332" height="585" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/analytics/img/1.png"/></p><br/>
 <p>It's a static page with nothing relevant at the moment. However, when hovering over the <code>Login</code> hyperlink, you can observe that it redirects to a new subdomain:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/easy/analytics/img/2.png"/></p><br/>
+<p><img width="626" height="160" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/analytics/img/2.png"/></p><br/>
 <p>I'll add it to my <code>hosts</code> file:</p><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
 <span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
@@ -178,7 +182,7 @@
 <span class="nd">elswix@ubuntu$</span>
 </pre></div>
 <p>When accessing <code>data.analytical.htb</code>, we encounter the following content:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/easy/analytics/img/4.png"/></p><br/>
+<p><img width="1313" height="578" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/analytics/img/4.png"/></p><br/>
 <p>This is the Metabase authentication panel. Metabase is an open-source data analytics platform.</p><br/>
 <p>Upon searching for Metabase-related vulnerabilities, I came across the <a href="https://nvd.nist.gov/vuln/detail/CVE-2023-38646">CVE-2023-38646</a> vulnerability. <a href="https://nvd.nist.gov/vuln/detail/CVE-2023-38646">NVD</a> describes this vulnerability as an unauthenticated remote code execution (RCE) vulnerability. As you can imagine, vulnerabilities of this type are categorized as Critical.</p><br/>
 <p>If the running version is vulnerable, we could potentially achieve arbitrary code execution, allowing us to gain access to the system.</p><br/>
@@ -195,7 +199,7 @@
 <span class="nd">elswix@ubuntu$</span> <span class="n">cd</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2023</span><span class="o">-</span><span class="mi">38646</span>
 </pre></div>
 <p>After examining the source code, we notice that it will send us a reverse shell.</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/easy/analytics/img/6.png"/></p><br/>
+<p><img width="1002" height="157" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/analytics/img/6.png"/></p><br/>
 <p>Using this exploit is very straightforward:</p><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">python3</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2023</span><span class="o">-</span><span class="mi">38646</span><span class="o">-</span><span class="n">Reverse</span><span class="o">-</span><span class="n">Shell</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">h</span>
 <span class="n">usage</span><span class="p">:</span> <span class="n">CVE</span><span class="o">-</span><span class="mi">2023</span><span class="o">-</span><span class="mi">38646</span><span class="o">-</span><span class="n">Reverse</span><span class="o">-</span><span class="n">Shell</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">rhost</span> <span class="n">RHOST</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">lhost</span> <span class="n">LHOST</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">lport</span> <span class="n">LPORT</span><span class="p">]</span>
@@ -328,7 +332,7 @@
 <p>Overlay is a union mount filesystem that allows merging two separate filesystems into a single unified view. It operates by overlaying one filesystem onto another, with the lower filesystem serving as the base and the upper filesystem providing the modifications or changes.</p><br/>
 <p>While searching for OverlayFS vulnerabilities, I came across two issues that allow for local privilege escalation. Both vulnerabilities, <a href="https://nvd.nist.gov/vuln/detail/CVE-2023-2640">CVE-2023-2640</a> and <a href="https://nvd.nist.gov/vuln/detail/CVE-2023-32629">CVE-2023-32629</a>, facilitate local privilege escalation, enabling an unprivileged user to attain elevated privileges on the system. </p><br/>
 <p>I found this <a href="https://github.com/g1vi/CVE-2023-2640-CVE-2023-32629">repository</a> which includes a proof of concept (POC) for this vulnerability. It also contains a list of vulnerable kernel versions:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/easy/analytics/img/7.png"/></p><br/>
+<p><img width="680" height="205" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/analytics/img/7.png"/></p><br/>
 <p>Looking at the kernel version of Analytics, we observe that it is vulnerable.</p><br/>
 <div class="highlight"><pre><span></span><span class="nd">metalytics@analytics</span><span class="p">:</span><span class="o">~$</span> <span class="n">uname</span> <span class="o">-</span><span class="n">a</span>
 <span class="n">Linux</span> <span class="n">analytics</span> <span class="mf">6.2.0</span><span class="o">-</span><span class="mi">25</span><span class="o">-</span><span class="n">generic</span> <span class="n">#25~22.04.2-Ubuntu SMP PREEMPT_DYNAMIC Wed Jun 28 09:55:23 UTC 2 x86_64 x86_64 x86_64 GNU/Linux</span>

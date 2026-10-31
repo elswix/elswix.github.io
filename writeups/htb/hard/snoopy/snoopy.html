@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Snoopy - HTB</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/writeups/htb/hard/snoopy/img/snoopy.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/writeups/htb/hard/snoopy/img/snoopy.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Snoopy - HTB</h2>
                     <p>walkthrough by elswixHackTheBox</p>
                 </section>
@@ -205,7 +209,7 @@ A Zone Transfer attack is a type of attack in which an attacker attempts to obta
 We have successfully executed the attack and obtained sensitive information from the DNS server. We can see that a large number of domain names are returned, but we will only add the subdomain <code>mm.snoopy.htb</code> to our <code>/etc/hosts</code> file since the others are not relevant, at least for now.<br/><br/>
 <h3><br/>Web application</h3><br/>
 When accessing the web service through the browser, we encountered the following:<br><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/1.png"><br/><br/>
+<img width="1347" height="607" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/1.png"><br/><br/>
 While reading the content of the web service, we are informed that we can download a "press release package" or a "recent announcement." It appears that these are files containing information about their product.<br/><br/>
 Upon downloading the file, we notice that it makes a GET request to the <code>/download</code> section and is a ZIP file named <code>press_release.zip</code>:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">file</span> <span class="n">press_release</span><span class="o">.</span><span class="n">zip</span>
@@ -237,28 +241,28 @@ Using the <code>7z</code> tool, we can inspect the archive:<br/><br/>
 </pre></div>
 
 If we navigate to the "Contact" section, we are notified of the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/4.png"><br/><br/>
+<img width="1348" height="78" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/4.png"><br/><br/>
 This comment mentions that they are making changes to the DNS records and that their mail server (mailserver) is currently out of service.<br/><br/>
 We can note that a subdomain <code>mail.snoopy.htb</code> is mentioned here. I will immediately add it to my <code>/etc/hosts</code> file.<br/><br/>
 However, there's something peculiar here. If we recall the Zone Transfer attack, this subdomain was not returned in the response of the attack. It seems that this subdomain is not listed in the DNS records. This could be a crucial piece of information for us to proceed further on the machine.<br/><br/>
 <h3><br/>mm.snoopy.htb</h3><br/>
 Before continuing to investigate the main page, I will navigate to the subdomain <code>mm.snoopy.htb</code>. When the page loads, we can see that Mattermost is being used.<br><br/>
 Mattermost is an open-source enterprise communication platform that provides instant messaging, team collaboration, and chat tools similar to Slack. It enables organizations to create their own private and secure chat servers to facilitate internal communication, collaboration, and project management.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/2.png"/><br/><br/>
+<img width="1138" height="574" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/2.png"/><br/><br/>
 If we click on the "View in Browser" link, it allows us to access an authentication panel:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/3.png"/><br/><br/>
+<img width="1248" height="467" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/3.png"/><br/><br/>
 One of the first things to try on an authentication panel is to check if the service running behind it (in this case, Mattermost) defines default credentials during installation. In this case, I couldn't find much information online, so I assumed there are no default credentials.<br/><br/>
 We also have an option to attempt to recover the password. In my case, since I don't have any known credentials, I tried entering random data:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/5.png"/><br/><br/>
+<img width="682" height="304" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/5.png"/><br/><br/>
 It appears that behind the scenes, there is some SMTP request being made, as it mentions that if the account exists, an email will be sent to the email address you provided.<br/><br/>
 <h3><br/>LFI</h3><br/>
 Setting this aside, if we click on the second download link on the main webpage, something immediately catches our attention:<br><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/18.png"/><br/><br/>
+<img width="1075" height="175" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/18.png"/><br/><br/>
 It appears that the <code>/download</code> section allows specifying a parameter via the GET method called <code>file</code>. This parameter seems to be pointing to a file on the system, which means we could attempt to read system files, i.e., perform an LFI (Local File Inclusion) if it's not sanitized.<br/><br/>
 To inspect this more comfortably, I will use the <code>Burp Suite</code> tool to analyze the requests.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/19.png"/><br/><br/>
+<img width="1345" height="606" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/19.png"/><br/><br/>
 If we are correct, we could attempt to target a system file. The idea is that through the <code>Directory Path Traversal</code> technique, we can try to navigate through the system directories to reach the root and attempt to access files like <code>/etc/passwd</code><br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/20.png"/><br/><br/>
+<img width="1143" height="174" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/20.png"/><br/><br/>
 When sending the request, the web server does not return anything, so it's possible that it's sanitized. However, it might only be removing the <code>../</code> Path Traversal. Therefore, we can try using a payload like the following:<br/><br/>
 <div class="highlight"><pre><span></span><span class="k">GET</span><span class="w"> </span><span class="o">/</span><span class="n">download</span><span class="o">?</span><span class="n">file</span><span class="o">=</span><span class="p">....</span><span class="o">//</span><span class="p">....</span><span class="o">//</span><span class="p">....</span><span class="o">//</span><span class="p">....</span><span class="o">//</span><span class="p">....</span><span class="o">//</span><span class="p">....</span><span class="o">//</span><span class="n">etc</span><span class="o">/</span><span class="n">passwd</span>
 </pre></div>
@@ -268,7 +272,7 @@ When the server removes the <code>../</code>, it will remove it only once, so on
 </pre></div>
 
 Allowing us, as a result, to access the system-level file.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/21.png"/><br/><br/>
+<img width="1290" height="273" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/21.png"/><br/><br/>
 This time, when we send the request, the server returns information. However, the problem is that it's in an unreadable format. This could be because the server is returning the information in a zip format, perhaps converting the file we specify in the <code>file</code> parameter into a compressed format.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s2">"http://snoopy.htb/download?file=....//....//....//....//....//....//etc/passwd"</span> <span class="o">-</span><span class="n">o</span> <span class="n">file</span><span class="o">.</span><span class="n">zip</span>
 </pre></div>
@@ -485,7 +489,7 @@ We set up the SMTP server:<br/><br/>
 </pre></div>
 
 We send the password reset request on the <code>mm.snoopy.htb</code> subdomain:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/6.png"/><br/><br/>
+<img width="722" height="278" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/6.png"/><br/><br/>
 We receive the following on our SMTP server:<br/><br/>
 <div class="highlight"><pre><span></span><span class="o">----------</span> <span class="n">MESSAGE</span> <span class="n">FOLLOWS</span> <span class="o">----------</span>
 <span class="n">mail</span> <span class="n">options</span><span class="p">:</span> <span class="p">[</span><span class="s1">'BODY=8BITMIME'</span><span class="p">]</span>
@@ -526,21 +530,21 @@ We adapt the format of the link by removing the URL-encoded characters:<br/><br/
 </pre></div>
 
 We check if it allows us to change the password for the user <code>sbrown</code> by accessing the link:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/7.png"/><br/><br/>
+<img width="647" height="311" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/7.png"/><br/><br/>
 We successfully changed the password for the user <code>sbrown</code>, and we can now try testing the credentials on the authentication panel.<br/><br/>
 <h3><br/>Shell as cbrown</h3><br/>
 After entering the credentials we obtained, we successfully access the Mattermost chat:<br><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/8.png"/><br/><br/>
+<img width="1182" height="477" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/8.png"/><br/><br/>
 If we enter a <code>/</code>, we are shown a list of what appears to be commands that we can execute:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/9.png"/><br/><br/>
+<img width="781" height="409" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/9.png"/><br/><br/>
 Reading through all the commands, one command catches my attention, which doesn't have a description:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/10.png"/><br/><br/>
+<img width="388" height="187" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/10.png"/><br/><br/>
 When executing the <code>server_provision</code> command, a window is displayed that allows us to enter certain data:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/11.png"/><br/><br/>
+<img width="572" height="306" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/11.png"/><br/><br/>
 I tried entering specific data to see what would happen:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/12.png"/><br/><br/>
+<img width="590" height="415" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/12.png"/><br/><br/>
 After sending this data, the user <code>cbrown</code> sent me a private message with the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/13.png"/><br/><br/>
+<img width="453" height="130" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/13.png"/><br/><br/>
 The user <code>cbrown</code> is asking if the machine is online, and this is likely because they are trying to make a request to my IP on port 2222, as we specified in the form.<br/><br/>
 Another option, apart from port 2222, is port 5985, which is associated with the Windows WinRM service, but in this case, it is disabled.<br/><br/>
 It seems that the victim machine, because we specified <code>Linux - TCP/2222</code> and my attacker IP <code>10.10.16.3</code>, is attempting SSH requests to my machine on port 2222.<br/><br/>
@@ -562,9 +566,9 @@ First, we set up an <code>ssh-mitm</code> server on port <code>2222</code>, spec
 </pre></div>
 
 We send the request again, filling in the appropriate data in the form displayed when executing the <code>/server_provision</code> command:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/14.png"/><br/><br/>
+<img width="580" height="402" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/14.png"/><br/><br/>
 We receive the request on our server and successfully filter credentials belonging to the user <code>cbrown</code>:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/15.png"/><br/><br/>
+<img width="763" height="101" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/15.png"/><br/><br/>
 <div class="highlight"><pre><span></span><span class="n">cbrown</span><span class="p">:</span><span class="n">sn00pedcr3dential</span><span class="err">!!!</span>
 </pre></div>
 
@@ -624,7 +628,7 @@ Additionally, I came across an <a href="https://github.blog/2023-02-14-git-secur
 <em>However, this mechanism can be tricked when the malicious patch creates that symbolic link in the first place. This can be leveraged to write arbitrary files on a victim’s filesystem when applying malicious patches from untrusted sources.</em><br/><br/>
 It appears that the vulnerability may allow us to create files through patch application by abusing symbolic links. In this <a href="https://github.com/git/git/commit/c867e4fa180bec4750e9b54eb10f459030dbebfd">commit</a>, you can see how the vulnerability works.<br/><br/>
 Inspecting the commit further, we can see in <a href="https://github.com/git/git/commit/c867e4fa180bec4750e9b54eb10f459030dbebfd#diff-d37fceb39eb9394533430ff8956cad41dd7f9233672dc778fd5690625906069f">t/t4115-apply-symlink.sh</a> how it could potentially be exploited:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/snoopy/img/17.png"/><br/><br/>
+<img width="778" height="353" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/snoopy/img/17.png"/><br/><br/>
 This theoretically shouldn't work anymore, but since the vulnerability applies to the version of <code>git</code> present on the machine, we can try it.<br/><br/>
 My idea is that if I can overwrite files as the user who runs the <code>git</code> program, which in our case is <code>sbrown</code> (as we execute it with sudo), I could try to modify the <code>authorized_keys</code> file to host my SSH public key and then connect without providing a password as the <code>sbrown</code> user.<br/><br/>
 First, I will navigate to the home directory of the <code>cbrown</code> user and create a directory where I will initialize a <code>git</code> repository:<br/><br/>

@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Windows Access Tokens & Juicy Potatoes</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/img/articles/logo20.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/img/articles/logo20.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Windows Access Tokens & Impersonation</h2>
                     <p>Understanding Windows Access Tokens</p>
                 </section>
@@ -90,7 +94,7 @@
 <p>It’s also important to note that access tokens are not limited to users. Services, scheduled tasks, and even system components run under their own tokens. Some of these tokens belong to highly privileged accounts like <strong>SYSTEM</strong>, which explains why compromising a process running under such a context can be extremely powerful.</p><br/>
 <h3>How they look</h3><br/>
 <p>Now, let's see a visual representation of an access token:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens1.png"/></p><br/>
+<p><img width="476" height="618" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens1.png"/></p><br/>
 <p>This is a screenshot of Process Explorer showing the access token information of the <code>notepad.exe</code> process.</p><br/>
 <p>As we can see, it describes:</p><br/>
 <ul>
@@ -101,7 +105,7 @@
 <li>And the list of privileges associated with the user</li>
 </ul>
 <p>This access token of a low-privileged user, let's see how a local administrator token looks like:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens2.png"/></p><br/>
+<p><img width="471" height="616" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens2.png"/></p><br/>
 <p>As expected, the local administrator token contains <strong>a large number of privileges</strong>. Each of these privileges allows the user who owns the token to perform specific actions within the system.</p><br/>
 <p>You might notice that most of the privileges are disabled. This is because, even if a specific privilege is present in your access token, it does not necessarily mean that you can use it. If a privilege is disabled, you won’t be able to take advantage of it.</p><br/>
 <p>However, if a privilege is shown as disabled, it can be enabled using the WinAPI function <code>AdjustTokenPrivileges</code>. Of course, this only works if your access token already includes the specified privilege, otherwise, there’s nothing to enable.</p><br/>
@@ -120,7 +124,7 @@
 <p>This token allows Windows to determine whether the actions performed by processes launched by the user can be carried out with the user’s privileges. In other words, each time a process performs an important action, such as a file write, Windows checks the process’s access token to determine whether the user has sufficient privileges to perform that action.</p><br/>
 <p>One interesting aspect of an interactive logon is that when a user logs on interactively, Windows sends the provided credentials to the LSASS process and keeps them in memory to support the Single Sign-On (SSO) mechanism. Thanks to this, after authenticating once, the user can access other resources, such as remote shares or network services, without being asked for credentials again. This approach avoids constant re-authentication prompts and allows Windows to provide a smooth and seamless user experience while handling authentication transparently in the background.</p><br/>
 <p>For example, let’s look at what happens when you run a <code>dir</code> command against a remote share from PowerShell using a domain account:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens3.png"/></p><br/>
+<p><img width="556" height="386" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens3.png"/></p><br/>
 <p>As shown above, I was able to list the C$ share on the ITDC01 machine from another system. In the background, Windows checks the primary token associated with the PowerShell process and verifies whether there are credentials linked to it in the LSASS process. Since the logon was interactive, those credentials were already stored in LSASS and were automatically used to authenticate against the remote service.</p><br/>
 <p>The key thing to remember is that <strong>Primary Tokens</strong> are associated with <strong>processes</strong>.</p><br/>
 <h3>Non-interactive logon</h3><br/>
@@ -147,7 +151,7 @@
 <p>It is okay if you don't understand it at all, we'll explain each step along the way.</p><br/>
 <h3>Exploitation 1 - Listing all access tokens</h3><br/>
 <p>First, let's check our current user privileges:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens4.png"/></p><br/>
+<p><img width="597" height="284" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens4.png"/></p><br/>
 <p>As I mentioned earlier, this user has both <strong>SeImpersonatePrivilege</strong> and <strong>SeDebugPrivilege</strong>. They’re enabled, but sometimes they might show up as disabled. If that happens, it’s not over. You can still enable them using the <code>AdjustTokenPrivileges</code> function we talked about earlier.</p><br/>
 <p>Now, we have to list all tokens in the system. To retrieve every token, we can use the <code>NtQuerySystemInformation</code> WinAPI function. Essentially, this function can be used to return every handle available in the system, including process handles, file handles, and token handles, which are what we’re looking for.</p><br/>
 <p>The core of this step is the following call:</p><br/>
@@ -366,7 +370,7 @@
 <span class="n">printf</span><span class="p">(</span><span class="s">"[+] Impersonated: %ws</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">username</span><span class="p">);</span>
 </pre></div>
 <p>Now, let's run our program:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens5.png"/></p><br/>
+<p><img width="523" height="113" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens5.png"/></p><br/>
 <p>Awesome! It worked, we’ve successfully impersonated SYSTEM.</p><br/>
 <p>Now, every action we perform with this token will run with SYSTEM privileges. If needed, you can switch back to your previous token using the <code>RevertToSelf()</code> function. But that’s not what we’re after, so let’s see how we can abuse this SYSTEM token.</p><br/>
 <p>For example, we could create a local user and add it to the local Administrators group. To do this, we can rely on the WinAPI by combining <code>NetUserAdd</code> (to create a new user) and <code>NetLocalGroupAddMembers</code> (to add the user to a group).</p><br/>
@@ -405,9 +409,9 @@
 <span class="p">}</span>
 </pre></div>
 <p>Now, if we’ve successfully impersonated SYSTEM, this should work. Let’s see:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens6.png"/></p><br/>
+<p><img width="533" height="186" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens6.png"/></p><br/>
 <p>It looks like it worked. Let’s run <code>net user</code>:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens7.png"/></p><br/>
+<p><img width="665" height="534" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens7.png"/></p><br/>
 <p><strong>GREAT! It worked.</strong> We’ve successfully impersonated SYSTEM and added a new user to the local Administrators group.</p><br/>
 <p>Now, you can use many other WinAPI functions to take advantage of the SYSTEM impersonation. Also, if this were an Active Directory scenario where we impersonate a domain user token, we could use the same API functions to add new users to the domain (as long as the impersonated user has the required privileges), effectively abusing the domain. I won’t go into detail on this now, since we’ll show a scenario like this later in the second scenario.</p><br/>
 <h3>Getting a Shell</h3><br/>
@@ -468,9 +472,9 @@
 <span class="p">}</span>
 </pre></div>
 <p>Now, let's run our code:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens8.png"/></p><br/>
+<p><img width="1047" height="299" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens8.png"/></p><br/>
 <p>Great! It worked, we've successfully obtained a shell as system. Even though we've successfully impersonated SYSTEM, this has not all privileges:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens9.png"/></p><br/>
+<p><img width="732" height="315" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens9.png"/></p><br/>
 <p>This behavior is actually expected. Even though we’re running a shell as <code>SYSTEM</code>, the token we get does not necessarily include <strong>all possible SYSTEM privileges</strong>.</p><br/>
 <p>When a token is created, Windows doesn’t blindly assign every privilege available to that account. Instead, the token is built based on <strong>how it was obtained</strong> and <strong>which privileges were present and enabled in the original context</strong>. In our case, the SYSTEM token comes from an impersonation and process-creation flow, not from a full interactive logon, so some privileges are simply not included or remain disabled.</p><br/>
 <p>Additionally, Windows applies the principle of <strong>least privilege</strong> even to high-privileged accounts. Certain sensitive privileges are only added or enabled when they are explicitly required by the process or granted by the system at logon time. As a result, two SYSTEM tokens can look different depending on how they were created.</p><br/>
@@ -544,10 +548,10 @@
 <p>After updating the Session ID, we impersonate the token again to ensure the changes take effect, and then we build a proper <strong>environment block</strong> for the new process using <code>CreateEnvironmentBlock</code>. This step is important so the spawned process gets a valid environment (paths, variables, etc.) instead of inheriting a broken or empty one.</p><br/>
 <p>Finally, with everything set up, we call <code>CreateProcessAsUserW</code> to spawn <code>cmd.exe</code>, passing the prepared token, the environment block, and the appropriate creation flags. </p><br/>
 <p>Now, let's run our program:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens10.png"/></p><br/>
+<p><img width="1098" height="510" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens10.png"/></p><br/>
 <p>As we can see, it worked and we successfully obtained a shell as SYSTEM. However, as shown in the output, the program had to iterate through multiple tokens before finding a suitable one.</p><br/>
 <p>This happens because, as mentioned earlier, even if a token belongs to SYSTEM, it doesn’t necessarily mean it has every privilege. In this case, we needed <code>SeTcbPrivilege</code>, <code>SeAssignPrimaryTokenPrivilege</code>, and <code>SeIncreaseQuotaPrivilege</code>, and not every SYSTEM token includes all of them. Now, we have a really juicy token:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens11.png"/></p><br/>
+<p><img width="1013" height="717" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens11.png"/></p><br/>
 <h3>Scenario 2</h3><br/>
 <p>Now that we know how to use Access Tokens, let's jump to the second scenario. In this case, we'll assume we obtained valid credentials for a DB admin in a MSSQL Instance, which means we can use commands such as <code>xp_cmdshell</code> to execute commands in the system.</p><br/>
 <p>Let's connect to the MSSQL Instance and enable xp_cmdshell:</p><br/>
@@ -578,7 +582,7 @@
 <span class="n">SQL</span> <span class="p">(</span><span class="n">IT</span><span class="o">-</span><span class="n">ELSWIXCORP</span>\<span class="n">developer</span>  <span class="n">dbo</span><span class="n">@master</span><span class="p">)</span><span class="o">&gt;</span>
 </pre></div>
 <p>Now, let's see what privileges the <code>sqlsvc</code> user has:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens12.png"/></p><br/>
+<p><img width="830" height="486" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens12.png"/></p><br/>
 <p>As expected, it has the <code>SeImpersonatePrivilege</code> enabled. By default, Windows services have this privilege enabled for the reason we explained when introducing Impersonation Tokens.</p><br/>
 <p>Some services that use Windows authentication need to temporarily adapt to the security context of the client user. This usually happens because of privileges. For example, if you expose an SMB share, you definitely don’t want every request to run as SYSTEM, that would be extremely dangerous!</p><br/>
 <p>Instead, services can impersonate the user’s security context using this privilege, allowing them to perform the requested action while respecting the user’s own permissions.</p><br/>
@@ -620,25 +624,25 @@
 <p>What makes this class of exploits powerful is that they abuse normal Windows authentication and impersonation behavior. Windows is doing exactly what it was designed to do: create access tokens for authenticated clients and allowing servers with <code>SeImpersonatePrivilege</code> to impersonate them.</p><br/>
 <p>The "vulnerability" lies in how easy it is to coerce a SYSTEM process into authenticating to an attacker-controlled server, effectively handing over a SYSTEM access token through a perfectly valid impersonation flow. The weakness is not impersonation, but the authentication trigger.</p><br/>
 <p>For example, let’s take a look at the <a href="https://github.com/itm4n/PrintSpoofer/blob/master/PrintSpoofer/PrintSpoofer.cpp">PrintSpoofer</a> exploit source code, which is pretty easy to understand. I won’t go into detail about how it coerces authentication from the Print Spooler service, it’s actually quite simple, and you can read it yourself if you’re interested, but for now, let’s take a conceptual look at what’s happening:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens13.png"/></p><br/>
+<p><img width="644" height="675" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens13.png"/></p><br/>
 <p>Alright, let’s break this down.</p><br/>
 <p>First, the exploit checks whether <code>SeImpersonatePrivilege</code> is enabled. This is mandatory, without it, the exploit simply won’t work.</p><br/>
 <p>Then, it creates a named pipe using a randomly generated pipe name. This named pipe acts as our <strong>listening server endpoint</strong>. After the authentication is coerced, this is the pipe that SYSTEM will connect to.</p><br/>
 <p>Once the named pipe is set up, the exploit calls a function called <code>TriggerNamedPipeConnection</code>. This function is responsible for forcing a SYSTEM process (the Print Spooler service) to authenticate to our newly created named pipe.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens14.png"/></p><br/>
+<p><img width="457" height="171" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens14.png"/></p><br/>
 <p>After that, the exploit waits for the authentication to arrive on the named pipe. Once the connection is established, it calls the <code>GetSystem()</code> function, passing the named pipe handle as an argument.</p><br/>
 <p>This function is where the actual impersonation happens and where SYSTEM access is obtained. Let’s take a closer look at it.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens15.png"/></p><br/>
+<p><img width="890" height="722" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens15.png"/></p><br/>
 <p>Initially, it receives the named pipe handle through the <code>hPipe</code> parameter and passes it to <code>ImpersonateNamedPipeClient</code>.</p><br/>
 <p>As mentioned before, this function behaves very similarly to <code>ImpersonateLoggedOnUser</code>. The main difference is that, instead of explicitly providing an access token, we provide a <strong>named pipe handle</strong>. Internally, Windows looks at the security context associated with the client side of that pipe connection.</p><br/>
 <p>Since the client that connected to our named pipe is a SYSTEM process, Windows has already created an <strong>access token representing SYSTEM</strong> for that connection. When <code>ImpersonateNamedPipeClient</code> is called, Windows replaces the <strong>current thread token</strong> with this client token.</p><br/>
 <p>At this point, our thread is no longer running under the original low-privileged user. It is now executing under a <strong>SYSTEM impersonation token</strong>, obtained through a completely legitimate impersonation flow.</p><br/>
 <p>In other words, we are not creating or stealing a token ourselves, we are simply asking Windows to let us impersonate the client that authenticated to our server, and Windows happily does so.</p><br/>
 <p>Then, the process is similar to what we’ve done before:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens16.png"/></p><br/>
+<p><img width="838" height="653" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens16.png"/></p><br/>
 <p>First, it saves the current thread token, which at this point is the <strong>impersonated SYSTEM token</strong>, into a handle using the <code>OpenThreadToken</code> function. Then, it duplicates this token using <code>DuplicateTokenEx</code> to create a <strong>new primary token</strong>. This primary token is the one that will later be used to create new processes.</p><br/>
 <p>After that, everything is prepared for process creation. If a specific session ID was provided, the exploit modifies the token accordingly using <code>SetTokenInformation</code>. It also performs some additional environment setup, similar to what we’ve already seen before.</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens17.png"/></p><br/>
+<p><img width="1262" height="605" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens17.png"/></p><br/>
 <p>Once everything is ready, it calls <code>CreateProcessAsUser</code>, passing the newly created SYSTEM primary token to spawn a new process.</p><br/>
 <p>If this call fails, the exploit falls back to <code>CreateProcessWithToken</code>. This usually happens when the <em>Interact with console</em> option (<code>-i</code>) was not specified, but that detail isn’t particularly relevant for the explanation here.</p><br/>
 <p>Well, now let's execute the exploit to escalate privileges:</p><br/>
@@ -768,9 +772,9 @@
 </pre></div>
 <p>As you can see, this code is pretty similar to what we did earlier to add a new local administrator user. The main difference is that now we’re impersonating the Domain Administrator, and this time we also need to specify the server, in our case, the domain name. </p><br/>
 <p>Now, let's run the program:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens18.png"/></p><br/>
+<p><img width="530" height="196" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens18.png"/></p><br/>
 <p>It looks like it worked. Let’s check if we can authenticate against the DC:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens19.png"/></p><br/>
+<p><img width="1069" height="87" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens19.png"/></p><br/>
 <p>Great! We’ve successfully created a new domain user and added it to the Domain Admins group.</p><br/>
 <p>There are many other approaches you could try to compromise the domain, so feel free to explore them on your own!</p><br/>
 <h3>Creating Process as Domain Admin</h3><br/>
@@ -793,7 +797,7 @@
 <span class="p">}</span>
 </pre></div>
 <p>Now, let's run it: </p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens20.png"/></p><br/>
+<p><img width="1643" height="521" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens20.png"/></p><br/>
 <p>At first glance, it looks like it worked… but why is it showing just a black window?</p><br/>
 <p>That’s exactly what I wanted to show you. This happens because of some environment configuration related to the token, specifically, the differences between the session that belongs to the Administrator account and the one we’re currently running in. This only applies to GUI access. If you’re launching a console-only process, you can usually proceed without any further issues.</p><br/>
 <p>Let’s try it again, this time using <code>CreateProcessAsUser</code>, and change the token <code>SessionId</code> to match our own to see if that fixes the issue.<br/>
@@ -802,7 +806,7 @@ However, as I mentioned before, modifying the token <code>SessionId</code> has t
 <p>The important detail here is that <code>SeTcbPrivilege</code> is <strong>not</strong> granted to local administrators. Only <code>NT AUTHORITY\SYSTEM</code> has it.<br/>
 So the plan is the following: first, we impersonate SYSTEM. Then, while running as SYSTEM, we look for the administrator token and call both <code>SetTokenInformation</code> and <code>CreateProcessAsUser</code>. For <code>CreateProcessAsUser</code>, we still specify the administrator token, we’re just doing the heavy lifting while impersonating SYSTEM.</p><br/>
 <p>Now, let's run it:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens21.png"/></p><br/>
+<p><img width="1348" height="621" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens21.png"/></p><br/>
 <p>The same happens, so it’s not just the token <code>SessionId</code>. Even after changing it with <code>SetTokenInformation</code>, the issue remains. The real problem is that Windows doesn’t automatically grant access to the <strong>interactive window station and desktop</strong> when a process is created with <code>CreateProcessAsUser</code>.</p><br/>
 <p>So while the process is running in the correct session, it still lacks the proper permissions to fully interact with the desktop. Because of that, the window gets created but can’t properly render its UI, which is why we only see a blank or black window instead of a usable <code>cmd</code>. </p><br/>
 <p>You could try to circumvent this by changing the window station ACEs, as mentioned in this <a href="https://stackoverflow.com/questions/21716527/in-windows-how-do-you-programatically-launch-a-process-in-administrator-mode-un/21718198#21718198">StackOverflow question</a>. However, there’s an even easier alternative: instead of opening a new console, you can just run it in the <strong>same PowerShell window</strong>.</p><br/>
@@ -823,7 +827,7 @@ So the plan is the following: first, we impersonate SYSTEM. Then, while running 
 </pre></div>
 <p><a href="https://gist.githubusercontent.com/elswix/b37a16ddbb85ae9bf541f31b882a9cd1/raw/a0d34fc681c47a1db98af57ad08b4ee1a96c3163/impersonateAdmin.cpp">Here is the complete code</a>.</p><br/>
 <p>Now, let’s run the program with the new changes:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/20/img/Tokens22.png"/></p><br/>
+<p><img width="588" height="691" loading="lazy" decoding="async" alt="" src="/articles/20/img/Tokens22.png"/></p><br/>
 <p>Awesome! This time it worked by just opening in the current window. We’ve successfully obtained a shell as the domain administrator. Once again, this wouldn’t have been a problem if you didn’t need the GUI, but I’m just showing it in case you want to learn how to handle it.</p><br/>
 <p>As mentioned at the beginning of the article, this technique is particularly useful when an EDR is installed and a SOC team is monitoring the environment, because it allows us to impersonate a domain user without touching LSASS, which would otherwise have triggered alerts.</p><br/>
 <h3>Conclusion</h3><br/>
@@ -839,5 +843,6 @@ So the plan is the following: first, we impersonate SYSTEM. Then, while running 
             </main>
         </div>
     </div>
+    <script src="/js/sidebarToggle.js"></script>
 </body>
 </html>

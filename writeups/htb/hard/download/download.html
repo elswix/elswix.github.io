@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Download - HTB</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/writeups/htb/hard/download/img/download.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/writeups/htb/hard/download/img/download.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Download - HTB</h2>
                     <p>walkthrough by elswixHackTheBox</p>
                 </section>
@@ -149,14 +153,14 @@ Now, let's make another attempt to gather information about the site using the <
 The domain is now resolving correctly, enabling access to the website.<br/><br/>
 Upon examination, it becomes apparent that the website is powered by Express.<br/><br/>
 Upon accessing the website via our web browser, the following content becomes visible:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/1.png"><br/><br/>
+<img width="1172" height="492" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/1.png"><br/><br/>
 Having grasped the website's functionality and objectives, it becomes evident that we possess the capability to both upload and download files, affording us the opportunity to store them on the server.<br/><br/>
 Despite the statement claiming that no registration is required, I will proceed to create an account by navigating to the <code>/login</code> section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/2.png"><br/><br/>
+<img width="1086" height="383" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/2.png"><br/><br/>
 At this point, we can experiment with common credentials such as <code>admin:admin</code>, <code>guest:guest</code>, etc. However, none of them prove successful. Therefore, let's proceed by clicking on the <code>Register Here</code> option:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/3.png"/><br/><br/>
+<img width="1187" height="479" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/3.png"/><br/><br/>
 After completing the registration process, let's log in using the newly created credentials. Upon successful authentication, we will be presented with the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/4.png"/><br/><br/>
+<img width="1191" height="399" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/4.png"/><br/><br/>
 Before logging in, we had cookies similar to these:<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">download_session</span><span class="o">=</span><span class="n">eyJmbGFzaGVzIjp7ImluZm8iOltdLCJlcnJvciI6W10sInN1Y2Nlc3MiOltdfX0</span><span class="o">=</span>
 <span class="n">download_session</span><span class="o">.</span><span class="n">sig</span><span class="o">=</span><span class="mi">4</span><span class="n">kbZR1kOcZNccDLxiSi7Eblym1E</span>
@@ -192,44 +196,44 @@ I will modify the content of the cookie but will use the same signature:<br/><br
 </pre></div>
 
 We encode it in base64 and send the request:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/20.png"/><br/><br/>
+<img width="1017" height="340" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/20.png"/><br/><br/>
 Upon reviewing the response, we observe that we are redirected to the login page. This happens because the validation of the cookie has not been successful, indicating that we will need to log in again.<br/><br/>
 However, it is crucial to note that understanding the workings of cookies in this manner is essential. In the event of obtaining the secret key (<code>secret</code>), tools such as <a href="https://github.com/DigitalInterruption/cookie-monster">cookie-monster</a> could be utilized to sign cookies and manipulate them to our advantage.<br/><br/>
 Currently, we do not have any uploaded files, so let's proceed to attempt an upload. Let's navigate to the <code>/upload</code> section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/5.png"/><br/><br/>
+<img width="1173" height="370" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/5.png"/><br/><br/>
 Let's try uploading an example file:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/7.png"/><br/><br/>
+<img width="1155" height="359" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/7.png"/><br/><br/>
 It appears that the file was successfully uploaded:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/8.png"/><br/><br/>
+<img width="1160" height="391" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/8.png"/><br/><br/>
 The file has been uploaded with additional information such as the upload date, the user responsible for the upload, and whether it is set as private or not.<br/><br/>
 Upon clicking <code>Copy Link</code>, it copies a URL:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/9.png"/><br/><br/>
+<img width="1243" height="431" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/9.png"/><br/><br/>
 Files are being displayed using file IDs, and the URL structure is as follows:<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">files</span><span class="o">/</span><span class="n">view</span><span class="o">/</span><span class="p">{</span><span class="n">file_id</span><span class="p">}</span>
 </pre></div>
 
 Upon clicking <code>Download</code>, the file we uploaded is downloaded:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/11.png"/><br/><br/>
+<img width="533" height="204" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/11.png"/><br/><br/>
 Let's examine the requests being made with Burp Suite. Here is the download request:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/13.png"/><br/><br/>
+<img loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/13.png"/><br/><br/>
 It's requesting <code>/files/download/{file_id}</code>, which might be potentially vulnerable to LFI. Let's try some tricks:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/14.png"/><br/><br/>
+<img width="1169" height="362" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/14.png"/><br/><br/>
 I attempted to load the <code>/etc/passwd</code> file, but it proved unsuccessful.<br/><br/>
 When experimenting with some tricky payloads like:<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">files</span><span class="o">/</span><span class="n">download</span><span class="o">/../</span><span class="n">test</span>
 </pre></div>
 
 It returns a 200 status code, but in the response, the web content indicates a 404 Not Found:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/15.png"/><br/><br/>
+<img width="418" height="300" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/15.png"/><br/><br/>
 When URL encoding the slash, it returns a different response:<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">files</span><span class="o">/</span><span class="n">download</span><span class="o">/..%</span><span class="mi">2</span><span class="n">ftest</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/17.png"/><br/><br/>
+<img width="405" height="359" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/17.png"/><br/><br/>
 This suggests a potential Local File Inclusion (LFI) vulnerability that could be exploited.<br/><br/>
 Let's attempt to discover the directory where our uploaded files are being stored. I have tried some common names such as <code>upload</code>, <code>uploads</code>, and <code>files</code>. The one that proved successful was <code>uploads</code>:<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">download</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">files</span><span class="o">/</span><span class="n">download</span><span class="o">/</span><span class="n">files</span><span class="o">/</span><span class="n">download</span><span class="o">/..%</span><span class="mi">2</span><span class="n">fuploads</span><span class="o">%</span><span class="mi">2</span><span class="n">f4ee5b1e0</span><span class="o">-</span><span class="n">a2a9</span><span class="o">-</span><span class="mi">40</span><span class="n">c9</span><span class="o">-</span><span class="mi">9</span><span class="n">a86</span><span class="o">-</span><span class="mf">16e6</span><span class="n">bbb83459</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/18.png"/><br/><br/>
+<img width="1096" height="271" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/18.png"/><br/><br/>
 Recalling that the website is built with Express, let's attempt to list the content of the <code>package.json</code> file.<br/><br/>
 The <code>package.json</code> file is a standard file in a Node project, serving as a blueprint for an application. It provides information on how to interact with the application and outlines its dependencies. In this case, the file likely starts by specifying that the main functionality is in <code>app.js</code>.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="s1">'http://download.htb/files/download/..</span><span class="si">%2f</span><span class="s1">package.json'</span>
@@ -360,7 +364,7 @@ Now I will sign it using <code>cookie-monster</code>:<br/><br/>
 </pre></div>
 
 It appears to be working correctly. Let's replace our old cookies with the new ones:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/21.png"/><br/><br/>
+<img width="1351" height="505" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/21.png"/><br/><br/>
 When reloading the page, it says <code>No files found</code>, and it didn't redirect us to the <code>/login</code> section. I believe the new cookies are functioning properly. However, to access the files associated with the <code>id</code> 1, we may need to know the corresponding username.<br/><br/>
 I'm considering removing our username from the cookie and leaving it only with the <code>id</code> number:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span>
@@ -383,7 +387,7 @@ After that, I signed the new cookie with <code>cookie-monster</code>:<br/><br/>
 </pre></div>
 
 Upon replacing the new cookies, it returned different content in the response:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/22.png"/><br/><br/>
+<img width="1193" height="507" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/22.png"/><br/><br/>
 Now I'm seeing files from another user called <code>WESLEY</code>, indicating a successful impersonation of his account.<br/><br/>
 Let's observe what happens if we leave the <code>id</code> field empty:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="n">cookie</span><span class="o">.</span><span class="n">json</span>
@@ -406,7 +410,7 @@ Now, let's sign the cookie using <code>cookie-monster</code>:<br/><br/>
 </pre></div>
 
 Upon replacing the cookies, it returned a substantial amount of content:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/23.png"/><br/><br/>
+<img width="531" height="462" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/23.png"/><br/><br/>
 There are numerous new users, but currently, we can't perform any actions with them.<br/><br/>
 Considering that the website uses Prisma Client to interact with the database, I began contemplating the possibility of ORM injection in the cookie.<br/><br/>
 In the context of ORM, queries are typically constructed using methods and functions provided by the ORM library. However, if the application fails to adequately validate or filter user-supplied data before using it in these queries, we might manipulate parameters to execute undesired queries or even perform harmful actions in the database.<br/><br/>
@@ -757,12 +761,12 @@ I downloaded the <a href="https://github.com/DominicBreuker/pspy/releases/downlo
 </pre></div>
 
 Analyzing the pspy output, I observed some SSH connections to the root user:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/24.png"/><br/><br/>
+<img width="465" height="98" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/24.png"/><br/><br/>
 Here are the interesting observations:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/25.png"/><br/><br/>
+<img width="645" height="155" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/25.png"/><br/><br/>
 The <code>root</code> user is checking the status of the <code>postgresql</code> service and the <code>download-site</code> service. The <code>download-site</code> service appears to be a custom service on the machine, which could be interesting to inspect.<br/><br/>
 The <code>root</code> user is also migrating to the <code>postgres</code> user using <code>su</code> and the <code>-l</code> parameter. Checking the <code>su</code> manual for information about the <code>-l</code> parameter, I found the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/download/img/26.png"/><br/><br/>
+<img width="1198" height="200" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/download/img/26.png"/><br/><br/>
 The <code>-l</code> parameter is used to simulate a full login. When you use <code>su -l</code> or <code>su --login</code>, you are not just switching the user identity; you are also initializing the environment as if the new user had logged in directly.<br/><br/>
 This means that the user's login shell, environment variables, and working directory are set according to the target user's profile. It is particularly useful when you want to execute commands or start a shell session with the environment of another user, as if you had logged in as that user.<br/><br/>
 How can we exploit this?<br/><br/>

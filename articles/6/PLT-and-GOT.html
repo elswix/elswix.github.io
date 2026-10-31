@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PLT & GOT</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/img/articles/logo6.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/img/articles/logo6.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>PLT & GOT</h2>
                     <p>Key Players in Dynamic Linking</p>
                 </section>
@@ -112,7 +116,7 @@
 <h2>Global Offset Table (GOT)</h2><br/>
 <p>The Global Offset Table (GOT) is a table of pointers, typically within the executable or shared library, that holds the addresses of global variables or functions. When a program is executed, the linker resolves these addresses dynamically, allowing functions and variables to be accessed across different parts of the program or even across different modules.</p><br/>
 <p>Think of the GOT as a table similar to the following:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/6/img/1.png"/></p><br/>
+<p><img width="583" height="322" loading="lazy" decoding="async" alt="" src="/articles/6/img/1.png"/></p><br/>
 <h2>GOT vs GOT.PLT</h2><br/>
 <p>When looking at binary sections with tools like objdump, you may noticed that there are 2 sections which contains the word got, the <code>.got</code> section and the <code>.got.plt</code> section. Both belong to the Global Offset Table. However, there are differences between them, so let's delve into it. </p><br/>
 <p>Firstly, the <code>.got</code> section contains addresses of global variables and external function calls that need to be resolved at runtime by the dynamic linker. When the program starts, the addresses in the GOT are typically populated with addresses of functions and variables by the dynamic linker/loader. This allows the program to access global variables and call functions from shared libraries without knowing their addresses at compile time.</p><br/>
@@ -198,7 +202,7 @@
 </pre></div>
 <p>As you can see, this address corresponds to the <code>puts</code> Global Offset Table (GOT) entry, which in turn references another address. So when executing the jump instruction, we're actually jumping to the address <code>0x08049056</code>.</p><br/>
 <p>The GOT looks like this:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/6/img/2.png"/></p><br/>
+<p><img width="416" height="212" loading="lazy" decoding="async" alt="" src="/articles/6/img/2.png"/></p><br/>
 <p><strong>Note:</strong></p><br/>
 <p>Actually, in the "Function" column, the address of the GOT entry is listed instead of the function name. Therefore, instead of <code>puts()</code> it should be <code>0x804c010</code>. However, I believe this approach makes the concept clearer.</p><br/>
 <br/>

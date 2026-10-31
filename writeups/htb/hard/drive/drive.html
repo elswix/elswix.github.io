@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Drive - HTB</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/writeups/htb/hard/drive/img/drive.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/writeups/htb/hard/drive/img/drive.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Drive - HTB</h2>
                     <p>walkthrough by elswixHackTheBox</p>
                 </section>
@@ -147,38 +151,38 @@
 <p>As you can see, it is resolving to the IP address of the victim machine.</p><br/>
 <h3>HTTP Service - Port 80</h3><br/>
 <p>When accessing the website through our browser, we will see the following content:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/1.png"/></p><br/>
+<p><img width="1333" height="528" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/1.png"/></p><br/>
 <p>The purpose of this website is to upload and share files.</p><br/>
 <p>There is a login section:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/2.png"/></p><br/>
+<p><img width="1350" height="535" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/2.png"/></p><br/>
 <p>There is also a registration section:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/3.png"/></p><br/>
+<p><img width="1337" height="532" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/3.png"/></p><br/>
 <p>In the login section, I attempted some common credentials like <code>admin:admin</code> or <code>guest:guest</code>, but they did not work.</p><br/>
 <p>Let's register a new account:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/5.png"/></p><br/>
+<p><img width="807" height="489" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/5.png"/></p><br/>
 <p>Once registered, you will be prompted to log in:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/6.png"/></p><br/>
+<p><img width="358" height="349" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/6.png"/></p><br/>
 <p>There is a <code>dashboard</code> section:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/7.png"/></p><br/>
+<p><img width="1351" height="531" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/7.png"/></p><br/>
 <p>There is an uploaded file named <code>Welcome_to_Doodle_Grive</code> uploaded by the admin user. Note that the group says "public," so there may be private files as well.</p><br/>
 <p>When clicking on the filename, it redirects to <code>/100/getFileDetail/</code>:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/8.png"/></p><br/>
+<p><img width="1351" height="578" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/8.png"/></p><br/>
 <p>When clicking on <code>Just View</code>, we can see the content of the file displayed:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/9.png"/></p><br/>
+<p><img width="1350" height="480" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/9.png"/></p><br/>
 <p>It's a welcome message, not relevant at the moment.</p><br/>
 <p>There is an <code>upload</code> section:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/10.png"/></p><br/>
+<p><img width="1333" height="584" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/10.png"/></p><br/>
 <p>Let's try to upload a simple file:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/11.png"/></p><br/>
+<p><img width="1328" height="366" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/11.png"/></p><br/>
 <p>As you can see, it allows you to select groups that can view the uploaded file. It currently displays only the 'public' group, but perhaps we can create our custom ones.</p><br/>
 <p>I selected the <code>public</code> group and uploaded the file:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/12.png"/></p><br/>
+<p><img width="1341" height="498" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/12.png"/></p><br/>
 <p>When clicking on <code>Reserve</code>, it makes a GET request to <code>/112/block/</code>:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/14.png"/></p><br/>
+<p><img width="1356" height="380" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/14.png"/></p><br/>
 <p>I have noticed that "reserving" a file makes it impossible for anyone to modify the contents of the file. You can "unreserve" files in the <code>/unblockFile/</code> section:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/15.png"/></p><br/>
+<p><img width="596" height="386" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/15.png"/></p><br/>
 <p>When clicking on the name of the file, it redirects to <code>/112/getFileDetail/</code>:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/13.png"/></p><br/>
+<p><img width="1349" height="359" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/13.png"/></p><br/>
 <p>When looking at the URL, you may have noticed that there is a number that functions as an ID. It may be interesting to apply brute force on this number.</p><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">wfuzz</span> <span class="o">-</span><span class="n">c</span> <span class="o">-</span><span class="n">z</span> <span class="nb">range</span><span class="p">,</span><span class="mi">1</span><span class="o">-</span><span class="mi">500</span> <span class="o">--</span><span class="n">hc</span><span class="o">=</span><span class="mi">500</span> <span class="o">-</span><span class="n">H</span> <span class="s2">"Cookie: csrftoken=gb9lGbLjxaWJFxbgPZvymLCmDUhPjtap; sessionid=kwjwl8efgnpbpxl84nf3017fz6vfao9i"</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">drive</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">FUZZ</span><span class="o">/</span><span class="n">getFileDetail</span><span class="o">/</span>
 <span class="o">********************************************************</span>
@@ -208,13 +212,13 @@
 <p>I believe that the IDs returning a 401 status code correspond to private files and are inaccessible without privileged authentication.</p><br/>
 <h3>Insecure Direct Object Reference (IDOR)</h3><br/>
 <p>Accessing these files through <code>/getFileDetail/</code> results in a 401 status code. As we observed earlier, when 'reserving' a file, a request is made to <code>/{File ID}/block</code>. Let's explore what happens when we attempt to block these "private" files. First, let's try to "reserve" the file with the ID <code>101</code>:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/16.png"/></p><br/>
+<p><img width="1347" height="580" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/16.png"/></p><br/>
 <p>As we can see, we successfully gained access to the file. Clicking on 'Just View' allows us to retrieve the file content:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/17.png"/></p><br/>
+<p><img width="1341" height="417" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/17.png"/></p><br/>
 <p>It mentions something about database backups and compressed files with a strong password. But at this moment, it is useless until we gain access to the system.</p><br/>
 <h3>Shell as martin</h3><br/>
 <p>I went through this process for each file, and the file with the ID <code>79</code> had particularly interesting content:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/18.png"/></p><br/>
+<p><img width="990" height="558" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/18.png"/></p><br/>
 <p>It reveals a username and a password. These credentials can be useful for SSH access.</p><br/>
 <p>Trying these credentials through SSH was successful! We now have access to the system as <code>martin</code>.</p><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">ssh</span> <span class="n">martin</span><span class="o">@</span><span class="mf">10.10.11.235</span>
@@ -336,19 +340,19 @@
 <span class="nd">martin@drive</span><span class="p">:</span><span class="o">~$</span>
 </pre></div>
 <p>Now, we can access the website through our browser:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/19.png"/></p><br/>
+<p><img width="1333" height="575" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/19.png"/></p><br/>
 <p>Clicking on "Explore", we noticed there are no public repositories.</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/20.png"/></p><br/>
+<p><img width="1342" height="588" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/20.png"/></p><br/>
 <p>By clicking on "Users", we can list existing users on Gitea:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/21.png"/></p><br/>
+<p><img width="1189" height="335" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/21.png"/></p><br/>
 <p>There are two users; the most relevant here is <code>martinCruz</code>. Since we obtained credentials for the user <code>martin</code> on the system, let's try these credentials in the login section:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/22.png"/></p><br/>
+<p><img width="1344" height="587" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/22.png"/></p><br/>
 <p>We have successfully logged in, and clicking on <code>Explore</code>, we notice a new repo:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/23.png"/></p><br/>
+<p><img width="1344" height="586" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/23.png"/></p><br/>
 <p>It contains the source code of the DoodleGrive website:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/24.png"/></p><br/>
+<p><img width="1338" height="549" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/24.png"/></p><br/>
 <p>There is also a bash script named <code>db_backup.sh</code>. Let's inspect its content:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/25.png"/></p><br/>
+<p><img width="1127" height="335" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/25.png"/></p><br/>
 <p>It contains a hardcoded password used for compressing the files. Now, we can decompress the other compressed files.</p><br/>
 <p>I downloaded all the compressed files on my attacker machine, and now I will extract their content using <code>7z</code> and the password we obtained</p><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="mi">7</span><span class="n">z</span> <span class="n">x</span> <span class="mi">1</span><span class="n">_Dec_db_backup</span><span class="o">.</span><span class="n">sqlite3</span><span class="mf">.7</span><span class="n">z</span> <span class="o">-</span><span class="n">p</span><span class="s1">'H@ckThisP@ssW0rDIfY0uC@n:)'</span>
@@ -531,16 +535,16 @@
 </pre></div>
 <p>That's great, but I think it's time to apply some reverse engineering. Let's understand what's going on behind the scenes with <a href="https://github.com/NationalSecurityAgency/ghidra">Ghidra</a>.</p><br/>
 <p>This is the main function of <code>doodleGrive-cli</code>:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/27.png"/></p><br/>
+<p><img width="1348" height="725" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/27.png"/></p><br/>
 <p>By the way, I'm using the <code>ghidra-dark-theme</code> by <a href="https://github.com/zackelia/ghidra-dark-theme">zackelia</a> in case you're wondering.</p><br/>
 <p>As you can see, here occurs the "authentication":</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/28.png"/></p><br/>
+<p><img width="698" height="404" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/28.png"/></p><br/>
 <p>There is a potential buffer overflow and format string vulnerability. I will explain this after analyzing the code a bit.</p><br/>
 <p>There is an interesting <code>sanitize_string</code> function inspecting my input. Let's see what it's doing:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/29.png"/></p><br/>
+<p><img width="769" height="610" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/29.png"/></p><br/>
 <p>Firstly, <code>param_1</code> represents my input string.</p><br/>
 <p>Here is initializing some variables:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/31.png"/></p><br/>
+<p><img width="500" height="123" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/31.png"/></p><br/>
 <p>The variable <code>local_19</code> has a non-readable value. However, we know that it's in hexadecimal; with Python, we can reverse the process.</p><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@ubuntu$</span> <span class="n">python3</span>
 <span class="n">Python</span> <span class="mf">3.10.12</span> <span class="p">(</span><span class="n">main</span><span class="p">,</span> <span class="n">Nov</span> <span class="mi">20</span> <span class="mi">2023</span><span class="p">,</span> <span class="mi">15</span><span class="p">:</span><span class="mi">14</span><span class="p">:</span><span class="mi">05</span><span class="p">)</span> <span class="p">[</span><span class="n">GCC</span> <span class="mf">11.4.0</span><span class="p">]</span> <span class="n">on</span> <span class="n">linux</span>
@@ -561,10 +565,10 @@
 \<span class="n">x00</span> <span class="p">(</span><span class="n">NULL</span> <span class="n">BYTE</span><span class="p">)</span>
 </pre></div>
 <p>Here is the <code>main_menu()</code> function:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/33.png"/></p><br/>
+<p><img width="560" height="500" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/33.png"/></p><br/>
 <p>After entering the credentials, this menu is displayed. </p><br/>
 <p>While analyzing all functions, I found the <code>activate_user_account()</code> function interesting:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/36.png"/></p><br/>
+<p><img width="741" height="518" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/36.png"/></p><br/>
 <p>Let's examine what this function is doing.</p><br/>
 <p>Firstly, it is defining the variable <code>usernameInput</code> of type char with an allocated buffer of 48 bytes.</p><br/>
 <p>Then, it is defining the variable <code>command</code> of type char with an allocated buffer of 264 bytes.</p><br/>
@@ -611,17 +615,17 @@
 <p>It involves placing a unique value, known as a "canary", between local variables and control data on the execution stack. Before exiting a function, it checks whether this canary value has been modified. If it has been altered, it is assumed that a buffer overflow has occurred, and a defensive action, such as terminating the program, can be taken.</p><br/>
 <p>This protection helps prevent attacks that try to overwrite return addresses or other crucial data on the stack. By introducing a unique canary value that must remain intact, it makes it challenging for attackers to manipulate the stack successfully without being detected.</p><br/>
 <p>The canary is generated in this section of code within the <code>main</code> function:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/37.png"/></p><br/>
+<p><img width="395" height="195" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/37.png"/></p><br/>
 <p>The canary check protection is performed in the following section of the <code>main</code> function:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/38.png"/></p><br/>
+<p><img width="455" height="99" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/38.png"/></p><br/>
 <p>It checks whether the generated canary value is equal to a section of memory.</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/39.png"/></p><br/>
+<p><img width="464" height="55" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/39.png"/></p><br/>
 <p>To exploit this buffer overflow vulnerability, we will need to leak the <code>canary</code> value. Without knowledge of its value, the exploit will fail.</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/41.png"/></p><br/>
+<p><img width="660" height="131" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/41.png"/></p><br/>
 <p>The buffer overflow vulnerability is present in line <code>24</code>. As you can observe, it reads 400 bytes from stdin (user input) and stores them in the <code>local_48</code> variable. The issue here is that <code>local_48</code> was defined with a buffer size of <code>56</code> bytes:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/42.png"/></p><br/>
+<p><img width="488" height="108" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/42.png"/></p><br/>
 <p>There is also a format string vulnerability on line 22:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/41.png"/></p><br/>
+<p><img width="660" height="131" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/41.png"/></p><br/>
 <p>Since <code>local_58</code> stores data from user input on line <code>19</code>.</p><br/>
 <p>The printf format string vulnerability occurs when the printf function (or related functions) is improperly used, allowing an attacker unauthorized access to memory or sensitive information. The vulnerability arises when the format string passed as an argument to printf does not properly match the provided arguments.</p><br/>
 <p>Instead of providing specific arguments for each format specifier in the format string, attackers can exploit this vulnerability by supplying a malicious format string containing format specifiers without corresponding arguments. This can lead to leakage of sensitive data stored in memory or even arbitrary code execution.</p><br/>
@@ -640,7 +644,7 @@
 <p><code>1$</code>: Specifies that the argument to be printed comes from the first argument passed to printf (after the format string).</p><br/>
 <p><code>li</code>: Indicates that the argument will be printed as an integer number in long format.</p><br/>
 <p>In this case, it returns 16, since <code>0x10</code> (16 in hexadecimal) is the first argument passed to printf.</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/43.png"/></p><br/>
+<p><img width="294" height="54" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/43.png"/></p><br/>
 <p>This vulnerability will allow us to leak the <code>canary</code> address. If we manage to read the data in the stack canary, we can send it back to the program later because the canary remains constant throughout the execution.</p><br/>
 <p>Firstly, to obtain it, we have to perform some brute force using the Format String Vulnerability.</p><br/>
 <p>When we entered <code>%1$li</code>, we specified that we wanted to extract the first argument (after the format string) passed to printf in a long integer format. If we enter more than <code>1</code> argument, as printf only had one argument, we will leak some other sections of the memory. This means that we could gain access to the <code>canary</code> through this method.</p><br/>
@@ -712,7 +716,7 @@
 <div class="highlight"><pre><span></span><span class="n">gef</span><span class="o">&gt;</span> <span class="n">r</span>
 </pre></div>
 <p>The breakpoint worked correctly:</p><br/>
-<p><img alt="" src="https://elswix.github.io/writeups/htb/hard/drive/img/44.png"/></p><br/>
+<p><img width="802" height="198" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/drive/img/44.png"/></p><br/>
 <p>If the buffer overflow occurred, the <code>rcx</code> register should be overwritten by my pattern:</p><br/>
 <div class="highlight"><pre><span></span><span class="n">gef</span><span class="o">&gt;</span> <span class="nb">print</span> <span class="err">$</span><span class="n">rcx</span>
 <span class="err">$</span><span class="mi">1</span> <span class="o">=</span> <span class="mh">0x6161616161616168</span>

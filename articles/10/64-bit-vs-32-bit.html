@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>64-bit vs 32-bit</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/img/articles/logo10.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/img/articles/logo10.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>64-bit vs 32-bit</h2>
                     <p>Key Differences and Exploitation Techniques</p>
                 </section>
@@ -121,8 +125,8 @@
 <span class="n">Value</span> <span class="n">pointed</span> <span class="n">to</span> <span class="n">by</span> <span class="n">pX</span><span class="p">:</span> <span class="mi">5</span>
 </pre></div>
 <p>As observed, the <code>pX</code> pointer holds a significantly larger address in the 64-bit version. The same applies to registers: in 64-bit systems, registers can hold 8-byte values. The following image shows a GDB output using the <code>context</code> tool from GEF, illustrating the differences between 32-bit and 64-bit programs:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/10/img/1.png"/></p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/10/img/2.png"/></p><br/>
+<p><img width="685" height="490" loading="lazy" decoding="async" alt="" src="/articles/10/img/1.png"/></p><br/>
+<p><img width="727" height="568" loading="lazy" decoding="async" alt="" src="/articles/10/img/2.png"/></p><br/>
 <p>With larger registers and pointers, 64-bit systems can handle more data at once and access more memory, which changes how software is written and how vulnerabilities are exploited. For example, buffer overflows and other attacks that involve manipulating pointers can be more complex because the addresses are longer and more complex.</p><br/>
 <h3>Segmentation</h3><br/>
 <p>Segmentation refers to how memory is divided and managed by the CPU and operating system. In a 64-bit system, memory segmentation can be more complex because it handles a larger address space. Segmentation helps organize memory into different sections, such as code, data, and stack segments. This organization helps manage memory efficiently and prevents different types of data from interfering with each other.</p><br/>
@@ -173,10 +177,10 @@
 <span class="nd">gef$</span>
 </pre></div>
 <p>If we disassemble the main function in the 32-bit version, we will observe the following code:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/10/img/3.png"/></p><br/>
+<p><img width="519" height="636" loading="lazy" decoding="async" alt="" src="/articles/10/img/3.png"/></p><br/>
 <p>As observed, when calling the sum() function, each parameter value is pushed onto the stack before the function is invoked.</p><br/>
 <p>Let's see what happens in the 64-bit version:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/10/img/4.png"/></p><br/>
+<p><img width="580" height="479" loading="lazy" decoding="async" alt="" src="/articles/10/img/4.png"/></p><br/>
 <p>As observed, the <code>main</code> function is notably smaller in the 64-bit version. Additionally, we can see that the first six parameter values for the <code>sum</code> function are passed through the registers in the following order: <code>rdi</code>, <code>rsi</code>, <code>rdx</code>, <code>rcx</code>, <code>r8</code>, and <code>r9</code>.</p><br/>
 <p>Keep this in mind, as it is important for exploiting 64-bit programs.</p><br/>
 <h2>Examples of Calling Conventions in 64-bit</h2><br/>

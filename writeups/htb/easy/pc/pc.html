@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PC - HTB</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/writeups/htb/easy/pc/img/pc.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/writeups/htb/easy/pc/img/pc.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>PC - HTB</h2>
                     <p>walkthrough by elswixHackTheBox</p>
                 </section>
@@ -165,64 +169,64 @@ To interact with these services, we can use the tool <a href="https://github.com
 </pre></div>
 
 If we attempt to access that URL through the browser, we should be able to access the service successfully.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pc/img/1.png"><br/><br/>
+<img width="1130" height="573" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pc/img/1.png"><br/><br/>
 If we look at the <code>Method name</code> section, we can see three entries: one called <code>LoginUser</code>, another called <code>RegisterUser</code>, and a third called <code>getInfo</code>.<br/><br/>
 From this, we can deduce that there is a database backend with which we are interacting for actions like logging in and registering.<br/><br/>
 First, in the <code>LoginUser</code> section, I will attempt to log in using typical credentials:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pc/img/2.png"><br/><br/>
+<img width="571" height="343" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pc/img/2.png"><br/><br/>
 It appears that these credentials work, and we receive the following response:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pc/img/3.png"/><br/><br/>
+<img width="1251" height="486" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pc/img/3.png"/><br/><br/>
 It returns a supposed <code>id</code> with the value <code>430</code> and a token that may allow us to perform some form of authentication or similar action.<br/><br/>
 If we navigate to the <code>getInfo</code> section, we can see that it requests a field called <code>id</code>, which may be related to what we obtained when authenticating with the credentials we provided. <br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pc/img/4.png"/><br/><br/>
+<img width="669" height="432" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pc/img/4.png"/><br/><br/>
 I will enter the value that was reported to me earlier:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pc/img/5.png"/><br/><br/>
+<img width="665" height="430" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pc/img/5.png"/><br/><br/>
 If we click on <code>Invoke</code>, we will see the following in the response:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pc/img/6.png"/><br/><br/>
+<img width="638" height="458" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pc/img/6.png"/><br/><br/>
 It returns an error, stating that the <code>token</code> header is missing, which is likely related to the token we received during authentication.<br/><br/>
 Since I didn't copy the token earlier, I had to authenticate again to obtain a new one. Additionally, a new value for the <code>id</code> field was reported to me.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pc/img/7.png"/><br/><br/>
+<img width="705" height="430" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pc/img/7.png"/><br/><br/>
 I tried entering the token value into the <code>name</code> and <code>value</code> fields to resend the request:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pc/img/8.png"/><br/><br/>
+<img width="586" height="450" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pc/img/8.png"/><br/><br/>
 In the article I found about gRPC, there is an example of SQL Injection exploitation on the services.<br/><br/>
 <h3><br/>SQL Injection</h3><br/>
 We will focus on attempting to exploit an SQL Injection through the <code>id</code> field in the <code>getInfo</code> section. To do this, we will perform some small tests:<br><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pc/img/9.png"/><br/><br/>
+<img width="1059" height="381" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pc/img/9.png"/><br/><br/>
 When attempting to test the typical SQL injection on the <code>id</code> field, we receive an error in the server's response. Making some changes to our query, we manage to successfully trigger the SQL injection:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pc/img/10.png"/><br/><br/>
+<img width="1057" height="380" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pc/img/10.png"/><br/><br/>
 Simply by removing the character <code>'</code>, we manage to make our SQL query evaluate and trigger the SQL injection. On the server side, the response is different from the previous one because this time the SQL query was valid and executed without errors.<br/><br/>
 To successfully exploit the SQL injection, we need to determine which DBMS (Database Management System) we are dealing with. The DBMS is the type of database management system we are using, and aside from <code>SQLite</code>, others include <code>MySQL</code>, <code>PostgreSQL</code>, <code>MSSQL</code>, among others.<br/><br/>
 After sending several queries on the <code>id</code> field, I was able to identify that we are dealing with <code>SQLite</code> in our case.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pc/img/11.png"/><br/><br/>
+<img width="1057" height="382" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pc/img/11.png"/><br/><br/>
 I identified that it's <code>SQLite</code> because the sent query executed successfully and returned the version of <code>SQLite</code> in use.<br/><br/>
 To further investigate the database and extract information from it, I used payloads available on <a href="https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/SQL%20Injection/SQLite%20Injection.md">PayloadsAllTheThings</a>.<br/><br/>
 I will begin by enumerating the available tables in the database, for which I used the following payload:<br/><br/>
 <div class="highlight"><pre><span></span><span class="mi">777</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">group_concat</span><span class="p">(</span><span class="n">tbl_name</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sqlite_master</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">type</span><span class="o">=</span><span class="s1">'table'</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">tbl_name</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">like</span><span class="w"> </span><span class="s1">'sqlite_%'</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pc/img/12.png"/><br/><br/>
+<img width="1058" height="379" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pc/img/12.png"/><br/><br/>
 We can see that there are two tables in the database, one named <code>accounts</code> and the other <code>messages</code>. The <code>accounts</code> table is the most noteworthy here because if there are more users besides <code>admin</code>, we can attempt to list the credentials.<br/><br/>
 Using the following payload, we will list the columns belonging to the <code>accounts</code> table:<br/><br/>
 <div class="highlight"><pre><span></span><span class="mi">777</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">GROUP_CONCAT</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">column_names</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">pragma_table_info</span><span class="p">(</span><span class="s1">'accounts'</span><span class="p">)</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pc/img/13.png"/><br/><br/>
+<img width="1055" height="383" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pc/img/13.png"/><br/><br/>
 We can see that there are columns named <code>username</code> and <code>password</code> within the <code>accounts</code> table.<br/><br/>
 Finally, we will attempt to extract the information stored in these columns. To do this, I will use <code>limit</code> to restrict the content listed in the server's response, making it easier to retrieve.<br/><br/>
 Using the following payload, we can see the first username in this column:<br/><br/>
 <div class="highlight"><pre><span></span><span class="mi">777</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">username</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">accounts</span><span class="w"> </span><span class="k">limit</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pc/img/14.png"/><br/><br/>
+<img width="1054" height="379" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pc/img/14.png"/><br/><br/>
 If we list the password associated with the <code>admin</code> user, we can observe that they are using their username as their password:<br/><br/>
 <div class="highlight"><pre><span></span><span class="mi">777</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">password</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">accounts</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">username</span><span class="o">=</span><span class="s1">'admin'</span><span class="w"> </span><span class="k">limit</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pc/img/15.png"/><br/><br/>
+<img width="1046" height="378" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pc/img/15.png"/><br/><br/>
 If we attempt to list if there are more usernames in the <code>username</code> column, we come across the username <code>sau</code>:<br/><br/>
 <div class="highlight"><pre><span></span><span class="mi">777</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">username</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">accounts</span><span class="w"> </span><span class="k">limit</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pc/img/16.png"/><br/><br/>
+<img width="1056" height="375" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pc/img/16.png"/><br/><br/>
 If we list the password corresponding to this user, we receive the following report:<br/><br/>
 <div class="highlight"><pre><span></span><span class="mi">777</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">password</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">accounts</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">username</span><span class="o">=</span><span class="s1">'sau'</span><span class="w"> </span><span class="k">limit</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pc/img/17.png"/><br/><br/>
+<img width="1056" height="372" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pc/img/17.png"/><br/><br/>
 The password <code>HereIsYourPassWord1431</code> belongs to the user <code>sau</code> We can try using it to connect via SSH. Although we don't know the system-level users, we can check if the user <code>sau</code> exists on the system:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">ssh</span> <span class="n">sau</span><span class="o">@</span><span class="mf">10.10.11.214</span>
 <span class="n">sau</span><span class="o">@</span><span class="mf">10.10.11.214</span><span class="s1">'s password: </span>
@@ -315,7 +319,7 @@ We can establish port forwarding using <code>ssh</code> by using the <code>-L</c
 </pre></div>
 
 If the port forwarding executed correctly, we should be able to access port <code>8000</code> through our browser using our local IP address.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/easy/pc/img/18.png"/><br/><br/>
+<img width="1324" height="576" loading="lazy" decoding="async" alt="" src="/writeups/htb/easy/pc/img/18.png"/><br/><br/>
 We observe that we executed the port forwarding correctly and managed to access the web server hosted on port <code>8000</code> of the victim machine.<br/><br/>
 At first glance, we can see that <code>pyLoad</code> is being used.<br/><br/>
 PyLoad is an open-source download manager that allows users to download files from the Internet more efficiently and conveniently. It is designed to automate the process of downloading files from various cloud hosting services, websites, and other online resources.<br/><br/>

@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buffer Overflow - Shellcode</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/img/articles/logo7.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/img/articles/logo7.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Buffer Overflow - Shellcode</h2>
                     <p>Exploiting the stack to execute malicious instructions</p>
                 </section>
@@ -86,19 +90,19 @@
 <p>As you have seen in the <a href="https://elswix.github.io/articles/5/introduction-to-buffer-overflow.html">Introduction to Buffer Overflow</a> article, when you overflow the stack, you commonly reach the return address. This address was placed when the vulnerable function was <a href="https://elswix.github.io/articles/2/assembly-instructions-intel-x86.html">called</a> and is the address where the program will return after executing the <a href="https://elswix.github.io/articles/2/assembly-instructions-intel-x86.html">ret</a> instruction. The attacker, through the buffer overflow, modifies this address to control the Instruction Pointer to any address they want, thereby controlling the program flow.</p><br/>
 <p>When the attacker aims to exploit this technique, they create a malicious payload that overwrites the return address with one specified by the attacker, while also embedding crafted shellcode onto the stack. The altered return address directs the program execution flow to the beginning of the shellcode, strategically placed by the attacker on the stack. This necessitates that the attacker possess knowledge of stack addresses before finalizing their payload.</p><br/>
 <p>Let's see this graphically:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/7/img/1.png"/></p><br/>
+<p><img width="798" height="543" loading="lazy" decoding="async" alt="" src="/articles/7/img/1.png"/></p><br/>
 <p>I'll explain this image so that you can understand the attack representation well.</p><br/>
 <p>On the left, there are decimal numbers representing memory addresses within the stack. The word <strong>"data"</strong> signifies random data stored on the stack.</p><br/>
 <p>On the right, there are texts, each indicating a section on the stack containing the described data. For instance, the text <strong>"user input"</strong> points to the section on the stack where user input is stored.</p><br/>
 <p>The decimal numbers stored within the stack, such as the one pointed to by the text <strong>"Return Address"</strong>, are also memory addresses. In the case of <strong>"return address"</strong>, it holds the memory address (10) to which the program will return.</p><br/>
 <p>Let's see what happens if the user enters a large string:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/7/img/2.png"/></p><br/>
+<p><img width="851" height="544" loading="lazy" decoding="async" alt="" src="/articles/7/img/2.png"/></p><br/>
 <p>As you can see, the stack has been overflowed, including important saved values such as the Return Address and the Saved EBP. Now, if the function returns, meaning the <code>ret</code> instruction is executed and pops the saved return address value, the program will attempt to point to the memory address <code>0x41414141</code> (the string "AAAA" in hexadecimal), which will inevitably crash the program.</p><br/>
 <p>Once the attacker realizes they can overwrite the return address with a custom one, they should assess which protections the binary incorporates. Exploiting a buffer overflow using shellcode requires that the NX (No eXecute) protection be disabled. Remember that NX protection prevents certain sections of the binary from being interpreted as instructions. In this scenario, the attacker controls the stack. If the attacker redirects the return pointer to a section of the stack where they've placed malicious instructions, and the NX protection is disabled, those instructions will be executed. Otherwise, if the NX protection is enabled, those instructions won't execute, and the program will crash.</p><br/>
 <p>In the event the NX protection is disabled, the attacker should do the following:</p><br/>
 <p>Firstly, they have to understand the addresses of the stack, including where the return pointer is overwritten and where their shellcode is placed on the stack. Once they identify where the shellcode begins on the stack, they need to place that address in the return address. This way, when the function returns, the malicious address is placed in the Instruction Pointer, and the program flow continues from the beginning of the shellcode.</p><br/>
 <p>Let's see this process graphically:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/7/img/3.png"/></p><br/>
+<p><img width="872" height="551" loading="lazy" decoding="async" alt="" src="/articles/7/img/3.png"/></p><br/>
 <p>As observed, the attacker successfully overflowed the stack. They created a carefully designed payload to overwrite the return address with the address 36 and then to place the shellcode on the stack. Now, when the function returns, the program flow will continue from address 36, which indeed holds the beginning of the shellcode on the stack.</p><br/>
 <h3>Practice</h3><br/>
 <p>Let's attempt to exploit a buffer overflow by abusing this technique. Since this is a simple demonstration of how attackers can exploit a buffer overflow using shellcode, we'll disable every binary protection to make it simpler.</p><br/>
@@ -170,7 +174,7 @@
 <span class="mh">0x41414141</span> <span class="ow">in</span> <span class="n">??</span> <span class="p">()</span>
 <span class="nd">gef$</span>
 </pre></div>
-<p><img alt="" src="https://elswix.github.io/articles/7/img/4.png"/></p><br/>
+<p><img width="402" height="223" loading="lazy" decoding="async" alt="" src="/articles/7/img/4.png"/></p><br/>
 <p>As observed, our string has overwritten several registers, including the Instruction Pointer. This is because we have overflowed the stack, and some registers store their previous values there. When the function returns, these stored values are overwritten, consequently, allowing user-controlled values to be popped.</p><br/>
 <p>The most interesting value to overwrite is the return address, since when the function returns, this value is popped into the EIP register, allowing us to control the Instruction Pointer, and consequently, the program flow.</p><br/>
 <p>So far, we know that we can control the instruction pointer by overwriting the return address on the stack. However, we don't know how many characters we have to enter prior to starting overwriting the return address. As explained in my <a href="https://elswix.github.io/articles/5/introduction-to-buffer-overflow.html">Introduction to Buffer Overflow</a> article, an attacker could create a pattern string. Then, when it overwrites the return address, they can examine the value of the instruction pointer and compare it with their pattern string to determine where the overwrite occurred.</p><br/>
@@ -196,7 +200,7 @@
 <span class="mh">0x61616169</span> <span class="ow">in</span> <span class="n">??</span> <span class="p">()</span>
 <span class="nd">gef$</span>
 </pre></div>
-<p><img alt="" src="https://elswix.github.io/articles/7/img/5.png"/></p><br/>
+<p><img width="349" height="219" loading="lazy" decoding="async" alt="" src="/articles/7/img/5.png"/></p><br/>
 <p>As you can see, the instruction pointer (EIP) holds the string 0x61616169 (the string "iaaa" in hexadecimal). This indicates that the return address was overwritten when we entered the string <code>iaaa</code>.</p><br/>
 <p>To calculate how many characters we need to enter to reach the return address, since we entered the pattern string generated by gef, we can use the command <code>pattern offset $eip</code> to determine the number of characters required before overwriting the return address.</p><br/>
 <div class="highlight"><pre><span></span><span class="nd">gef$</span> <span class="n">pattern</span> <span class="n">offset</span> <span class="n">$</span><span class="n">eip</span>
@@ -216,7 +220,7 @@
 <span class="mh">0x42424242</span> <span class="ow">in</span> <span class="n">??</span> <span class="p">()</span>
 <span class="nd">gef$</span>
 </pre></div>
-<p><img alt="" src="https://elswix.github.io/articles/7/img/6.png"/></p><br/>
+<p><img width="361" height="223" loading="lazy" decoding="async" alt="" src="/articles/7/img/6.png"/></p><br/>
 <p>It worked! We overwrote the EIP with the string "BBBB". This indicates that we need to enter 32 bytes (characters) before overwriting the return address. </p><br/>
 <p>To successfully exploit this buffer overflow using ShellCode, we firstly need to determine where to place it. Since we control the stack, we can position it there and redirect the instruction pointer to the start of our shellcode.</p><br/>
 <p>In theory, the stack pointer should indicate the data we insert into our payload after the return address. To verify this, let's add some stuff after the return address:</p><br/>
@@ -231,7 +235,7 @@
 <span class="mh">0x42424242</span> <span class="ow">in</span> <span class="n">??</span> <span class="p">()</span>
 <span class="nd"><span class="n"></span>
 </span></pre></div>
-<p><img alt="" src="https://elswix.github.io/articles/7/img/7.png"/></p><br/>
+<p><img width="434" height="225" loading="lazy" decoding="async" alt="" src="/articles/7/img/7.png"/></p><br/>
 <p>As evident, the stack pointer now points to the data we've entered after the return address. Consequently, we could replicate the stack pointer address and set it as the return address. Thus, upon function return, the instruction pointer will point to the stack pointer address, where are located our "C" characters.</p><br/>
 <p>Why do this? Well, during binary compilation, we disabled the NX (No eXecute) protection, allowing executable sections like the stack. By injecting malicious instructions (shellcode) into the stack and directing the instruction pointer to this specific area, those instructions will be executed, leading to code execution.</p><br/>
 <p>As depicted in the image, the stack pointer address was <code>0xffffcfa0</code>, pointing to our <code>C</code> characters placed after the return address. This indicates that we can redirect the instruction pointer to this address, allowing us to insert our malicious instructions (shellcode) in place of those <code>C</code> characters. Therefore, when the instruction pointer reaches these instructions, they will be executed.</p><br/>

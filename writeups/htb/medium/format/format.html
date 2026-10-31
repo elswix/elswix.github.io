@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Format - HTB</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/writeups/htb/medium/format/img/format.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/writeups/htb/medium/format/img/format.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Format - HTB</h2>
                     <p>walkthrough by elswixHackTheBox</p>
                 </section>
@@ -159,21 +163,21 @@ When performing the scan on port 80, an error is reported because an attempt is 
 </pre></div>
 
 Inspecting the web service hosted on port 80, we observe the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/1.png"><br/><br/>
+<img width="1341" height="507" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/1.png"><br/><br/>
 If we scroll down on the homepage, there is a hyperlink that says "Contribute here!" which redirects us to the web service hosted on port 3000:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/2.png"><br/><br/>
+<img width="1349" height="150" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/2.png"><br/><br/>
 If we click on the hyperlink, we see the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/3.png"/><br/><br/>
+<img width="1343" height="508" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/3.png"/><br/><br/>
 Firstly, we can observe that <a href="https://about.gitea.com/">Gitea</a> is running under the web service on port <code>3000</code>. <a href="https://about.gitea.com/">Gitea</a> is an open-source platform for source code repository management, similar to GitHub.<br/><br/>
 It appears that the hyperlink redirected us to a repository owned by the user <code>cooper</code> named <code>microblog</code>. It seems that this repository provides the source code for the homepage on port 80.<br/><br/>
 Before inspecting the code in-depth, I will navigate to the homepage and create a user account:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/4.png"/><br/><br/>
+<img width="1124" height="579" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/4.png"/><br/><br/>
 Once logged in with a valid user, it appears that the page offers services to create our own logs under subdomains:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/5.png"/><br/><br/>
+<img width="1284" height="285" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/5.png"/><br/><br/>
 We can specify the subdomain we want to use:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/6.png"/><br/><br/>
+<img width="1249" height="215" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/6.png"/><br/><br/>
 Upon creation, we are presented with the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/7.png"/><br/><br/>
+<img width="1282" height="231" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/7.png"/><br/><br/>
 We can try to access the site that was created. However, since it is accessed through a new subdomain, we need to add it to the <code>/etc/hosts</code> file in order to resolve it:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">cat</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">hosts</span>
 <span class="mf">127.0.0.1</span>   <span class="n">localhost</span>
@@ -189,38 +193,38 @@ We can try to access the site that was created. However, since it is accessed th
 </pre></div>
 
 Now, if we attempt to access it, we see the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/8.png"/><br/><br/>
+<img width="1351" height="583" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/8.png"/><br/><br/>
 We also have the option to edit it by clicking on <code>Edit It here.</code>:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/9.png"/><br/><br/>
+<img width="1344" height="581" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/9.png"/><br/><br/>
 If we click on <code>txt</code>, we can add content to our blog:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/11.png"/><br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/12.png"/><br/><br/>
+<img width="1303" height="318" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/11.png"/><br/><br/>
+<img width="1324" height="157" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/12.png"/><br/><br/>
 Seeing our input reflected on the web page, we can attempt various injection attacks such as XSS, SSTI, among others. Let's try a simple XSS injection:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/13.png"/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/14.png"/><br/><br/>
+<img width="1272" height="263" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/13.png"/>
+<img width="782" height="295" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/14.png"/><br/><br/>
 The fields are vulnerable to XSS injections. This is just a test and not part of the machine exploitation.<br/><br/>
 The requests to edit our blog are made in the <code>/edit/index.php</code> section.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/15.png"/><br/><br/>
+<img width="511" height="345" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/15.png"/><br/><br/>
 Since we have access to the source code, we can try to understand how these user input fields are handled and potentially exploit them.<br/><br/>
 In the repository we saw earlier, there is an example of a blog on the subdomain <code>sunny.microblog.htb</code> where we can view the source code of the blogs. Most likely, this blog works similarly to ours, allowing us to analyze what happens behind the scenes.<br/><br/>
 Inspecting the <code>microblog/sunny/edit/index.php</code> file, we are presented with details about blog editing.<br/><br/>
 It's evident that the website is using Redis as a database backend:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/16.png"/><br/><br/>
+<img width="581" height="213" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/16.png"/><br/><br/>
 Inspecting the code further, we arrive at the section where we can edit the content of our blog, and we see the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/17.png"/><br/><br/>
+<img width="503" height="241" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/17.png"/><br/><br/>
 As a user, we can modify both parameters used in the function: <code>id</code> and <code>txt</code>.<br/><br/>
 What's happening here?<br/><br/>
 Firstly, this code processes user input, creates a file with the name specified in <code>$_POST['id']</code>, writes the HTML content to that file, and also logs the filename in <code>order.txt</code>.<br/><br/>
 In other words, the <code>id</code> parameter is the filename in which the information in HTML format will be written. The HTML-formatted information is a conversion of the information provided in the <code>txt</code> parameter. The file with the name specified by the <code>id</code> parameter is stored in the <code>content</code> directory with HTML content. Then, the filename (specified through the <code>id</code> parameter) is stored in the <code>order.txt</code> file. This is likely done to keep track of the files that are created.<br/><br/>
 Next, we encounter the following function:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/18.png"/><br/><br/>
+<img width="855" height="209" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/18.png"/><br/><br/>
 This function is responsible for loading the content of the <code>order.txt</code> file, which, as mentioned earlier, stores the filename specified by the <code>id</code> parameter.<br/><br/>
 In other words, it loads the file whose name is stored in <code>order.txt</code>.<br/><br/>
 We can take advantage of this because we can input data into <code>order.txt</code> as we control the <code>id</code> parameter. Therefore, we can try to input a system-level file name to attempt to load it.<br/><br/>
 Let's try entering the file <code>/etc/passwd</code> in the <code>id</code> parameter, and then in the <code>txt</code> parameter, we'll input a random string; the content of the <code>txt</code> parameter doesn't matter much:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/19.png"/><br/><br/>
+<img width="508" height="359" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/19.png"/><br/><br/>
 We send the request, and immediately in the response, we see the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/20.png"/><br/><br/>
+<img width="465" height="352" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/20.png"/><br/><br/>
 In a not very elegant format, but we are reading files at the system level. We are abusing a Local File Inclusion (LFI).<br/><br/>
 I hope I have explained myself clearly; I apologize if I was not very clear.<br/><br/>
 <h3><br/>Shell as www-data</h3><br/>
@@ -338,14 +342,14 @@ Inspecting the system further, if we navigate to the configuration files of <cod
 </pre></div>
 
 While conducting some internet research, this nginx configuration structure can potentially be exploited to attempt interactions with Unix sockets. In this <a href="https://labs.detectify.com/2021/02/18/middleware-middleware-everywhere-and-lots-of-misconfigurations-to-fix/">article</a>, you can find information on how to potentially exploit this for Unix socket interactions. Additionally, I found some information in the following section of <a href="https://exploit-notes.hdks.org/exploit/database/redis-pentesting/#get%2Fset-key-value-commands-with-nginx-misconfiguration">Exploit Notes - HDKS</a>, which provides an example of attempting to modify values in a Redis database:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/21.png"/><br/><br/>
+<img width="743" height="348" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/21.png"/><br/><br/>
 A configuration similar to the one we are dealing with is presented, along with a command for interacting with Redis. It appears to allow us to modify the values of fields associated with a key.<br/><br/>
 To gather more information about the fields whose values we can change, I began reading the section on registering new users.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/22.png"/><br/><br/>
+<img width="775" height="248" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/22.png"/><br/><br/>
 Here, all the fields stored in the database are being leaked. Judging by the structure, it seems that the <code>key</code> in this case is the user, and the fields include <code>username</code>, <code>password</code>, <code>first-name</code>, and so on.<br/><br/>
 The values assigned to these fields are the ones received through the POST parameters.<br/><br/>
 Upon accessing our blog, we are presented with the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/25.png"/><br/><br/>
+<img width="1022" height="109" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/25.png"/><br/><br/>
 Having read through the source code, I noticed that the field returned when accessing the blog was <code>first-name</code>.<br/><br/>
 Knowing this, I can attempt to alter values by exploiting the vulnerable nginx configuration.<br/><br/>
 With this information in mind, let's try to change the <code>first-name</code> of our user and then reload the page to verify if the change was successful.<br/><br/>
@@ -358,34 +362,34 @@ First, we make the request to <code>/static</code> (as shown in the nginx config
 </pre></div>
 
 If we now reload the page where our blog is hosted, we can see that we have successfully changed the value of the <code>first-name</code> field in our account.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/26.png"/><br/><br/>
+<img width="1045" height="87" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/26.png"/><br/><br/>
 Indeed, simply changing the <code>first-name</code> value may not be very useful. <br/><br/>
 Upon reevaluating the code, we notice the presence of a function that checks if the user has the <code>Pro</code> field set to <code>true</code>.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/27.png"/><br/><br/>
+<img width="446" height="189" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/27.png"/><br/><br/>
 Certainly, users who have the value <code>true</code> in the <code>pro</code> field likely enjoy some additional advantages with their blogs.<br/><br/>
 Upon reading the code, we notice that users with the <code>true</code> value in the <code>pro</code> field have the privilege of uploading images to the blog:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/28.png"/><br/><br/>
+<img width="751" height="588" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/28.png"/><br/><br/>
 We can upload images, and they are stored in the <code>/uploads</code> section, which initially, as a non-privileged user, we cannot access:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/29.png"/><br/><br/>
+<img width="1122" height="396" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/29.png"/><br/><br/>
 With this knowledge and taking advantage of our ability to alter database values through the vulnerability we found, let's change the value of the <code>pro</code> field for our user to <code>true</code>.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">X</span> <span class="n">HSET</span> <span class="s1">'http://microblog.htb/static/unix:/var/run/redis/redis.sock:elswix%20pro%20true%20/a'</span>
 </pre></div>
 
 We reload the blog editing page and see the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/30.png"/><br/><br/>
+<img width="1329" height="408" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/30.png"/><br/><br/>
 We have successfully become a <code>Pro</code> user.<br/><br/>
 To upload an image, we must ensure that it is in PNG format, as otherwise, it will not allow us to upload it:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/31.png"/><br/><br/>
+<img width="1244" height="280" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/31.png"/><br/><br/>
 We can access the image, and we see that it has been stored in the <code>/uploads</code> section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/33.png"/><br/><br/>
+<img width="1072" height="580" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/33.png"/><br/><br/>
 Previously, the <code>/uploads</code> section did not exist, but now we can access it only if we know the names of the files located in that directory:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/34.png"/><br/><br/>
+<img width="1092" height="417" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/34.png"/><br/><br/>
 It appears that in the <code>uploads</code> directory, we have write privileges, given that we are uploading images. If we recall what we've observed, when executing the LFI, the information we entered in the <code>id</code> parameter was the name of the file where the information provided through the <code>txt</code> parameter would be written in HTML format.<br/><br/>
 What does this mean?<br/><br/>
 We can attempt to write a <code>php</code> program in the <code>uploads</code> directory (since we have access) that should be interpreted when loaded. We will specify the content of the <code>php</code> file using the <code>txt</code> parameter and indicate the location where it should be stored through the <code>id</code> parameter.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/35.png"/><br/><br/>
+<img width="619" height="251" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/35.png"/><br/><br/>
 By sending this, the <code>run.php</code> file will be created in the <code>/uploads</code> section, where we can use the <code>cmd</code> parameter to specify system-level commands to execute:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/36.png"/><br/><br/>
+<img width="1083" height="269" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/36.png"/><br/><br/>
 Quickly, we will send a reverse shell to our attacker machine.<br/><br/>
 First, we need to set up a listener:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
@@ -395,7 +399,7 @@ First, we need to set up a listener:<br/><br/>
 </pre></div>
 
 Next, we send the reverse shell by executing the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/38.png"/><br/><br/>
+<img width="913" height="68" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/38.png"/><br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Listening</span> <span class="n">on</span> <span class="p">[::]:</span><span class="mi">3001</span>
@@ -497,22 +501,22 @@ When listing the file type for <code>license</code>, we see that it is a Python 
 If we analyze the program carefully, we notice that we could potentially exploit a <code>Python Format String Vulnerability</code>. While searching for information, I came across the following article: <a href="https://podalirius.net/en/articles/python-format-string-vulnerabilities/">Python Format String Vulnerabilities</a>.<br/><br/>
 This article discusses how, by using Format String, you can attempt to access objects of classes in the running program. In other words, if we can exploit it successfully, we can try to access the content of variables defined in the program, for example.<br/><br/>
 But before we start exploiting it, let's take a closer look at how the code works.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/39.png"/><br/><br/>
+<img width="626" height="103" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/39.png"/><br/><br/>
 First, the <code>License</code> class is created. The main <code>__init__</code> function creates a variable called <code>license</code> that is set to a random string of 40 characters in length.<br/><br/>
 Before it starts performing operations, the program checks whether we are running it as root, i.e., as a privileged user.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/40.png"/><br/><br/>
+<img width="637" height="104" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/40.png"/><br/><br/>
 Upon closer inspection, we find the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/41.png"/><br/><br/>
+<img width="922" height="133" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/41.png"/><br/><br/>
 Firstly, we see interaction with Redis using the same socket through which we gained access.<br/><br/>
 Additionally, the program reads the file <code>/root/license/secret</code>, which appears to contain some kind of key.<br/><br/>
 The issue with this vulnerability arises here:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/42.png"/><br/><br/>
+<img width="859" height="76" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/42.png"/><br/><br/>
 First, it stores the username from the user we input through the <code>provision</code> parameter.<br/><br/>
 Then, it creates a variable called <code>firstlast</code> that combines the <code>first-name</code> and <code>last-name</code> fields from the user we input through the <code>provision</code> parameter.<br/><br/>
 The problem arises when defining the <code>license_key</code> variable because it uses <code>Format String</code> on values of variables that we can control. For example, in the <code>first-name</code> field, we can enter any information we want since we have access to Redis. By using the format in this way, it exposes the vulnerability we saw in the <a href="https://podalirius.net/en/articles/python-format-string-vulnerabilities">article</a>.<br/><br/>
 Searching a bit more on the internet, I also found the following article on <a href="https://security.stackexchange.com/questions/238338/are-there-any-security-concerns-to-using-python-f-strings-with-user-input">StackExchange</a>. This latter one is more comprehensive regarding the exploitation of the vulnerability.<br/><br/>
 Upon further reading of the code, we see that what's stored in the <code>license_key</code> variable is displayed on the screen:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/format/img/43.png"/><br/><br/>
+<img width="825" height="225" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/format/img/43.png"/><br/><br/>
 <h3><br/>Exploitation</h3><br/>
 Firstly, if we input a user through the <code>provision</code> parameter, we get the following report:<br><br/>
 <div class="highlight"><pre><span></span><span class="nd">cooper@format</span><span class="p">:</span><span class="o">~</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">license</span> <span class="o">-</span><span class="n">p</span> <span class="n">elswix</span>

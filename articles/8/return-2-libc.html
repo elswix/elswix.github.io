@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ret2libc Technique</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/img/articles/logo8.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/img/articles/logo8.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Ret2libc Technique</h2>
                     <p>leveraginglibcto exploit a buffer overflow</p>
                 </section>
@@ -98,10 +102,10 @@
 <h2>Return To Libc - Exploitation</h2><br/>
 <p>Let's talk about the theoretical exploitation of the ret2libc technique. To better understand these concepts, I'll simplify the stack and the technique, although in practical terms, it's not that different. We'll focus on exploiting ret2libc in 32-bit binaries, as exploiting 64-bit binaries requires more knowledge, which we'll cover in upcoming articles. The concept is the same and practically identical, but there are differences.</p><br/>
 <p>Let's imagine a program that prompts for user input and stores that input in a buffer on the stack:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/8/img/1.png"/></p><br/>
+<p><img width="565" height="524" loading="lazy" decoding="async" alt="" src="/articles/8/img/1.png"/></p><br/>
 <p>Let's break down this picture. This is the stack in its normal behavior. As you can see, the user input is stored within the stack frame of the function, and there is more relevant information stored on the stack. We have the EBP, which points to its previous value and also defines the beginning of the stack frame. Four bytes after the EBP (EBP+0x4), we have the return address, which was pushed onto the stack when calling the current function. After the return address, there is a parameter passed to this function.</p><br/>
 <p>Let's see what happens if the user enters more input than the allocated buffer size:</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/8/img/2.png"/></p><br/>
+<p><img width="618" height="478" loading="lazy" decoding="async" alt="" src="/articles/8/img/2.png"/></p><br/>
 <p>As you can see, the user entered a very long string, and since there is no input sanitization, it has overwritten a lot of memory on the stack, including the EBP and the return address, with the latter being the most important one.</p><br/>
 <p>This is a typical stack-based buffer overflow vulnerability. When exploiting a buffer overflow to achieve shellcode execution, we would overwrite the return address with an address on the stack where our shellcode was stored. However, this time, with NX protection enabled, those instructions on the stack won't be executed as instructions. Therefore, we need to find another way to achieve code execution.</p><br/>
 <p>Commonly, the ret2libc technique involves calling the <code>system()</code> function within libc and passing the address of the string "/bin/sh" as a parameter.</p><br/>
@@ -110,7 +114,7 @@
 <p>Between those two addresses, we have to add a return address for <code>system()</code>, this is the address where the program will return after the execution of <code>system()</code> finishes.</p><br/>
 <div class="highlight"><pre><span></span><span class="n">ret2libc</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">system</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">somefunction</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">"/bin/sh"</span><span class="w"></span>
 </pre></div>
-<p><img alt="" src="https://elswix.github.io/articles/8/img/3.png"/></p><br/>
+<p><img width="785" height="552" loading="lazy" decoding="async" alt="" src="/articles/8/img/3.png"/></p><br/>
 <p>In this example, the attacker has overwritten the return address with the address of the <code>system()</code> function within libc. Then, after the return address, they placed the return address for <code>system()</code>, which is now set to <code>BBBB</code>. Therefore, when the <code>system()</code> function returns, it will return to <code>0x42424242</code> ("BBBB" in hex). Finally, they placed the address of the string "/bin/sh" within libc. This address will act as a parameter for <code>system()</code>.</p><br/>
 <p><br/></p><br/>
 <h3 class="note">Note</h3><br/>

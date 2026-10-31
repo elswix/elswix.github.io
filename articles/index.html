@@ -7,8 +7,11 @@
     <title>elswix - Articles</title>
     <meta name="description"
         content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles_index.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
@@ -16,51 +19,52 @@
 </head>
 
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo"
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo"
                         onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -74,15 +78,20 @@
                 <section class="hero mb-5">
                     <img src="/img/articles-logo.png" alt="Article logo"
                         style="filter: invert(100%); width: 120px; height: 120px;"
-                        onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                        onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Articles</h2>
-                    <p>Technical deep-dives into cybersecurity topics</p>
+                    <p>Technical deep-dives into offensive security</p>
                 </section>
+                <div class="search-box">
+                    <label class="search-prompt" for="searchInput">$ grep -i <span>./articles</span></label>
+                    <input type="text" id="searchInput" placeholder="kerberos, adcs, buffer overflow..." autocomplete="off" spellcheck="false">
+                    <span class="search-count" id="searchCount"></span>
+                </div>
                 <section>
-                    <!-- Active Directory Section -->
+                    <div class="list-divider">Windows &amp; Active Directory</div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="User Account Control" class="rounded-circle me-3"
+                            <img width="240" height="198" loading="lazy" decoding="async" alt="User Account Control" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=AD'"
                                 src="/img/articles/logo21.png" />
                             <div>
@@ -95,7 +104,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Windows Access Tokens" class="rounded-circle me-3"
+                            <img width="240" height="238" loading="lazy" decoding="async" alt="Windows Access Tokens" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=AD'"
                                 src="/img/articles/logo20.png" />
                             <div>
@@ -108,7 +117,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="AD Domain Trusts" class="rounded-circle me-3"
+                            <img width="240" height="195" loading="lazy" decoding="async" alt="AD Domain Trusts" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=AD'"
                                 src="/img/articles/logo19.png" />
                             <div>
@@ -121,7 +130,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="AD Certificate Services Part 2" class="rounded-circle me-3"
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="AD Certificate Services Part 2" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=AD'"
                                 src="/img/articles/logo18.png" />
                             <div>
@@ -136,7 +145,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="AD Certificate Services Part 1" class="rounded-circle me-3"
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="AD Certificate Services Part 1" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=AD'"
                                 src="/img/articles/logo17.png" />
                             <div>
@@ -151,7 +160,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="DACL Abuse" class="rounded-circle me-3"
+                            <img width="240" height="191" loading="lazy" decoding="async" alt="DACL Abuse" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=DACL'"
                                 src="/img/articles/logo16.png" />
                             <div>
@@ -165,7 +174,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Windows ACLs" class="rounded-circle me-3"
+                            <img width="240" height="227" loading="lazy" decoding="async" alt="Windows ACLs" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=ACL'"
                                 src="/img/articles/logo15.png" />
                             <div>
@@ -180,7 +189,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Attacking Kerberos" class="rounded-circle me-3"
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Attacking Kerberos" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=KRB'"
                                 src="/img/articles/logo14.png" />
                             <div>
@@ -195,7 +204,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Kerberos Auth" class="rounded-circle me-3"
+                            <img width="239" height="240" loading="lazy" decoding="async" alt="Kerberos Auth" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=KRB'"
                                 src="/img/articles/logo13.png" />
                             <div>
@@ -209,10 +218,10 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Binary Exploitation Section -->
+                    <div class="list-divider">Binary Exploitation &amp; Linux</div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Heap" class="rounded-circle me-3"
+                            <img width="240" height="240" loading="lazy" decoding="async" alt="Heap" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=HEAP'"
                                 src="/img/articles/logo12.png" />
                             <div>
@@ -228,7 +237,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Ret2libc Part 2" class="rounded-circle me-3"
+                            <img width="163" height="123" loading="lazy" decoding="async" alt="Ret2libc Part 2" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=RET2'"
                                 src="/img/articles/logo11.png" />
                             <div>
@@ -242,7 +251,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="64-bit vs 32-bit" class="rounded-circle me-3"
+                            <img width="240" height="238" loading="lazy" decoding="async" alt="64-bit vs 32-bit" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=x64'"
                                 src="/img/articles/logo10.png" />
                             <div>
@@ -257,7 +266,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Format String" class="rounded-circle me-3"
+                            <img width="191" height="128" loading="lazy" decoding="async" alt="Format String" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=FSV'"
                                 src="/img/articles/logo9.png" />
                             <div>
@@ -272,7 +281,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Ret2libc Part 1" class="rounded-circle me-3"
+                            <img width="238" height="126" loading="lazy" decoding="async" alt="Ret2libc Part 1" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=RET2'"
                                 src="/img/articles/logo8.png" />
                             <div>
@@ -286,7 +295,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Shellcode" class="rounded-circle me-3"
+                            <img width="232" height="221" loading="lazy" decoding="async" alt="Shellcode" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=SHEL'"
                                 src="/img/articles/logo7.png" />
                             <div>
@@ -301,7 +310,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="PLT &amp; GOT" class="rounded-circle me-3"
+                            <img width="240" height="209" loading="lazy" decoding="async" alt="PLT &amp; GOT" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=PLT'"
                                 src="/img/articles/logo6.png" />
                             <div>
@@ -316,7 +325,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Buffer Overflow Intro" class="rounded-circle me-3"
+                            <img width="240" height="236" loading="lazy" decoding="async" alt="Buffer Overflow Intro" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=BOF'"
                                 src="/img/articles/logo5.png" />
                             <div>
@@ -331,7 +340,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Binary Protections" class="rounded-circle me-3"
+                            <img width="206" height="194" loading="lazy" decoding="async" alt="Binary Protections" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=PROT'"
                                 src="/img/articles/logo4.png" />
                             <div>
@@ -346,7 +355,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="CPU &amp; Assembly" class="rounded-circle me-3"
+                            <img width="240" height="239" loading="lazy" decoding="async" alt="CPU &amp; Assembly" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/ff3b5c/ffffff?text=CPU'"
                                 src="/img/articles/logo3.png" />
                             <div>
@@ -361,7 +370,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Assembly Instructions" class="rounded-circle me-3"
+                            <img width="312" height="184" loading="lazy" decoding="async" alt="Assembly Instructions" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/00ff88/ffffff?text=ASM'"
                                 src="/img/articles/logo2.png" />
                             <div>
@@ -377,7 +386,7 @@
                     </div>
                     <div class="writeup mb-4">
                         <div class="d-flex align-items-center">
-                            <img alt="Linux UIDs" class="rounded-circle me-3"
+                            <img width="203" height="240" loading="lazy" decoding="async" alt="Linux UIDs" class="rounded-circle me-3"
                                 onerror="this.src='https://via.placeholder.com/80/00d4ff/ffffff?text=UID'"
                                 src="/img/articles/logo1.png" />
                             <div>
@@ -394,6 +403,8 @@
             </main>
         </div>
     </div>
+    <script src="/js/sidebarToggle.js"></script>
+    <script src="/js/search.js"></script>
 </body>
 
 </html>

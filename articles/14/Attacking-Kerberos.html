@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AD - Attacking Kerberos</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/img/articles/logo14.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/img/articles/logo14.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Attacking Kerberos</h2>
                     <p>Diving into the most common attacks</p>
                 </section>
@@ -167,11 +171,11 @@
 <p>When an AS-REQ is sent for such a user, the KDC responds with a <code>KRB_AS_REP</code>, which contains the user’s encrypted data (a structure that includes the first Session Key). This data is encrypted using the user’s NT hash and can be brute-forced offline using a large password list to recover the hash—and potentially the password. Essentially, the attacker attempts to decrypt the structure containing the <code>Session Key</code>. If successful, this indicates that the correct user password has been obtained.</p><br/>
 <p>An account with the <code>UF_DONT_REQUIRE_PREAUTH</code> attribute set means that pre-authentication information is not required to obtain a TGT for that account.</p><br/>
 <p>As mentioned in the previous article, when sending a <code>KRB_AS_REQ</code> message to the KDC (the first step in the Kerberos Authentication Process), you must provide a structure containing a timestamp encrypted with the NT hash (user key) of the account:</p><br/>
-<p><img src="https://elswix.github.io/articles/13/img/1.png"/></p><br/><p>Then, when the KDC receives this message, it looks for the corresponding NT hash of the specified <code>username</code> and attempts to decrypt the timestamp using that hash. If the decryption is successful, it means the timestamp was encrypted with the correct hash, i.e., with valid credentials for that user.</p><br/>
+<p><img width="944" height="392" loading="lazy" decoding="async" src="/articles/13/img/1.png"/></p><br/><p>Then, when the KDC receives this message, it looks for the corresponding NT hash of the specified <code>username</code> and attempts to decrypt the timestamp using that hash. If the decryption is successful, it means the timestamp was encrypted with the correct hash, i.e., with valid credentials for that user.</p><br/>
 <p>The <code>UF_DONT_REQUIRE_PREAUTH</code> attribute allows a <code>KRB_AS_REQ</code> message to be sent for an account with this attribute set, without the need to provide pre-authentication information (i.e., without an encrypted timestamp):</p><br/>
-<p><img alt="" src="https://elswix.github.io/articles/14/img/1.png"/></p><br/>
+<p><img width="928" height="422" loading="lazy" decoding="async" alt="" src="/articles/14/img/1.png"/></p><br/>
 <p>Finally, the KDC issues a TGT without verifying whether the client requesting the TGT knows the credentials for the specified user.</p><br/>
-<p><img src="https://elswix.github.io/articles/13/img/2.png"/></p><br/>
+<p><img width="1247" height="488" loading="lazy" decoding="async" src="/articles/13/img/2.png"/></p><br/>
 Finally, the client (who receives the <code>KRB_AS_REP</code> message) may attempt to crack the structure containing the session key, which is encrypted with the User Key (the user's NT hash). This can be done through a dictionary attack using tools such as John the Ripper or Hashcat.<br/>
 <p>Why not try to reuse the TGT instead? Well, this isn't possible. Remember that to request a Service Ticket, you must send a <code>KRB_TGS_REQ</code> with a structure encrypted with the session key. Without having the user key beforehand, you cannot decrypt the structure containing the session key, which means you can't use that TGT.</p><br/>
 <h3>Abuse</h3><br/>
@@ -258,7 +262,7 @@ Finally, the client (who receives the <code>KRB_AS_REP</code> message) may attem
 <br/><h2>Kerberoasting</h2><br/>
 <p>This attack is similar to <strong>AS-REP Roasting</strong>, but instead of exploiting the <code>KRB_AS_REP</code> response and the <code>UF_DONT_REQUIRE_PREAUTH</code> attribute, it targets the <code>KRB_TGS_REP</code> response.</p><br/>
 <p>When requesting a Service Ticket (ST) from the KDC, the user must send a valid TGT  along with the <code>SPN</code> of the desired service.
-</p><br/><p><img src="https://elswix.github.io/articles/13/img/3.png"/></p><br/>
+</p><br/><p><img width="1031" height="539" loading="lazy" decoding="async" src="/articles/13/img/3.png"/></p><br/>
 If the TGT is valid and the service exists, the KDC will issue the Service Ticket (ST) to the requesting user embedded in a <code>KRB_TGS_REP</code> message.<br/>
 <h3 class="note">Note</h3><br/>
 <p>When explaining the <code>KRB_TGS_REQ</code> message earlier, I forgot to mention that the <code>SPN</code> is not necessarily the exact information included in the message to specify the service. It can actually be the <code>sAMAccountName</code>. The field used is called <code>sname</code> (Service Name) rather than <code>SPN</code>. However, in practice, the <code>SPN</code> is typically provided in the <code>sname</code> field to specify the service.</p><br/>
@@ -559,5 +563,6 @@ If the TGT is valid and the service exists, the KDC will issue the Service Ticke
             </main>
         </div>
     </div>
+    <script src="/js/sidebarToggle.js"></script>
 </body>
 </html>

