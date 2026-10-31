@@ -546,6 +546,13 @@ section > .writeup {
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
+/* Machine avatars are circular with transparent corners */
+.writeup img,
+.article-img[src^="/writeups/"] {
+    border-radius: 50%;
+    background: transparent;
+}
+
 .writeup h3,
 .article-card h3 {
     font-size: 1.15rem;
